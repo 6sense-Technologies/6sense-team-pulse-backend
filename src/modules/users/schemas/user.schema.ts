@@ -1,10 +1,26 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+export enum Designation {
+  FrontendDeveloper = 'Frontend Developer',
+  BackendDeveloper = 'Backend Developer',
+  SQA = 'SQA',
+  ProjectManager = 'Project Manager',
+  Designer = 'Designer',
+}
+
 export interface IssueCount {
   Task: number;
   Bug: number;
   Story: number;
+}
+
+export interface Issue {
+  issueId: string;
+  summary: string;
+  status: string;
+  issueType: string;
+  dueDate: string | null;
 }
 
 export interface IssueHistoryEntry {
@@ -16,6 +32,8 @@ export interface IssueHistoryEntry {
   taskCompletionRate?: number;
   userStoryCompletionRate?: number;
   overallScore?: number;
+  notDoneIssues?: Issue[];
+  doneIssues?: Issue[];
 }
 
 export interface IUser {
@@ -25,6 +43,8 @@ export interface IUser {
   avatarUrls: string;
   currentPerformance: number;
   issueHistory: IssueHistoryEntry[];
+  designation: Designation;
+  isArchive: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -62,6 +82,24 @@ export class User extends Document {
         taskCompletionRate: { type: Number, default: 0 },
         userStoryCompletionRate: { type: Number, default: 0 },
         overallScore: { type: Number, default: 0 },
+        notDoneIssues: [
+          {
+            issueId: { type: String },
+            summary: { type: String },
+            status: { type: String },
+            issueType: { type: String },
+            dueDate: { type: String, default: null },
+          },
+        ],
+        doneIssues: [
+          {
+            issueId: { type: String },
+            summary: { type: String },
+            status: { type: String },
+            issueType: { type: String },
+            dueDate: { type: String, default: null },
+          },
+        ],
       },
     ],
     default: [],
@@ -70,6 +108,12 @@ export class User extends Document {
 
   @Prop({ type: Number, default: 0 })
   currentPerformance: number;
+
+  @Prop({ type: String, enum: Designation })
+  designation: Designation;
+
+  @Prop({ type: Boolean, default: false })
+  isArchive: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

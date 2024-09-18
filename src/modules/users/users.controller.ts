@@ -4,12 +4,16 @@ import {
   Param,
   Delete,
   Query,
+  Post,
+  BadRequestException,
+  Put,
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import {
   IUserResponse,
   IGetAllUsersResponse,
 } from '../../interfaces/jira.interfaces';
+import { Designation } from './schemas/user.schema';
 
 @Controller('users')
 export class UserController {
@@ -41,5 +45,19 @@ export class UserController {
     @Param('accountId') accountId: string,
   ): Promise<IUserResponse> {
     return await this.userService.deleteUser(accountId);
+  }
+
+  @Get('designations/list')
+  getDesignations(): { designations: string[] } {
+    const designations = Object.values(Designation);
+    return { designations };
+  }
+
+  @Put(':accountId/archive')
+  async archiveUser(@Param('accountId') accountId: string): Promise<{ message: string; statusCode: number }> {
+    if (!accountId) {
+      throw new BadRequestException('accountId is required');
+    }
+    return this.userService.archiveUser(accountId);
   }
 }

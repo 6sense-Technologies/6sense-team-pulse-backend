@@ -1,16 +1,19 @@
 import {
+  BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User } from './schemas/user.schema';
+import { Designation, User } from './schemas/user.schema';
 import {
   IJiraUserData,
   IUserResponse,
   IUserWithPagination,
 } from '../../interfaces/jira.interfaces';
+import { ValidationError } from 'class-validator';
 
 @Injectable()
 export class UserService {
@@ -21,8 +24,13 @@ export class UserService {
   async saveUser(
     accountId: string,
     userData: IJiraUserData,
+    designation: Designation,
   ): Promise<{ message: string; statusCode: number; user?: User }> {
     try {
+      if (!Object.values(Designation).includes(designation)) {
+        throw new BadRequestException(`Invalid designation: ${designation}`);
+      }
+
       const avatar48x48 = userData.avatarUrls['48x48'];
 
       const userToSave = {
@@ -31,6 +39,7 @@ export class UserService {
         emailAddress: userData.emailAddress,
         avatarUrls: avatar48x48,
         currentPerformance: userData.currentPerformance || 0,
+        designation,
       };
 
       const existingUser = await this.userModel.findOne({ accountId });
@@ -49,8 +58,16 @@ export class UserService {
         };
       }
     } catch (error) {
-      console.error('Error during user save:', error.message || error);
-      throw new InternalServerErrorException('Error saving user');
+      if (error instanceof ValidationError) {
+        return {
+          message: `Mongoose validation error`,
+          statusCode: 400,
+        };
+      }
+      return {
+        message: error.message || 'Internal Server Error',
+        statusCode: error.status || 500,
+      };
     }
   }
 
@@ -67,17 +84,20 @@ export class UserService {
   }> {
     try {
       const skip = (page - 1) * limit;
-      const totalUsers = await this.userModel.countDocuments();
+      const totalUsers = await this.userModel.countDocuments({
+        isArchive: false,
+      });
       const users = await this.userModel
         .find(
-          {},
-          'accountId displayName emailAddress avatarUrls currentPerformance',
+          { isArchive: false },
+          'accountId displayName emailAddress avatarUrls currentPerformance designation',
         )
-        .sort({ createdAt: -1 }) // Sort in descending order by createdAt
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .exec();
       const totalPages = Math.ceil(totalUsers / limit);
+
       return {
         message: 'Users found successfully',
         statusCode: 200,
@@ -139,7 +159,6 @@ export class UserService {
 
   async deleteUser(accountId: string): Promise<IUserResponse> {
     try {
-      // Check if the user exists
       const existingUser = await this.userModel.findOne({ accountId });
 
       if (!existingUser) {
@@ -154,6 +173,33 @@ export class UserService {
       };
     } catch (error) {
       throw error;
+    }
+  }
+
+  async archiveUser(accountId: string): Promise<{ message: string; statusCode: number }> {
+    try {
+      const user = await this.userModel.findOne({ accountId });
+
+      if (!user) {
+        throw new NotFoundException(`User with accountId not found`);
+      }
+
+      if (user.isArchive) {
+        throw new ConflictException('User is already archived');
+      }
+
+      user.isArchive = true;
+      await user.save();
+
+      return {
+        message: 'User archived successfully',
+        statusCode: 200,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error archiving user');
     }
   }
 }

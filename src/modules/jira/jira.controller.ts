@@ -14,6 +14,7 @@ import {
   IUserResponse,
   IGetUserIssuesResponse,
 } from '../../interfaces/jira.interfaces';
+import { Designation } from '../users/schemas/user.schema';
 
 @Controller('jira')
 export class JiraController {
@@ -36,14 +37,19 @@ export class JiraController {
 
   @Post('users/create')
   async fetchAndSaveUser(
-    @Body() body: { accountId: string },
+    @Body() body: { accountId: string; designation: Designation },
   ): Promise<IUserResponse> {
-    const { accountId } = body;
+    const { accountId, designation } = body;
+
     if (!accountId) {
       throw new BadRequestException('accountId is required');
     }
-    return await this.jiraService.fetchAndSaveUser(accountId);
+    if (!designation) {
+      throw new BadRequestException('designation is required');
+    }
+    return await this.jiraService.fetchAndSaveUser(accountId, designation);
   }
+
   @Post(':accountId/issues/not-done')
   async countNotDoneIssues(
     @Param('accountId') accountId: string,
@@ -57,6 +63,22 @@ export class JiraController {
     @Param('accountId') accountId: string,
   ): Promise<void> {
     await this.jiraService.countDoneIssues(accountId);
+    return;
+  }
+
+  @Post(':accountId/issues/not-done-today')
+  async countNotDoneIssuesForToday(
+    @Param('accountId') accountId: string,
+  ): Promise<void> {
+    await this.jiraService.countNotDoneIssuesForToday(accountId);
+    return;
+  }
+
+  @Post(':accountId/issues/done-today')
+  async countDoneIssuesForToday(
+    @Param('accountId') accountId: string,
+  ): Promise<void> {
+    await this.jiraService.countDoneIssuesForToday(accountId);
     return;
   }
 
