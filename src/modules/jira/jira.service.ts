@@ -16,6 +16,7 @@ import {
   IGetUserIssuesResponse,
 } from '../../interfaces/jira.interfaces';
 import { UserService } from '../users/users.service';
+import { Cron } from '@nestjs/schedule';
 
 dotenv.config();
 
@@ -103,24 +104,29 @@ export class JiraService {
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
       }
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
       throw new InternalServerErrorException('Error fetching and saving user');
     }
   }
 
-  async countNotDoneIssues(accountId: string) {
+  async countNotDoneIssues(accountId: string): Promise<void> {
     const notDoneApiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId} AND status!=Done`;
-  
+
     try {
       const response = await this.httpService
         .get(notDoneApiUrl, { headers: this.headers })
         .toPromise();
       const notDoneIssues = response.data.issues;
-  
-      const countsByDate = {};
+
+      const countsByDate: {
+        [key: string]: { Task: number; Bug: number; Story: number };
+      } = {};
       notDoneIssues.forEach((issue) => {
-        const dueDate = issue.fields.duedate?.split('T')[0]; // Use duedate instead of created
+        const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
-  
+
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = {
@@ -129,7 +135,7 @@ export class JiraService {
               Story: 0,
             };
           }
-  
+
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -139,7 +145,7 @@ export class JiraService {
           }
         }
       });
-  
+
       for (const [date, counts] of Object.entries(countsByDate)) {
         await this.saveNotDoneIssueCounts(accountId, date, counts);
       }
@@ -149,20 +155,22 @@ export class JiraService {
       );
     }
   }
-  
-  async countDoneIssues(accountId: string) {
+
+  async countDoneIssues(accountId: string): Promise<void> {
     const doneApiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId} AND status=Done`;
-  
+
     try {
       const response = await this.httpService
         .get(doneApiUrl, { headers: this.headers })
         .toPromise();
       const doneIssues = response.data.issues;
-      const countsByDate = {};
+      const countsByDate: {
+        [key: string]: { Task: number; Bug: number; Story: number };
+      } = {};
       doneIssues.forEach((issue) => {
-        const dueDate = issue.fields.duedate?.split('T')[0]; // Use duedate instead of created
+        const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
-  
+
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = {
@@ -171,7 +179,7 @@ export class JiraService {
               Story: 0,
             };
           }
-  
+
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -181,17 +189,22 @@ export class JiraService {
           }
         }
       });
-  
+
       for (const [date, counts] of Object.entries(countsByDate)) {
         await this.saveDoneIssueCounts(accountId, date, counts);
       }
     } catch (error) {
-      throw new InternalServerErrorException('Error fetching done issues from Jira');
+      throw new InternalServerErrorException(
+        'Error fetching done issues from Jira',
+      );
     }
   }
-  
 
-  async saveNotDoneIssueCounts(accountId: string, date: string, counts: any) {
+  async saveNotDoneIssueCounts(
+    accountId: string,
+    date: string,
+    counts: { Task: number; Bug: number; Story: number },
+  ): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId });
 
@@ -222,7 +235,11 @@ export class JiraService {
     }
   }
 
-  async saveDoneIssueCounts(accountId: string, date: string, counts: any) {
+  async saveDoneIssueCounts(
+    accountId: string,
+    date: string,
+    counts: { Task: number; Bug: number; Story: number },
+  ): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId });
 
@@ -251,8 +268,8 @@ export class JiraService {
     }
   }
 
-  // @Cron('42 08 * * *')
-  async updateMorningIssueHistory() {
+  @Cron('22 15 * * *')
+  async updateMorningIssueHistory(): Promise<void> {
     console.log('Running updateMorningIssueHistory');
     try {
       const users = await this.userModel.find().exec();
@@ -266,8 +283,8 @@ export class JiraService {
     }
   }
 
-  // @Cron('53 08 * * *')
-  async updateEveningIssueHistory() {
+  @Cron('28 15 * * *')
+  async updateEveningIssueHistory(): Promise<void> {
     console.log('Running updateEveningIssueHistory');
     try {
       const users = await this.userModel.find().exec();
@@ -280,5 +297,4 @@ export class JiraService {
       );
     }
   }
-
 }
