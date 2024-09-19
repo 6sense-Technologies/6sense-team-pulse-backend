@@ -20,7 +20,7 @@ export interface Issue {
   summary: string;
   status: string;
   issueType: string;
-  dueDate: string | null;
+  dueDate: string;
 }
 
 export interface IssueHistoryEntry {
@@ -32,6 +32,7 @@ export interface IssueHistoryEntry {
   taskCompletionRate?: number;
   userStoryCompletionRate?: number;
   overallScore?: number;
+  comment?: string;
   notDoneIssues?: Issue[];
   doneIssues?: Issue[];
 }
@@ -82,6 +83,7 @@ export class User extends Document {
         taskCompletionRate: { type: Number, default: 0 },
         userStoryCompletionRate: { type: Number, default: 0 },
         overallScore: { type: Number, default: 0 },
+        comment: { type: String},
         notDoneIssues: [
           {
             issueId: { type: String },

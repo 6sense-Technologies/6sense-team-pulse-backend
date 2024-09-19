@@ -23,7 +23,7 @@ export class JiraController {
   @Get(':accountId/issues')
   async getUserIssues(
     @Param('accountId') accountId: string,
-  ): Promise<IGetUserIssuesResponse> {
+  ): Promise<IGetUserIssuesResponse[]> {
     return this.jiraService.getUserIssues(accountId);
   }
 

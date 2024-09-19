@@ -22,7 +22,9 @@ dotenv.config();
 
 @Injectable()
 export class JiraService {
-  private readonly jiraBaseUrl = process.env.JIRA_BASE_URL;
+  // private readonly jiraBaseUrl = process.env.JIRA_BASE_URL;
+  private readonly jiraBaseUrl = process.env.JIRA_BASE_URL1; // First URL
+  private readonly jiraBaseUrl2 = process.env.JIRA_BASE_URL2; // Second URL
   private readonly headers = {
     Authorization: `Basic ${Buffer.from(
       `${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`,
@@ -35,6 +37,27 @@ export class JiraService {
     private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
   ) {}
+
+  private async fetchFromBothUrls(endpoint: string) {
+    const url1 = `${this.jiraBaseUrl}${endpoint}`;
+    const url2 = `${this.jiraBaseUrl2}${endpoint}`;
+
+    try {
+      // Perform both API calls in parallel
+      const [response1, response2] = await Promise.all([
+        this.httpService.get(url1, { headers: this.headers }).toPromise(),
+        this.httpService.get(url2, { headers: this.headers }).toPromise(),
+      ]);
+
+      // Combine or process both responses
+      return {
+        fromUrl1: response1.data,
+        fromUrl2: response2.data,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('Error fetching data from Jira');
+    }
+  }
 
   async getUserDetails(accountId: string): Promise<IJiraUserData> {
     const apiUrl = `${this.jiraBaseUrl}/rest/api/3/user?accountId=${accountId}`;
@@ -56,31 +79,36 @@ export class JiraService {
       }
     }
   }
-  async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse> {
-    const apiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId}`;
+
+
+  async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
 
     try {
-      const response = await this.httpService
-        .get(apiUrl, { headers: this.headers })
-        .toPromise();
+      const data = await this.fetchFromBothUrls(endpoint);
 
-      const issues = response.data.issues; // This will be an array of issues
+      const transformIssues = (issues) =>
+        issues.map((issue) => ({
+          id: issue.id,
+          key: issue.key,
+          summary: issue.fields.summary,
+          status: issue.fields.status.name,
+          issueType: issue.fields.issuetype.name,
+          dueDate: issue.fields.duedate,
+        }));
 
-      // Transform or process the issues data if needed
-      const transformedIssues = issues.map((issue) => ({
-        id: issue.id,
-        key: issue.key,
-        summary: issue.fields.summary,
-        status: issue.fields.status.name,
-        issueType: issue.fields.issuetype.name,
-        dueDate: issue.fields.duedate,
-      }));
-
-      return {
-        message: 'Issues retrieved successfully',
-        statusCode: 200,
-        issues: transformedIssues,
-      };
+      return [
+        {
+          message: 'Issues retrieved successfully from URL 1',
+          statusCode: 200,
+          issues: transformIssues(data.fromUrl1.issues),
+        },
+        {
+          message: 'Issues retrieved successfully from URL 2',
+          statusCode: 200,
+          issues: transformIssues(data.fromUrl2.issues),
+        },
+      ];
     } catch (error) {
       throw new InternalServerErrorException('Error fetching issues from Jira');
     }
@@ -131,23 +159,32 @@ export class JiraService {
   async countNotDoneIssues(accountId: string): Promise<void> {
     const date30DaysAgo = new Date();
     date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
-    const formattedDate = date30DaysAgo.toLocaleDateString('en-CA', {
+    const formattedStartDate = date30DaysAgo.toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
 
-    const notDoneApiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate>=${formattedDate}`;
-
+    const today = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Dhaka',
+    });
+  
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate>=${formattedStartDate} AND duedate<=${today}`;
+  
+  
     try {
-      const response = await this.httpService
-        .get(notDoneApiUrl, { headers: this.headers })
-        .toPromise();
-      const notDoneIssues = response.data.issues;
-
+      // Fetch issues from both Jira URLs in parallel
+      const [response1, response2] = await Promise.all([
+        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers }).toPromise(),
+        this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers }).toPromise(),
+      ]);
+  
+      // Combine issues from both responses
+      const notDoneIssues = [...response1.data.issues, ...response2.data.issues];
+  
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
-
+  
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
@@ -155,13 +192,13 @@ export class JiraService {
         const summary = issue.fields.summary;
         const status = issue.fields.status.name;
         const dueDateFormatted = issue.fields.duedate || null;
-
+  
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
             issuesByDate[dueDate] = [];
           }
-
+  
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -169,7 +206,7 @@ export class JiraService {
           } else if (issueType === 'Story') {
             countsByDate[dueDate].Story++;
           }
-
+  
           issuesByDate[dueDate].push({
             issueId,
             summary,
@@ -179,7 +216,8 @@ export class JiraService {
           });
         }
       });
-
+  
+      // Save the results by date
       for (const [date, counts] of Object.entries(countsByDate)) {
         await this.saveNotDoneIssueCounts(
           accountId,
@@ -194,27 +232,37 @@ export class JiraService {
       );
     }
   }
-
+  
   async countDoneIssues(accountId: string): Promise<void> {
     const date30DaysAgo = new Date();
     date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
-    const formattedDate = date30DaysAgo.toLocaleDateString('en-CA', {
+    const formattedStartDate = date30DaysAgo.toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
-
-    const doneApiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate>=${formattedDate}`;
-
+  
+    // Format today's date for the end of the range
+    const today = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Dhaka',
+    });
+  
+    // Endpoint with the date range for done issues
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate>=${formattedStartDate} AND duedate<=${today}`;
+  
     try {
-      const response = await this.httpService
-        .get(doneApiUrl, { headers: this.headers })
-        .toPromise();
-      const doneIssues = response.data.issues;
-
+      // Fetch done issues from both Jira URLs in parallel
+      const [response1, response2] = await Promise.all([
+        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers }).toPromise(),
+        this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers }).toPromise(),
+      ]);
+  
+      // Combine done issues from both responses
+      const doneIssues = [...response1.data.issues, ...response2.data.issues];
+  
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
-
+  
       doneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
@@ -222,13 +270,13 @@ export class JiraService {
         const summary = issue.fields.summary;
         const status = issue.fields.status.name;
         const dueDateFormatted = issue.fields.duedate || null;
-
+  
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
             issuesByDate[dueDate] = [];
           }
-
+  
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -236,7 +284,7 @@ export class JiraService {
           } else if (issueType === 'Story') {
             countsByDate[dueDate].Story++;
           }
-
+  
           issuesByDate[dueDate].push({
             issueId,
             summary,
@@ -246,7 +294,8 @@ export class JiraService {
           });
         }
       });
-
+  
+      // Save the results by date
       for (const [date, counts] of Object.entries(countsByDate)) {
         await this.saveDoneIssueCounts(
           accountId,
@@ -261,6 +310,7 @@ export class JiraService {
       );
     }
   }
+  
 
   async saveNotDoneIssueCounts(
     accountId: string,
@@ -336,34 +386,38 @@ export class JiraService {
     const today = new Date().toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
-    console.log(today)
-
-    const notDoneApiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${today}`;
-
+    console.log(today);
+  
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${today}`;
+  
     try {
-      const response = await this.httpService
-        .get(notDoneApiUrl, { headers: this.headers })
-        .toPromise();
-      const notDoneIssues = response.data.issues;
-
+      // Fetch issues from both Jira URLs in parallel
+      const [response1, response2] = await Promise.all([
+        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers }).toPromise(),
+        this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers }).toPromise(),
+      ]);
+  
+      // Combine issues from both responses
+      const notDoneIssues = [...response1.data.issues, ...response2.data.issues];
+  
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
-
+  
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
         const issueId = issue.id;
         const summary = issue.fields.summary;
         const status = issue.fields.status.name;
-
+  
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
             issuesByDate[dueDate] = [];
           }
-
+  
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -371,7 +425,7 @@ export class JiraService {
           } else if (issueType === 'Story') {
             countsByDate[dueDate].Story++;
           }
-
+  
           issuesByDate[dueDate].push({
             issueId,
             summary,
@@ -381,7 +435,8 @@ export class JiraService {
           });
         }
       });
-
+  
+      // Save the results by date
       for (const [date, counts] of Object.entries(countsByDate)) {
         await this.saveNotDoneIssueCounts(
           accountId,
@@ -396,38 +451,42 @@ export class JiraService {
       );
     }
   }
-
+  
   async countDoneIssuesForToday(accountId: string): Promise<void> {
     const today = new Date().toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
-
-    const doneApiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate=${today}`;
-
+  
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate=${today}`;
+  
     try {
-      const response = await this.httpService
-        .get(doneApiUrl, { headers: this.headers })
-        .toPromise();
-      const doneIssues = response.data.issues;
-
+      // Fetch done issues from both Jira URLs in parallel
+      const [response1, response2] = await Promise.all([
+        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers }).toPromise(),
+        this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers }).toPromise(),
+      ]);
+  
+      // Combine issues from both responses
+      const doneIssues = [...response1.data.issues, ...response2.data.issues];
+  
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
-
+  
       doneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
         const issueId = issue.id;
         const summary = issue.fields.summary;
         const status = issue.fields.status.name;
-
+  
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
             issuesByDate[dueDate] = [];
           }
-
+  
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -435,7 +494,7 @@ export class JiraService {
           } else if (issueType === 'Story') {
             countsByDate[dueDate].Story++;
           }
-
+  
           issuesByDate[dueDate].push({
             issueId,
             summary,
@@ -445,7 +504,8 @@ export class JiraService {
           });
         }
       });
-
+  
+      // Save the results by date
       for (const [date, counts] of Object.entries(countsByDate)) {
         await this.saveDoneIssueCounts(
           accountId,
@@ -461,7 +521,8 @@ export class JiraService {
     }
   }
   
-  // @Cron('52 23 * * *')
+
+  // @Cron('53 23 * * *')
   // async updateMorningIssueHistory(): Promise<void> {
   //   console.log('Running updateMorningIssueHistory');
   //   try {
@@ -476,7 +537,7 @@ export class JiraService {
   //   }
   // }
 
-  @Cron('22 00 * * *')
+  @Cron('46 23 * * *')
   async updateMorningIssueHistory(): Promise<void> {
     console.log('Running updateMorningIssueHistory');
     try {
@@ -490,8 +551,6 @@ export class JiraService {
       );
     }
   }
-
-  
 
   // @Cron('28 15 * * *')
   // async updateEveningIssueHistory(): Promise<void> {
@@ -535,46 +594,16 @@ export class JiraService {
         users.map(async (user) => {
           const issueHistory = user.issueHistory;
 
-          // Process each issue history entry to calculate metrics
+          // Aggregate counts by date and calculate metrics
           const metricsByDay = await Promise.all(
             issueHistory.map(async (entry) => {
-              const { date, notDoneIssues, doneIssues } = entry;
+              const { date, issuesCount } = entry;
+              const counts = issuesCount;
 
               let taskCompletionRate = 0;
               let userStoryCompletionRate = 0;
               let overallScore = 0;
-
-              const notDoneIssueIds = notDoneIssues.map(
-                (issue) => issue.issueId,
-              );
-              const doneIssuesFiltered = doneIssues.filter((issue) =>
-                notDoneIssueIds.includes(issue.issueId),
-              );
-
-              const counts = {
-                notDone: {
-                  Task: notDoneIssues.filter(
-                    (issue) => issue.issueType === 'Task',
-                  ).length,
-                  Bug: notDoneIssues.filter(
-                    (issue) => issue.issueType === 'Bug',
-                  ).length,
-                  Story: notDoneIssues.filter(
-                    (issue) => issue.issueType === 'Story',
-                  ).length,
-                },
-                done: {
-                  Task: doneIssuesFiltered.filter(
-                    (issue) => issue.issueType === 'Task',
-                  ).length,
-                  Bug: doneIssuesFiltered.filter(
-                    (issue) => issue.issueType === 'Bug',
-                  ).length,
-                  Story: doneIssuesFiltered.filter(
-                    (issue) => issue.issueType === 'Story',
-                  ).length,
-                },
-              };
+              let comment = ''; 
 
               const totalNotDoneTasksAndBugs =
                 counts.notDone.Task + counts.notDone.Bug;
@@ -590,6 +619,12 @@ export class JiraService {
               if (counts.notDone.Story > 0) {
                 userStoryCompletionRate =
                   (counts.done.Story / counts.notDone.Story) * 100;
+              }
+
+              if (totalDoneTasksAndBugs+counts.done.Story > totalNotDoneTasksAndBugs+counts.notDone.Story) {
+                taskCompletionRate = 100;
+                userStoryCompletionRate = 100;
+                comment = `Your target was ${totalDoneTasksAndBugs+counts.notDone.Story}, but you completed ${totalNotDoneTasksAndBugs+counts.done.Story}. This is not a good sign.`;
               }
 
               // Calculate overall score based on available metrics
@@ -621,6 +656,7 @@ export class JiraService {
               entry.taskCompletionRate = taskCompletionRateNum;
               entry.userStoryCompletionRate = userStoryCompletionRateNum;
               entry.overallScore = overallScoreNum;
+              entry.comment = comment;
 
               return {
                 date,
@@ -632,6 +668,7 @@ export class JiraService {
                 taskCompletionRate: taskCompletionRateNum,
                 userStoryCompletionRate: userStoryCompletionRateNum,
                 overallScore: overallScoreNum,
+                comment,
               };
             }),
           );
@@ -658,9 +695,7 @@ export class JiraService {
         users: updatedUsers,
       };
     } catch (error) {
-      throw new InternalServerErrorException(
-        `Error getting user metrics: ${error.message}`,
-      );
+      throw new error();
     }
   }
 }
