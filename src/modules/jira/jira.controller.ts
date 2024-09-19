@@ -50,7 +50,7 @@ export class JiraController {
     return await this.jiraService.fetchAndSaveUser(accountId, designation);
   }
 
-  @Post(':accountId/issues/not-done')
+  @Put(':accountId/issues/not-done-month')
   async countNotDoneIssues(
     @Param('accountId') accountId: string,
   ): Promise<void> {
@@ -58,7 +58,7 @@ export class JiraController {
     return;
   }
 
-  @Post(':accountId/issues/done')
+  @Put(':accountId/issues/done-month')
   async countDoneIssues(
     @Param('accountId') accountId: string,
   ): Promise<void> {
@@ -66,7 +66,7 @@ export class JiraController {
     return;
   }
 
-  @Post(':accountId/issues/not-done-today')
+  @Put(':accountId/issues/not-done-today')
   async countNotDoneIssuesForToday(
     @Param('accountId') accountId: string,
   ): Promise<void> {
@@ -74,7 +74,7 @@ export class JiraController {
     return;
   }
 
-  @Post(':accountId/issues/done-today')
+  @Put(':accountId/issues/done-today')
   async countDoneIssuesForToday(
     @Param('accountId') accountId: string,
   ): Promise<void> {
@@ -91,6 +91,12 @@ export class JiraController {
   @Put('update-evening-issue-history')
   async updateEveningIssueHistory(): Promise<void> {
     await this.jiraService.updateEveningIssueHistory();
+    return;
+  }
+
+  @Put('metrics')
+  async getUserMetrics() {
+    await this.jiraService.getAllUserMetrics();
     return;
   }
 }
