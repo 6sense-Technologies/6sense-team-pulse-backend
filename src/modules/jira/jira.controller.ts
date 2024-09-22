@@ -59,9 +59,7 @@ export class JiraController {
   }
 
   @Put(':accountId/issues/done-month')
-  async countDoneIssues(
-    @Param('accountId') accountId: string,
-  ): Promise<void> {
+  async countDoneIssues(@Param('accountId') accountId: string): Promise<void> {
     await this.jiraService.countDoneIssues(accountId);
     return;
   }
@@ -91,6 +89,18 @@ export class JiraController {
   @Put('update-evening-issue-history')
   async updateEveningIssueHistory(): Promise<void> {
     await this.jiraService.updateEveningIssueHistory();
+    return;
+  }
+
+  @Put('update-morning-issue-history-30days')
+  async updateMorningIssueHistoryFor30days(): Promise<void> {
+    await this.jiraService.updateMorningIssueHistoryFor30days();
+    return;
+  }
+
+  @Put('update-evening-issue-history-30days')
+  async updateEveningIssueHistoryFor30days(): Promise<void> {
+    await this.jiraService.updateEveningIssueHistoryFor30days();
     return;
   }
 

@@ -60,26 +60,51 @@ export class JiraService {
   }
 
   async getUserDetails(accountId: string): Promise<IJiraUserData> {
-    const apiUrl = `${this.jiraBaseUrl}/rest/api/3/user?accountId=${accountId}`;
+    const endpoint = `/rest/api/3/user?accountId=${accountId}`;
 
     try {
-      const response = await this.httpService
-        .get<IJiraUserData>(apiUrl, { headers: this.headers })
+      // Try to fetch the user details from the first base URL
+      const response1 = await this.httpService
+        .get(`${this.jiraBaseUrl}${endpoint}`, {
+          headers: this.headers,
+        })
         .toPromise();
-      return response.data;
+
+      // If found, return the user details from the first URL
+      return response1.data;
     } catch (error) {
+      // If the error is 404, proceed to check the second base URL
       if (error.response && error.response.status === 404) {
-        throw new NotFoundException(`User not found`);
+        try {
+          // Try fetching from the second base URL
+          const response2 = await this.httpService
+            .get(`${this.jiraBaseUrl2}${endpoint}`, {
+              headers: this.headers,
+            })
+            .toPromise();
+
+          // If found, return the user details from the second URL
+          return response2.data;
+        } catch (error2) {
+          if (error2.response && error2.response.status === 404) {
+            throw new NotFoundException(`User not found on both URLs`);
+          } else if (error2.response && error2.response.status === 400) {
+            throw new BadRequestException(`Invalid accountId`);
+          } else {
+            throw new InternalServerErrorException(
+              'Error fetching user details from the second Jira URL',
+            );
+          }
+        }
       } else if (error.response && error.response.status === 400) {
         throw new BadRequestException(`Invalid accountId`);
       } else {
         throw new InternalServerErrorException(
-          'Error fetching user details from Jira',
+          'Error fetching user details from the first Jira URL',
         );
       }
     }
   }
-
 
   async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
@@ -166,25 +191,31 @@ export class JiraService {
     const today = new Date().toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
-  
+
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate>=${formattedStartDate} AND duedate<=${today}`;
-  
-  
+
     try {
       // Fetch issues from both Jira URLs in parallel
       const [response1, response2] = await Promise.all([
-        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers }).toPromise(),
-        this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers }).toPromise(),
+        this.httpService
+          .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
+          .toPromise(),
+        this.httpService
+          .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
+          .toPromise(),
       ]);
-  
+
       // Combine issues from both responses
-      const notDoneIssues = [...response1.data.issues, ...response2.data.issues];
-  
+      const notDoneIssues = [
+        ...response1.data.issues,
+        ...response2.data.issues,
+      ];
+
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
-  
+
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
@@ -192,13 +223,13 @@ export class JiraService {
         const summary = issue.fields.summary;
         const status = issue.fields.status.name;
         const dueDateFormatted = issue.fields.duedate || null;
-  
+
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
             issuesByDate[dueDate] = [];
           }
-  
+
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -206,7 +237,7 @@ export class JiraService {
           } else if (issueType === 'Story') {
             countsByDate[dueDate].Story++;
           }
-  
+
           issuesByDate[dueDate].push({
             issueId,
             summary,
@@ -216,7 +247,7 @@ export class JiraService {
           });
         }
       });
-  
+
       // Save the results by date
       for (const [date, counts] of Object.entries(countsByDate)) {
         await this.saveNotDoneIssueCounts(
@@ -232,7 +263,7 @@ export class JiraService {
       );
     }
   }
-  
+
   async countDoneIssues(accountId: string): Promise<void> {
     const date30DaysAgo = new Date();
     date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
@@ -240,28 +271,29 @@ export class JiraService {
       timeZone: 'Asia/Dhaka',
     });
   
-    // Format today's date for the end of the range
     const today = new Date().toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
   
-    // Endpoint with the date range for done issues
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate>=${formattedStartDate} AND duedate<=${today}`;
   
     try {
-      // Fetch done issues from both Jira URLs in parallel
       const [response1, response2] = await Promise.all([
-        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers }).toPromise(),
-        this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers }).toPromise(),
+        this.httpService
+          .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
+          .toPromise(),
+        this.httpService
+          .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
+          .toPromise(),
       ]);
   
-      // Combine done issues from both responses
       const doneIssues = [...response1.data.issues, ...response2.data.issues];
   
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
+      const bugLinksByDate: { [key: string]: number } = {}; // Store bug links
   
       doneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
@@ -270,13 +302,16 @@ export class JiraService {
         const summary = issue.fields.summary;
         const status = issue.fields.status.name;
         const dueDateFormatted = issue.fields.duedate || null;
+        const issueLinks = issue.fields.issuelinks || []; // Check for issue links
   
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
             issuesByDate[dueDate] = [];
+            bugLinksByDate[dueDate] = 0; // Initialize bug link counter
           }
   
+          // Count issue types
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -284,6 +319,13 @@ export class JiraService {
           } else if (issueType === 'Story') {
             countsByDate[dueDate].Story++;
           }
+  
+          // Track linked bugs
+          issueLinks.forEach((link) => {
+            if (link.type.name === 'Blocks' && link.outwardIssue.fields.issuetype.name === 'Bug') {
+              bugLinksByDate[dueDate]++; // Count linked bugs
+            }
+          });
   
           issuesByDate[dueDate].push({
             issueId,
@@ -297,11 +339,17 @@ export class JiraService {
   
       // Save the results by date
       for (const [date, counts] of Object.entries(countsByDate)) {
+        const totalTasksAndStories = counts.Task + counts.Story;
+        const codeToBugRatio = totalTasksAndStories > 0 
+          ? bugLinksByDate[date] / totalTasksAndStories 
+          : 0;
+  
         await this.saveDoneIssueCounts(
           accountId,
           date,
           counts,
           issuesByDate[date],
+          codeToBugRatio // Save the calculated code-to-bug ratio
         );
       }
     } catch (error) {
@@ -353,71 +401,84 @@ export class JiraService {
     date: string,
     counts: { Task: number; Bug: number; Story: number },
     issues: Issue[],
+    codeToBugRatio: number, // Added codeToBugRatio as a parameter
   ): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId });
-
+  
       if (!user) {
         throw new InternalServerErrorException('User not found');
       }
-
+  
       const existingHistory = user.issueHistory.find(
         (history) => history.date === date,
       );
-
+  
       if (existingHistory) {
+        // Update existing history
         existingHistory.issuesCount.done = counts;
         existingHistory.doneIssues = issues;
+        existingHistory.codeToBugRatio = codeToBugRatio; // Save the code-to-bug ratio
       } else {
+        // Add a new history entry if none exists for the date
         user.issueHistory.push({
           date,
           issuesCount: { done: counts },
           doneIssues: issues,
+          codeToBugRatio, // Save the code-to-bug ratio
         });
       }
-
+  
       await user.save();
     } catch (error) {
       throw new InternalServerErrorException('Error saving done issue counts');
     }
   }
+  
 
   async countNotDoneIssuesForToday(accountId: string): Promise<void> {
     const today = new Date().toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
     console.log(today);
-  
+
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${today}`;
-  
+
     try {
       // Fetch issues from both Jira URLs in parallel
       const [response1, response2] = await Promise.all([
-        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers }).toPromise(),
-        this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers }).toPromise(),
+        this.httpService
+          .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
+          .toPromise(),
+        this.httpService
+          .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
+          .toPromise(),
       ]);
-  
+
       // Combine issues from both responses
-      const notDoneIssues = [...response1.data.issues, ...response2.data.issues];
-  
+      const notDoneIssues = [
+        ...response1.data.issues,
+        ...response2.data.issues,
+      ];
+
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
-  
+
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
         const issueId = issue.id;
         const summary = issue.fields.summary;
         const status = issue.fields.status.name;
-  
+
         if (dueDate) {
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
             issuesByDate[dueDate] = [];
           }
-  
+
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -425,7 +486,7 @@ export class JiraService {
           } else if (issueType === 'Story') {
             countsByDate[dueDate].Story++;
           }
-  
+
           issuesByDate[dueDate].push({
             issueId,
             summary,
@@ -435,7 +496,7 @@ export class JiraService {
           });
         }
       });
-  
+
       // Save the results by date
       for (const [date, counts] of Object.entries(countsByDate)) {
         await this.saveNotDoneIssueCounts(
@@ -451,7 +512,7 @@ export class JiraService {
       );
     }
   }
-  
+
   async countDoneIssuesForToday(accountId: string): Promise<void> {
     const today = new Date().toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
@@ -462,19 +523,23 @@ export class JiraService {
     try {
       // Fetch done issues from both Jira URLs in parallel
       const [response1, response2] = await Promise.all([
-        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers }).toPromise(),
-        this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers }).toPromise(),
+        this.httpService
+          .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
+          .toPromise(),
+        this.httpService
+          .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
+          .toPromise(),
       ]);
   
       // Combine issues from both responses
       const doneIssues = [...response1.data.issues, ...response2.data.issues];
   
       const countsByDate: {
-        [key: string]: { Task: number; Bug: number; Story: number };
+        [key: string]: { Task: number; Bug: number; Story: number; LinkedBugs: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
   
-      doneIssues.forEach((issue) => {
+      for (const issue of doneIssues) {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
         const issueId = issue.id;
@@ -483,10 +548,11 @@ export class JiraService {
   
         if (dueDate) {
           if (!countsByDate[dueDate]) {
-            countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
+            countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0, LinkedBugs: 0 };
             issuesByDate[dueDate] = [];
           }
   
+          // Count Tasks, Bugs, and Stories
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -494,6 +560,16 @@ export class JiraService {
           } else if (issueType === 'Story') {
             countsByDate[dueDate].Story++;
           }
+  
+          // Check for linked bugs in issue links
+          const issueLinks = issue.fields.issuelinks || [];
+          const linkedBugs = issueLinks.filter(
+            (link) =>
+              link.outwardIssue?.fields.issuetype.name === 'Bug' ||
+              link.inwardIssue?.fields.issuetype.name === 'Bug',
+          ).length;
+  
+          countsByDate[dueDate].LinkedBugs += linkedBugs;
   
           issuesByDate[dueDate].push({
             issueId,
@@ -503,15 +579,29 @@ export class JiraService {
             dueDate,
           });
         }
-      });
+      }
   
-      // Save the results by date
+      // Save the results by date and calculate the bug-to-task/story ratio
       for (const [date, counts] of Object.entries(countsByDate)) {
+        const taskAndStoryCount = counts.Task + counts.Story;
+        let bugToTaskStoryRatio = 0;
+  
+        if (taskAndStoryCount > 0) {
+          bugToTaskStoryRatio = counts.LinkedBugs / taskAndStoryCount;
+        }
+  
+        // Log counts for debugging
+        console.log(`Date: ${date}`);
+        console.log(`Tasks: ${counts.Task}, Stories: ${counts.Story}, Linked Bugs: ${counts.LinkedBugs}`);
+        console.log(`Bug to Task/Story Ratio: ${bugToTaskStoryRatio.toFixed(2)}`);
+  
+        // Save the done issues and the bug-to-task/story ratio
         await this.saveDoneIssueCounts(
           accountId,
           date,
           counts,
           issuesByDate[date],
+          bugToTaskStoryRatio // Now this is a number
         );
       }
     } catch (error) {
@@ -521,21 +611,23 @@ export class JiraService {
     }
   }
   
+  
+  
 
-  // @Cron('53 23 * * *')
-  // async updateMorningIssueHistory(): Promise<void> {
-  //   console.log('Running updateMorningIssueHistory');
-  //   try {
-  //     const users = await this.userModel.find().exec();
-  //     for (const user of users) {
-  //       await this.countNotDoneIssues(user.accountId);
-  //     }
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(
-  //       'Error updating issue history for all users in the morning',
-  //     );
-  //   }
-  // }
+  @Cron('53 23 * * *')
+  async updateMorningIssueHistoryFor30days(): Promise<void> {
+    console.log('Running updateMorningIssueHistory');
+    try {
+      const users = await this.userModel.find().exec();
+      for (const user of users) {
+        await this.countNotDoneIssues(user.accountId);
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error updating issue history for all users in the morning',
+      );
+    }
+  }
 
   @Cron('46 23 * * *')
   async updateMorningIssueHistory(): Promise<void> {
@@ -552,20 +644,20 @@ export class JiraService {
     }
   }
 
-  // @Cron('28 15 * * *')
-  // async updateEveningIssueHistory(): Promise<void> {
-  //   console.log('Running updateEveningIssueHistory');
-  //   try {
-  //     const users = await this.userModel.find().exec();
-  //     for (const user of users) {
-  //       await this.countDoneIssues(user.accountId);
-  //     }
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(
-  //       'Error updating issue history for all users in the evening',
-  //     );
-  //   }
-  // }
+  @Cron('28 15 * * *')
+  async updateEveningIssueHistoryFor30days(): Promise<void> {
+    console.log('Running updateEveningIssueHistory');
+    try {
+      const users = await this.userModel.find().exec();
+      for (const user of users) {
+        await this.countDoneIssues(user.accountId);
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error updating issue history for all users in the evening',
+      );
+    }
+  }
 
   @Cron('32 00 * * *')
   async updateEveningIssueHistory(): Promise<void> {
@@ -597,13 +689,13 @@ export class JiraService {
           // Aggregate counts by date and calculate metrics
           const metricsByDay = await Promise.all(
             issueHistory.map(async (entry) => {
-              const { date, issuesCount } = entry;
+              const { date, issuesCount, notDoneIssues, doneIssues } = entry;
               const counts = issuesCount;
 
               let taskCompletionRate = 0;
               let userStoryCompletionRate = 0;
               let overallScore = 0;
-              let comment = ''; 
+              let comment = '';
 
               const totalNotDoneTasksAndBugs =
                 counts.notDone.Task + counts.notDone.Bug;
@@ -621,10 +713,30 @@ export class JiraService {
                   (counts.done.Story / counts.notDone.Story) * 100;
               }
 
-              if (totalDoneTasksAndBugs+counts.done.Story > totalNotDoneTasksAndBugs+counts.notDone.Story) {
+              // Check if the number of done tasks is greater than not-done
+              if (
+                totalDoneTasksAndBugs + counts.done.Story >
+                totalNotDoneTasksAndBugs + counts.notDone.Story
+              ) {
                 taskCompletionRate = 100;
                 userStoryCompletionRate = 100;
-                comment = `Your target was ${totalDoneTasksAndBugs+counts.notDone.Story}, but you completed ${totalNotDoneTasksAndBugs+counts.done.Story}. This is not a good sign.`;
+                comment = `Your target was ${totalNotDoneTasksAndBugs + counts.notDone.Story}, but you completed ${totalDoneTasksAndBugs + counts.done.Story}.`;
+              }
+
+              // Check if task IDs in notDoneIssues match with those in doneIssues
+              const notDoneIssueIds = notDoneIssues.map(
+                (issue) => issue.issueId,
+              );
+              const doneIssueIds = doneIssues.map((issue) => issue.issueId);
+
+              // Find tasks in `doneIssues` that do not match any in `notDoneIssues`
+              const unmatchedDoneIssueIds = doneIssueIds.filter(
+                (doneId) => !notDoneIssueIds.includes(doneId),
+              );
+
+              // Check if there are unmatched done tasks
+              if (unmatchedDoneIssueIds.length > 0) {
+                comment += ` ${unmatchedDoneIssueIds.length} task(s) that you completed do not match with your targeted task(s).`;
               }
 
               // Calculate overall score based on available metrics

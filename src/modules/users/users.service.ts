@@ -58,6 +58,7 @@ export class UserService {
         };
       }
     } catch (error) {
+      console.log(error);
       if (error instanceof ValidationError) {
         return {
           message: `Mongoose validation error`,
@@ -107,9 +108,7 @@ export class UserService {
         totalUsers,
       };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error fetching users from database',
-      );
+      throw error;
     }
   }
 
@@ -151,9 +150,7 @@ export class UserService {
         user: userWithPagination,
       };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error fetching user data from database',
-      );
+      throw error;
     }
   }
 
@@ -176,7 +173,9 @@ export class UserService {
     }
   }
 
-  async archiveUser(accountId: string): Promise<{ message: string; statusCode: number }> {
+  async archiveUser(
+    accountId: string,
+  ): Promise<{ message: string; statusCode: number }> {
     try {
       const user = await this.userModel.findOne({ accountId });
 
@@ -196,7 +195,10 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ConflictException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
         throw error;
       }
       throw new InternalServerErrorException('Error archiving user');
