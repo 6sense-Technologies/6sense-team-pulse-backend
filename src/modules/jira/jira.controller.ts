@@ -20,12 +20,12 @@ import { Designation } from '../users/schemas/user.schema';
 export class JiraController {
   constructor(private readonly jiraService: JiraService) {}
 
-  @Get(':accountId/issues')
-  async getUserIssues(
-    @Param('accountId') accountId: string,
-  ): Promise<IGetUserIssuesResponse[]> {
-    return this.jiraService.getUserIssues(accountId);
-  }
+  // @Get(':accountId/issues')
+  // async getUserIssues(
+  //   @Param('accountId') accountId: string,
+  // ): Promise<IGetUserIssuesResponse[]> {
+  //   return this.jiraService.getUserIssues(accountId);
+  // }
 
   @Get(':accountId')
   async getUserDetails(
@@ -50,19 +50,19 @@ export class JiraController {
     return await this.jiraService.fetchAndSaveUser(accountId, designation);
   }
 
-  @Put(':accountId/issues/not-done-month')
-  async countNotDoneIssues(
-    @Param('accountId') accountId: string,
-  ): Promise<void> {
-    await this.jiraService.countNotDoneIssues(accountId);
-    return;
-  }
+  // @Put(':accountId/issues/not-done-month')
+  // async countNotDoneIssues(
+  //   @Param('accountId') accountId: string,
+  // ): Promise<void> {
+  //   await this.jiraService.countNotDoneIssues(accountId);
+  //   return;
+  // }
 
-  @Put(':accountId/issues/done-month')
-  async countDoneIssues(@Param('accountId') accountId: string): Promise<void> {
-    await this.jiraService.countDoneIssues(accountId);
-    return;
-  }
+  // @Put(':accountId/issues/done-month')
+  // async countDoneIssues(@Param('accountId') accountId: string): Promise<void> {
+  //   await this.jiraService.countDoneIssues(accountId);
+  //   return;
+  // }
 
   @Put(':accountId/issues/not-done-today')
   async countNotDoneIssuesForToday(
@@ -92,17 +92,17 @@ export class JiraController {
     return;
   }
 
-  @Put('update-morning-issue-history-30days')
-  async updateMorningIssueHistoryFor30days(): Promise<void> {
-    await this.jiraService.updateMorningIssueHistoryFor30days();
-    return;
-  }
+  // @Put('update-morning-issue-history-30days')
+  // async updateMorningIssueHistoryFor30days(): Promise<void> {
+  //   await this.jiraService.updateMorningIssueHistoryFor30days();
+  //   return;
+  // }
 
-  @Put('update-evening-issue-history-30days')
-  async updateEveningIssueHistoryFor30days(): Promise<void> {
-    await this.jiraService.updateEveningIssueHistoryFor30days();
-    return;
-  }
+  // @Put('update-evening-issue-history-30days')
+  // async updateEveningIssueHistoryFor30days(): Promise<void> {
+  //   await this.jiraService.updateEveningIssueHistoryFor30days();
+  //   return;
+  // }
 
   @Put('metrics')
   async getUserMetrics() {

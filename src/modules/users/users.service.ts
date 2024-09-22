@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -13,7 +12,6 @@ import {
   IUserResponse,
   IUserWithPagination,
 } from '../../interfaces/jira.interfaces';
-import { ValidationError } from 'class-validator';
 
 @Injectable()
 export class UserService {
@@ -25,10 +23,15 @@ export class UserService {
     accountId: string,
     userData: IJiraUserData,
     designation: Designation,
-  ): Promise<{ message: string; statusCode: number; user?: User }> {
+  ): Promise<{ statusCode: number; message: string; user?: User }> {
     try {
       if (!Object.values(Designation).includes(designation)) {
-        throw new BadRequestException(`Invalid designation: ${designation}`);
+        throw new BadRequestException({
+          status: 400,
+          errorCode: 'invalid_designation',
+          message: `Invalid designation: ${designation}`,
+          data: {},
+        });
       }
 
       const avatar48x48 = userData.avatarUrls['48x48'];
@@ -58,17 +61,7 @@ export class UserService {
         };
       }
     } catch (error) {
-      console.log(error);
-      if (error instanceof ValidationError) {
-        return {
-          message: `Mongoose validation error`,
-          statusCode: 400,
-        };
-      }
-      return {
-        message: error.message || 'Internal Server Error',
-        statusCode: error.status || 500,
-      };
+      throw error;
     }
   }
 
@@ -121,21 +114,23 @@ export class UserService {
       const user = await this.userModel.findOne({ accountId }).exec();
 
       if (!user) {
-        throw new NotFoundException(`User not found`);
+        throw new NotFoundException({
+          status: 404,
+          errorCode: 'user_not_found',
+          message: 'User not found',
+          data: {},
+        });
       }
 
-      // Calculate pagination parameters
       const skip = (page - 1) * limit;
 
-      // Sort the issueHistory by date and then paginate
       const totalIssueHistory = user.issueHistory.length;
       const sortedIssueHistory = user.issueHistory
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(skip, skip + limit); // Slice for pagination
+        .slice(skip, skip + limit);
 
-      const totalPages = Math.ceil(totalIssueHistory / limit); // Total pages based on issue history
+      const totalPages = Math.ceil(totalIssueHistory / limit);
 
-      // Create a new user object with paginated issue history
       const userWithPagination: IUserWithPagination = {
         ...user.toObject(),
         issueHistory: sortedIssueHistory,
@@ -159,7 +154,12 @@ export class UserService {
       const existingUser = await this.userModel.findOne({ accountId });
 
       if (!existingUser) {
-        throw new NotFoundException(`User not found`);
+        throw new NotFoundException({
+          status: 404,
+          errorCode: 'user_not_found',
+          message: 'User not found',
+          data: {},
+        });
       }
 
       await this.userModel.findOneAndDelete({ accountId });
@@ -180,11 +180,21 @@ export class UserService {
       const user = await this.userModel.findOne({ accountId });
 
       if (!user) {
-        throw new NotFoundException(`User with accountId not found`);
+        throw new NotFoundException({
+          status: 404,
+          errorCode: 'user_not_found',
+          message: 'User with accountId not found',
+          data: {},
+        });
       }
 
       if (user.isArchive) {
-        throw new ConflictException('User is already archived');
+        throw new ConflictException({
+          status: 409,
+          errorCode: 'user_already_archived',
+          message: 'User is already archived',
+          data: {},
+        });
       }
 
       user.isArchive = true;
@@ -195,13 +205,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof ConflictException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Error archiving user');
+      throw error;
     }
   }
 }
