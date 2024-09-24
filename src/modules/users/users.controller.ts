@@ -13,7 +13,7 @@ import {
   IUserResponse,
   IGetAllUsersResponse,
 } from '../../interfaces/jira.interfaces';
-import { Designation } from './schemas/user.schema';
+import { Designation,Project } from './schemas/user.schema';
 
 @Controller('users')
 export class UserController {
@@ -34,11 +34,10 @@ export class UserController {
   async getUser(
     @Param('accountId') accountId: string,
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10
+    @Query('limit') limit: number = 10,
   ): Promise<IUserResponse> {
     return this.userService.getUser(accountId, page, limit);
   }
-  
 
   @Delete(':accountId')
   async deleteUser(
@@ -53,8 +52,16 @@ export class UserController {
     return { designations };
   }
 
+  @Get('projects/list')
+  getProjects(): { projects: string[] } {
+    const projects = Object.values(Project);
+    return { projects };
+  }
+
   @Put(':accountId/archive')
-  async archiveUser(@Param('accountId') accountId: string): Promise<{ message: string; statusCode: number }> {
+  async archiveUser(
+    @Param('accountId') accountId: string,
+  ): Promise<{ message: string; statusCode: number }> {
     if (!accountId) {
       throw new BadRequestException('accountId is required');
     }

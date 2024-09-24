@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Designation, User } from './schemas/user.schema';
+import { Designation, Project, User } from './schemas/user.schema';
 import {
   IJiraUserData,
   IUserResponse,
@@ -23,6 +23,7 @@ export class UserService {
     accountId: string,
     userData: IJiraUserData,
     designation: Designation,
+    project: Project,
   ): Promise<{ statusCode: number; message: string; user?: User }> {
     try {
       if (!Object.values(Designation).includes(designation)) {
@@ -33,9 +34,18 @@ export class UserService {
           data: {},
         });
       }
-
+  
+      if (!Object.values(Project).includes(project)) {
+        throw new BadRequestException({
+          status: 400,
+          errorCode: 'invalid_project',
+          message: `Invalid project: ${project}`,
+          data: {},
+        });
+      }
+  
       const avatar48x48 = userData.avatarUrls['48x48'];
-
+  
       const userToSave = {
         accountId: userData.accountId,
         displayName: userData.displayName,
@@ -43,8 +53,9 @@ export class UserService {
         avatarUrls: avatar48x48,
         currentPerformance: userData.currentPerformance || 0,
         designation,
+        project,
       };
-
+  
       const existingUser = await this.userModel.findOne({ accountId });
       if (existingUser) {
         return {
@@ -64,6 +75,7 @@ export class UserService {
       throw error;
     }
   }
+  
 
   async getAllUsers(
     page: number = 1,
@@ -84,7 +96,7 @@ export class UserService {
       const users = await this.userModel
         .find(
           { isArchive: false },
-          'accountId displayName emailAddress avatarUrls currentPerformance designation',
+          'accountId displayName emailAddress avatarUrls currentPerformance designation project',
         )
         .sort({ createdAt: -1 })
         .skip(skip)

@@ -9,6 +9,11 @@ export enum Designation {
   Designer = 'Designer',
 }
 
+export enum Project {
+  Pattern50 = 'Pattern 50',
+  ChargeOnSite = 'Charge on Site',
+}
+
 export interface IssueCount {
   Task: number;
   Bug: number;
@@ -46,6 +51,7 @@ export interface IUser {
   currentPerformance: number;
   issueHistory: IssueHistoryEntry[];
   designation: Designation;
+  project: Project;
   isArchive: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -115,6 +121,9 @@ export class User extends Document {
 
   @Prop({ type: String, enum: Designation })
   designation: Designation;
+
+  @Prop({ type: String, enum: Project })
+  project: Project;
 
   @Prop({ type: Boolean, default: false })
   isArchive: boolean;

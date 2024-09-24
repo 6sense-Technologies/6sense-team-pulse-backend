@@ -9,8 +9,9 @@ import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Designation, Issue, User } from '../users/schemas/user.schema';
+import { Designation, Issue, Project, User } from '../users/schemas/user.schema';
 import {
+  IGetUserIssuesResponse,
   IJiraUserData,
   IUserResponse,
 } from '../../interfaces/jira.interfaces';
@@ -105,47 +106,84 @@ export class JiraService {
     }
   }
 
+
+  async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
+
+    try {
+      const data = await this.fetchFromBothUrls(endpoint);
+
+      const transformIssues = (issues) =>
+        issues.map((issue) => ({
+          id: issue.id,
+          key: issue.key,
+          summary: issue.fields.summary,
+          status: issue.fields.status.name,
+          issueType: issue.fields.issuetype.name,
+          dueDate: issue.fields.duedate,
+        }));
+
+      return [
+        {
+          message: 'Issues retrieved successfully from URL 1',
+          statusCode: 200,
+          issues: transformIssues(data.fromUrl1.issues),
+        },
+        {
+          message: 'Issues retrieved successfully from URL 2',
+          statusCode: 200,
+          issues: transformIssues(data.fromUrl2.issues),
+        },
+      ];
+    } catch (error) {
+      throw new InternalServerErrorException('Error fetching issues from Jira');
+    }
+  }
+
   async fetchAndSaveUser(
     accountId: string,
     designation: Designation,
+    project: Project,
   ): Promise<IUserResponse> {
     try {
       // Fetch user details
       const userDetails = await this.getUserDetails(accountId);
-
-      // Save user
+  
+      // Save user with project
       const saveResponse = await this.userService.saveUser(
         accountId,
         userDetails,
         designation,
+        project,
       );
-
+  
       // Handle specific status codes
       if (saveResponse.statusCode === 409) {
         throw new ConflictException(saveResponse.message);
       }
-
+  
       if (saveResponse.statusCode === 400) {
         throw new BadRequestException(saveResponse.message);
       }
-
+  
       return saveResponse;
     } catch (error) {
       // Handle known exceptions
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
       }
-
+  
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);
       }
-
+  
       if (error instanceof BadRequestException) {
         throw new BadRequestException(error.message);
       }
       throw new InternalServerErrorException('Error fetching and saving user');
     }
   }
+  
 
   async saveNotDoneIssueCounts(
     accountId: string,
@@ -507,7 +545,7 @@ export class JiraService {
 
               // Check if there are unmatched done tasks
               if (unmatchedDoneIssueIds.length > 0) {
-                comment += ` ${unmatchedDoneIssueIds.length} task(s) that you completed do not match with your targeted task(s).`;
+                comment += ` ${unmatchedDoneIssueIds.length} issues that you completed do not match with your targeted issues.`;
               }
 
               // Calculate overall score based on available metrics

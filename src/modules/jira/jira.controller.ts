@@ -14,18 +14,18 @@ import {
   IUserResponse,
   IGetUserIssuesResponse,
 } from '../../interfaces/jira.interfaces';
-import { Designation } from '../users/schemas/user.schema';
+import { Designation, Project } from '../users/schemas/user.schema';
 
 @Controller('jira')
 export class JiraController {
   constructor(private readonly jiraService: JiraService) {}
 
-  // @Get(':accountId/issues')
-  // async getUserIssues(
-  //   @Param('accountId') accountId: string,
-  // ): Promise<IGetUserIssuesResponse[]> {
-  //   return this.jiraService.getUserIssues(accountId);
-  // }
+  @Get(':accountId/issues')
+  async getUserIssues(
+    @Param('accountId') accountId: string,
+  ): Promise<IGetUserIssuesResponse[]> {
+    return this.jiraService.getUserIssues(accountId);
+  }
 
   @Get(':accountId')
   async getUserDetails(
@@ -37,26 +37,31 @@ export class JiraController {
 
   @Post('users/create')
   async fetchAndSaveUser(
-    @Body() body: { accountId: string; designation: Designation },
+    @Body() body: { accountId: string; designation: Designation; project: Project },
   ): Promise<IUserResponse> {
-    const { accountId, designation } = body;
-
+    const { accountId, designation, project } = body;
+  
     if (!accountId) {
       throw new BadRequestException('accountId is required');
     }
     if (!designation) {
       throw new BadRequestException('designation is required');
     }
-    return await this.jiraService.fetchAndSaveUser(accountId, designation);
+    if (!project) {
+      throw new BadRequestException('project is required');
+    }
+  
+    return await this.jiraService.fetchAndSaveUser(accountId, designation, project);
   }
+  
 
-  // @Put(':accountId/issues/not-done-month')
-  // async countNotDoneIssues(
-  //   @Param('accountId') accountId: string,
-  // ): Promise<void> {
-  //   await this.jiraService.countNotDoneIssues(accountId);
-  //   return;
-  // }
+  @Get(':accountId/issues/not-done-today')
+  async countNotDoneIssues(
+    @Param('accountId') accountId: string,
+  ): Promise<void> {
+    await this.jiraService.countNotDoneIssuesForToday(accountId);
+    return;
+  }
 
   // @Put(':accountId/issues/done-month')
   // async countDoneIssues(@Param('accountId') accountId: string): Promise<void> {
