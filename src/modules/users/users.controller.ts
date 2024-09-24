@@ -13,7 +13,7 @@ import {
   IUserResponse,
   IGetAllUsersResponse,
 } from '../../interfaces/jira.interfaces';
-import { Designation,Project } from './schemas/user.schema';
+import { Designation, Project } from './schemas/user.schema';
 
 @Controller('users')
 export class UserController {

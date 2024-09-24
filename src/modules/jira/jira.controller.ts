@@ -20,12 +20,12 @@ import { Designation, Project } from '../users/schemas/user.schema';
 export class JiraController {
   constructor(private readonly jiraService: JiraService) {}
 
-  @Get(':accountId/issues')
-  async getUserIssues(
-    @Param('accountId') accountId: string,
-  ): Promise<IGetUserIssuesResponse[]> {
-    return this.jiraService.getUserIssues(accountId);
-  }
+  // @Get(':accountId/issues')
+  // async getUserIssues(
+  //   @Param('accountId') accountId: string,
+  // ): Promise<IGetUserIssuesResponse[]> {
+  //   return this.jiraService.getUserIssues(accountId);
+  // }
 
   @Get(':accountId')
   async getUserDetails(
@@ -37,10 +37,15 @@ export class JiraController {
 
   @Post('users/create')
   async fetchAndSaveUser(
-    @Body() body: { accountId: string; designation: Designation; project: Project },
+    @Body()
+    body: {
+      accountId: string;
+      designation: Designation;
+      project: Project;
+    },
   ): Promise<IUserResponse> {
     const { accountId, designation, project } = body;
-  
+
     if (!accountId) {
       throw new BadRequestException('accountId is required');
     }
@@ -50,10 +55,13 @@ export class JiraController {
     if (!project) {
       throw new BadRequestException('project is required');
     }
-  
-    return await this.jiraService.fetchAndSaveUser(accountId, designation, project);
+
+    return await this.jiraService.fetchAndSaveUser(
+      accountId,
+      designation,
+      project,
+    );
   }
-  
 
   @Get(':accountId/issues/not-done-today')
   async countNotDoneIssues(

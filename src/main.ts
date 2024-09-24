@@ -7,8 +7,8 @@ async function bootstrap() {
   app.use(cors());
 
   app.enableCors({
-    origin:["http://localhost:3000","https://6sense-efficiency.vercel.app"],
-    methods: 'GET,POST,PUT,DELETE', 
+    origin: ['http://localhost:3000', 'https://6sense-efficiency.vercel.app'],
+    methods: 'GET,POST,PUT,DELETE',
     credentials: true,
   });
 
