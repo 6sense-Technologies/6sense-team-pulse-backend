@@ -1,14 +1,12 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Designation, Project, User } from './schemas/user.schema';
+import { User } from './schemas/user.schema';
 import {
-  IJiraUserData,
   IUserResponse,
   IUserWithPagination,
 } from '../../interfaces/jira.interfaces';
@@ -18,64 +16,6 @@ export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
   ) {}
-
-  async saveUser(
-    accountId: string,
-    userData: IJiraUserData,
-    designation: Designation,
-    project: Project,
-  ): Promise<{ statusCode: number; message: string; user?: User }> {
-    try {
-      if (!Object.values(Designation).includes(designation)) {
-        throw new BadRequestException({
-          status: 400,
-          errorCode: 'invalid_designation',
-          message: `Invalid designation: ${designation}`,
-          data: {},
-        });
-      }
-  
-      if (!Object.values(Project).includes(project)) {
-        throw new BadRequestException({
-          status: 400,
-          errorCode: 'invalid_project',
-          message: `Invalid project: ${project}`,
-          data: {},
-        });
-      }
-  
-      const avatar48x48 = userData.avatarUrls['48x48'];
-  
-      const userToSave = {
-        accountId: userData.accountId,
-        displayName: userData.displayName,
-        emailAddress: userData.emailAddress,
-        avatarUrls: avatar48x48,
-        currentPerformance: userData.currentPerformance || 0,
-        designation,
-        project,
-      };
-  
-      const existingUser = await this.userModel.findOne({ accountId });
-      if (existingUser) {
-        return {
-          message: 'User already exists',
-          statusCode: 409,
-        };
-      } else {
-        const newUser = new this.userModel(userToSave);
-        await newUser.save();
-        return {
-          message: 'User saved successfully',
-          statusCode: 201,
-          user: newUser,
-        };
-      }
-    } catch (error) {
-      throw error;
-    }
-  }
-  
 
   async getAllUsers(
     page: number = 1,
@@ -93,6 +33,7 @@ export class UserService {
       const totalUsers = await this.userModel.countDocuments({
         isArchive: false,
       });
+
       const users = await this.userModel
         .find(
           { isArchive: false },
@@ -102,6 +43,16 @@ export class UserService {
         .skip(skip)
         .limit(limit)
         .exec();
+
+      if (users.length === 0) {
+        throw new NotFoundException({
+          status: 404,
+          errorCode: 'users_not_found',
+          message: 'No users found',
+          data: {},
+        });
+      }
+
       const totalPages = Math.ceil(totalUsers / limit);
 
       return {

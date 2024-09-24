@@ -9,7 +9,12 @@ import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Designation, Issue, Project, User } from '../users/schemas/user.schema';
+import {
+  Designation,
+  Issue,
+  Project,
+  User,
+} from '../users/schemas/user.schema';
 import {
   IGetUserIssuesResponse,
   IJiraUserData,
@@ -106,7 +111,6 @@ export class JiraService {
     }
   }
 
-
   async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
 
@@ -140,6 +144,63 @@ export class JiraService {
     }
   }
 
+  async saveUser(
+    accountId: string,
+    userData: IJiraUserData,
+    designation: Designation,
+    project: Project,
+  ): Promise<{ statusCode: number; message: string; user?: User }> {
+    try {
+      if (!Object.values(Designation).includes(designation)) {
+        throw new BadRequestException({
+          status: 400,
+          errorCode: 'invalid_designation',
+          message: `Invalid designation: ${designation}`,
+          data: {},
+        });
+      }
+
+      if (!Object.values(Project).includes(project)) {
+        throw new BadRequestException({
+          status: 400,
+          errorCode: 'invalid_project',
+          message: `Invalid project: ${project}`,
+          data: {},
+        });
+      }
+
+      const avatar48x48 = userData.avatarUrls['48x48'];
+
+      const userToSave = {
+        accountId: userData.accountId,
+        displayName: userData.displayName,
+        emailAddress: userData.emailAddress,
+        avatarUrls: avatar48x48,
+        currentPerformance: userData.currentPerformance || 0,
+        designation,
+        project,
+      };
+
+      const existingUser = await this.userModel.findOne({ accountId });
+      if (existingUser) {
+        return {
+          message: 'User already exists',
+          statusCode: 409,
+        };
+      } else {
+        const newUser = new this.userModel(userToSave);
+        await newUser.save();
+        return {
+          message: 'User saved successfully',
+          statusCode: 201,
+          user: newUser,
+        };
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async fetchAndSaveUser(
     accountId: string,
     designation: Designation,
@@ -148,42 +209,41 @@ export class JiraService {
     try {
       // Fetch user details
       const userDetails = await this.getUserDetails(accountId);
-  
+
       // Save user with project
-      const saveResponse = await this.userService.saveUser(
+      const saveResponse = await this.saveUser(
         accountId,
         userDetails,
         designation,
         project,
       );
-  
+
       // Handle specific status codes
       if (saveResponse.statusCode === 409) {
         throw new ConflictException(saveResponse.message);
       }
-  
+
       if (saveResponse.statusCode === 400) {
         throw new BadRequestException(saveResponse.message);
       }
-  
+
       return saveResponse;
     } catch (error) {
       // Handle known exceptions
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
       }
-  
+
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);
       }
-  
+
       if (error instanceof BadRequestException) {
         throw new BadRequestException(error.message);
       }
       throw new InternalServerErrorException('Error fetching and saving user');
     }
   }
-  
 
   async saveNotDoneIssueCounts(
     accountId: string,
