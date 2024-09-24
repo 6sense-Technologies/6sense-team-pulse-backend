@@ -22,6 +22,7 @@ import {
 } from '../../interfaces/jira.interfaces';
 import { UserService } from '../users/users.service';
 import { Cron } from '@nestjs/schedule';
+import { IssueHistory } from '../users/schemas/IssueHistory.schems';
 
 dotenv.config();
 
@@ -40,6 +41,8 @@ export class JiraService {
     private readonly httpService: HttpService,
     private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(IssueHistory.name)
+    private readonly issueHistoryModel: Model<IssueHistory>,
   ) {}
 
   private async fetchFromBothUrls(endpoint: string) {
@@ -270,12 +273,31 @@ export class JiraService {
             countsByDate[dueDate].Story++;
           }
 
+          // Extract issue links
+          const issueLinks = issue.fields.issuelinks || [];
+          const linkedIssues = issueLinks
+            .map((link) => {
+              const linkedIssue = link.outwardIssue || link.inwardIssue;
+              return linkedIssue
+                ? {
+                    issueId: linkedIssue.id,
+                    issueType: linkedIssue.fields.issuetype.name,
+                    summary: linkedIssue.fields.summary,
+                    status: linkedIssue.fields.status.name,
+                    dueDate: linkedIssue.fields.duedate?.split('T')[0] || null,
+                  }
+                : null;
+            })
+            .filter(Boolean); // Filter out any null values
+
+          // Save the main issue along with linked issues
           issuesByDate[dueDate].push({
             issueId,
             summary,
             status,
             issueType,
             dueDate,
+            issueLinks: linkedIssues, // Include linked issues here
           });
         }
       });
@@ -342,6 +364,7 @@ export class JiraService {
             issuesByDate[dueDate] = [];
           }
 
+          // Count the issue types
           if (issueType === 'Task') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug') {
@@ -351,23 +374,41 @@ export class JiraService {
           }
 
           const issueLinks = issue.fields.issuelinks || [];
-          const linkedBugs = issueLinks.filter(
-            (link) =>
-              link.outwardIssue?.fields.issuetype.name === 'Bug' ||
-              link.inwardIssue?.fields.issuetype.name === 'Bug',
+          const linkedIssues = issueLinks
+            .map((link) => {
+              const linkedIssue = link.outwardIssue || link.inwardIssue;
+              return linkedIssue
+                ? {
+                    issueId: linkedIssue.id,
+                    issueType: linkedIssue.fields.issuetype.name,
+                    summary: linkedIssue.fields.summary,
+                    status: linkedIssue.fields.status.name,
+                    dueDate: linkedIssue.fields.duedate?.split('T')[0] || null,
+                  }
+                : null;
+            })
+            .filter(Boolean); // Filter out any null values
+
+          // Count linked bugs
+          const linkedBugsCount = linkedIssues.filter(
+            (linkedIssue) => linkedIssue.issueType === 'Bug',
           ).length;
 
-          countsByDate[dueDate].LinkedBugs += linkedBugs;
+          countsByDate[dueDate].LinkedBugs += linkedBugsCount;
 
+          // Save the main issue along with linked issues
           issuesByDate[dueDate].push({
             issueId,
             summary,
             status,
             issueType,
             dueDate,
+            issueLinks: linkedIssues, // Include linked issues here
           });
         }
       }
+
+      // Save the counts and issue data
       for (const [date, counts] of Object.entries(countsByDate)) {
         const tasksWithLinkedBugs = doneIssues.filter(
           (issue) =>
@@ -390,6 +431,7 @@ export class JiraService {
           );
         }
 
+        // Save counts and issues for the date
         await this.saveDoneIssueCounts(
           accountId,
           date,
@@ -418,6 +460,29 @@ export class JiraService {
         throw new InternalServerErrorException('User not found');
       }
 
+      // Check for existing history entry in IssueHistory table
+      let issueHistoryEntry = await this.issueHistoryModel.findOne({
+        userId: user._id,
+        date,
+      });
+
+      if (issueHistoryEntry) {
+        // Update existing entry
+        issueHistoryEntry.issuesCount.notDone = counts;
+        issueHistoryEntry.notDoneIssues = issues;
+      } else {
+        // Create new entry
+        issueHistoryEntry = new this.issueHistoryModel({
+          userId: user._id,
+          date,
+          issuesCount: { notDone: counts },
+          notDoneIssues: issues,
+        });
+      }
+
+      await issueHistoryEntry.save();
+
+      // Update user's issue history
       const existingHistory = user.issueHistory.find(
         (history) => history.date === date,
       );
@@ -455,6 +520,31 @@ export class JiraService {
         throw new InternalServerErrorException('User not found');
       }
 
+      // Check for existing history entry in IssueHistory table
+      let issueHistoryEntry = await this.issueHistoryModel.findOne({
+        userId: user._id,
+        date,
+      });
+
+      if (issueHistoryEntry) {
+        // Update existing entry
+        issueHistoryEntry.issuesCount.done = counts;
+        issueHistoryEntry.doneIssues = issues;
+        issueHistoryEntry.codeToBugRatio = codeToBugRatio;
+      } else {
+        // Create new entry
+        issueHistoryEntry = new this.issueHistoryModel({
+          userId: user._id,
+          date,
+          issuesCount: { done: counts },
+          doneIssues: issues,
+          codeToBugRatio,
+        });
+      }
+
+      await issueHistoryEntry.save();
+
+      // Update user's issue history
       const existingHistory = user.issueHistory.find(
         (history) => history.date === date,
       );
@@ -477,6 +567,79 @@ export class JiraService {
       throw new InternalServerErrorException('Error saving done issue counts');
     }
   }
+
+  // async saveNotDoneIssueCounts(
+  //   accountId: string,
+  //   date: string,
+  //   counts: { Task: number; Bug: number; Story: number },
+  //   issues: Issue[],
+  // ): Promise<void> {
+  //   try {
+  //     const user = await this.userModel.findOne({ accountId });
+
+  //     if (!user) {
+  //       throw new InternalServerErrorException('User not found');
+  //     }
+
+  //     const existingHistory = user.issueHistory.find(
+  //       (history) => history.date === date,
+  //     );
+
+  //     if (existingHistory) {
+  //       existingHistory.issuesCount.notDone = counts;
+  //       existingHistory.notDoneIssues = issues;
+  //     } else {
+  //       user.issueHistory.push({
+  //         date,
+  //         issuesCount: { notDone: counts },
+  //         notDoneIssues: issues,
+  //       });
+  //     }
+
+  //     await user.save();
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(
+  //       'Error saving not-done issue counts',
+  //     );
+  //   }
+  // }
+
+  // async saveDoneIssueCounts(
+  //   accountId: string,
+  //   date: string,
+  //   counts: { Task: number; Bug: number; Story: number },
+  //   issues: Issue[],
+  //   codeToBugRatio: number,
+  // ): Promise<void> {
+  //   try {
+  //     const user = await this.userModel.findOne({ accountId });
+
+  //     if (!user) {
+  //       throw new InternalServerErrorException('User not found');
+  //     }
+
+  //     const existingHistory = user.issueHistory.find(
+  //       (history) => history.date === date,
+  //     );
+
+  //     if (existingHistory) {
+  //       existingHistory.issuesCount.done = counts;
+  //       existingHistory.doneIssues = issues;
+  //       existingHistory.codeToBugRatio = codeToBugRatio;
+  //     } else {
+  //       user.issueHistory.push({
+  //         date,
+  //         issuesCount: { done: counts },
+  //         doneIssues: issues,
+  //         codeToBugRatio,
+  //       });
+  //     }
+
+  //     await user.save();
+  //   } catch (error) {
+  //     throw new InternalServerErrorException('Error saving done issue counts');
+  //   }
+  // }
 
   @Cron('33 17 * * *')
   async updateMorningIssueHistory(): Promise<void> {
@@ -512,15 +675,10 @@ export class JiraService {
   async getAllUserMetrics() {
     console.log('Running metrics');
     try {
-      // Fetch all users
       const users = await this.userModel.find({}).exec();
-
-      // Process each user to calculate metrics
       const updatedUsers = await Promise.all(
         users.map(async (user) => {
           const issueHistory = user.issueHistory;
-
-          // Aggregate counts by date and calculate metrics
           const metricsByDay = await Promise.all(
             issueHistory.map(async (entry) => {
               const { date, issuesCount, notDoneIssues, doneIssues } = entry;
@@ -534,20 +692,14 @@ export class JiraService {
               const totalNotDoneTasksAndBugs =
                 counts.notDone.Task + counts.notDone.Bug;
               const totalDoneTasksAndBugs = counts.done.Task + counts.done.Bug;
-
-              // Calculate task completion rate only if there are tasks or bugs
               if (totalNotDoneTasksAndBugs > 0) {
                 taskCompletionRate =
                   (totalDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
               }
-
-              // Calculate user story completion rate only if there are user stories
               if (counts.notDone.Story > 0) {
                 userStoryCompletionRate =
                   (counts.done.Story / counts.notDone.Story) * 100;
               }
-
-              // Check if the number of done tasks is greater than not-done
               if (
                 totalDoneTasksAndBugs + counts.done.Story >
                 totalNotDoneTasksAndBugs + counts.notDone.Story
@@ -556,24 +708,16 @@ export class JiraService {
                 userStoryCompletionRate = 100;
                 comment = `Your target was ${totalNotDoneTasksAndBugs + counts.notDone.Story}, but you completed ${totalDoneTasksAndBugs + counts.done.Story}.`;
               }
-
-              // Check if task IDs in notDoneIssues match with those in doneIssues
               const notDoneIssueIds = notDoneIssues.map(
                 (issue) => issue.issueId,
               );
               const doneIssueIds = doneIssues.map((issue) => issue.issueId);
-
-              // Find tasks in `doneIssues` that do not match any in `notDoneIssues`
               const unmatchedDoneIssueIds = doneIssueIds.filter(
                 (doneId) => !notDoneIssueIds.includes(doneId),
               );
-
-              // Check if there are unmatched done tasks
               if (unmatchedDoneIssueIds.length > 0) {
                 comment += ` ${unmatchedDoneIssueIds.length} issues that you completed do not match with your targeted issues.`;
               }
-
-              // Calculate overall score based on available metrics
               const nonZeroCompletionRates = [];
               if (totalNotDoneTasksAndBugs > 0) {
                 nonZeroCompletionRates.push(taskCompletionRate);
@@ -582,14 +726,12 @@ export class JiraService {
                 nonZeroCompletionRates.push(userStoryCompletionRate);
               }
 
-              // If there are non-zero completion rates, calculate the average
               if (nonZeroCompletionRates.length > 0) {
                 overallScore =
                   nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
                   nonZeroCompletionRates.length;
               }
 
-              // Ensure rates are valid numbers
               const taskCompletionRateNum = isNaN(taskCompletionRate)
                 ? 0
                 : taskCompletionRate;
@@ -598,7 +740,6 @@ export class JiraService {
                 : userStoryCompletionRate;
               const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
 
-              // Update entry with the calculated metrics
               entry.taskCompletionRate = taskCompletionRateNum;
               entry.userStoryCompletionRate = userStoryCompletionRateNum;
               entry.overallScore = overallScoreNum;
@@ -619,7 +760,6 @@ export class JiraService {
             }),
           );
 
-          // Calculate current performance by averaging overall scores
           const totalScore = metricsByDay.reduce(
             (sum, day) => sum + day.overallScore,
             0,
