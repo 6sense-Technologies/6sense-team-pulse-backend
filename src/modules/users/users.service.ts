@@ -11,7 +11,7 @@ import {
   IUserResponse,
   IUserWithPagination,
 } from '../../interfaces/jira.interfaces';
-import { IssueEntry, IssueHistory } from './schemas/IssueHistory.schems';
+import { IssueHistory } from './schemas/IssueHistory.schems';
 
 @Injectable()
 export class UserService {
@@ -183,141 +183,121 @@ export class UserService {
     const dateString = new Date().toISOString().split('T')[0]; // "2024-09-26"
 
     for (const user of users) {
-        // Find the history entry for the current date
-        const todayHistory = user.issueHistory.find(history => history.date === dateString);
-
-        if (!todayHistory) {
-            console.log(`No issues found for user: ${user.displayName} on ${dateString}`);
-            continue;
-        }
-
-        const notDoneIssues = todayHistory.notDoneIssues || [];
-
-        if (notDoneIssues.length === 0) {
-            console.log(`No Not Done issues found for user: ${user.displayName} on ${dateString}`);
-            continue;
-        }
-
-        const issueHistoryEntries: IssueEntry[] = notDoneIssues.map((issue, index) => ({
-            serialNumber: index + 1,
-            issueType: issue.issueType,
-            issueId: issue.issueId,
-            issueStatus: issue.status,
-            planned: true,
-        }));
-
-        // Prepare the issue history document to save
-        const issueHistory = new this.issueHistoryModel({
-            userName: user.displayName,
-            accountId: user.accountId,
-            history: [{ date: dateString, issues: issueHistoryEntries }],
+      // Find or create a new issue history for the user
+      let issueHistory = await this.issueHistoryModel
+        .findOne({ userName: user.displayName })
+        .exec();
+      if (!issueHistory) {
+        issueHistory = new this.issueHistoryModel({
+          userName: user.displayName,
+          accountId: user.accountId,
+          history: {},
         });
+      }
 
-        await issueHistory.save();
+      // Check if history for the current date already exists
+      const todayHistory = issueHistory.history[dateString] || { issues: [] };
 
-        console.log(`Not Done issues saved to Issue History for user: ${user.displayName} on ${dateString}`);
+      const notDoneIssues =
+        user.issueHistory.find((history) => history.date === dateString)
+          ?.notDoneIssues || [];
+
+      const issueHistoryEntries = notDoneIssues.map((issue, index) => ({
+        serialNumber: todayHistory.issues.length + index + 1,
+        issueType: issue.issueType,
+        issueId: issue.issueId,
+        issueStatus: issue.status,
+        planned: true,
+        issueSummary: issue.summary,
+      }));
+
+      // Add the new issues to today's history
+      todayHistory.issues.push(...issueHistoryEntries);
+
+      // Update the history for the date
+      issueHistory.history[dateString] = todayHistory;
+
+      // Save the updated issue history
+      await issueHistory.save();
     }
 
     return 'Not Done issues saved for all users';
-}
+  }
 
-  
-async fetchAndSaveDoneIssuesForAllUsers() {
-  // Fetch all users
-  const users = await this.userModel.find().exec();
+  async fetchAndSaveDoneIssuesForAllUsers() {
+    const users = await this.userModel.find().exec();
 
-  // Get today's date in "YYYY-MM-DD" format
-  const today = new Date().toISOString().split('T')[0]; // "2024-09-26"
+    // Get the current date in "YYYY-MM-DD" format
+    const dateString = new Date().toISOString().split('T')[0]; // "2024-09-26"
 
-  for (const user of users) {
-      // Find the history entry for the current date
-      const todayHistory = user.issueHistory.find(history => history.date === today);
+    for (const user of users) {
+      // Find or create a new issue history for the user
+      let issueHistory = await this.issueHistoryModel
+        .findOne({ userName: user.displayName })
+        .exec();
 
-      if (!todayHistory) {
-          console.log(`No Done issues found for user: ${user.displayName} on ${today}`);
-          continue;
+      if (!issueHistory) {
+        issueHistory = new this.issueHistoryModel({
+          userName: user.displayName,
+          accountId: user.accountId,
+          history: {},
+        });
       }
 
-      const doneIssues = todayHistory.doneIssues || [];
+      // Check if history for the current date already exists
+      const todayHistory = issueHistory.history[dateString] || { issues: [] };
 
-      if (doneIssues.length === 0) {
-          console.log(`No Done issues found for user: ${user.displayName} on ${today}`);
-          continue;
-      }
+      const doneIssues =
+        user.issueHistory.find((history) => history.date === dateString)
+          ?.doneIssues || [];
 
-      // Fetch existing Issue History for this user
-      const existingIssueHistory = await this.issueHistoryModel.findOne({ userName: user.displayName }).exec();
-
-      // Extract not done issue IDs to filter out duplicates
-      const notDoneIssueIds = existingIssueHistory
-          ? existingIssueHistory.history.flatMap(entry => entry.issues.map(issue => issue.issueId))
-          : [];
-
-      // Filter out done issues that match any not done issue IDs
-      const uniqueDoneIssues = doneIssues.filter(doneIssue => !notDoneIssueIds.includes(doneIssue.issueId));
-
-      if (uniqueDoneIssues.length === 0) {
-          console.log(`No new Done issues to save for user: ${user.displayName} on ${today}`);
-          continue;
-      }
-
-      // Check if there is already an entry for today's date in the history
-      const existingHistoryEntry = existingIssueHistory?.history.find(
-          (entry) => entry.date === today // Compare directly with the date string
+      // Create a set of not done issue IDs for quick lookup
+      const notDoneIssueIds = new Set(
+        (todayHistory.issues || []).map((issue) => issue.issueId),
       );
 
-      // Determine the starting serial number
-      let nextSerialNumber = 1;
-      if (existingHistoryEntry && existingHistoryEntry.issues.length > 0) {
-          // Get the highest serial number for that date and increment it
-          const maxSerialNumber = Math.max(...existingHistoryEntry.issues.map(issue => issue.serialNumber));
-          nextSerialNumber = maxSerialNumber + 1;
-      }
+      // Filter for new done issues that are not in the not done issues
+      const newDoneIssues = doneIssues.filter(
+        (issue) => !notDoneIssueIds.has(issue.issueId),
+      );
 
-      // Prepare the issue entries with correct serial numbers
-      const issueHistoryEntries: IssueEntry[] = uniqueDoneIssues.map((issue, index) => ({
-          serialNumber: nextSerialNumber + index,  // Serial number starts from the next available one
-          issueType: issue.issueType,
-          issueId: issue.issueId,
-          issueStatus: issue.status,
+      // Create new issue entries for today's history
+      const issueHistoryEntries = newDoneIssues.map((issue, index) => ({
+        serialNumber: todayHistory.issues.length + index + 1,
+        issueType: issue.issueType,
+        issueId: issue.issueId,
+        issueSummary: issue.summary,
+        issueStatus: issue.status,
       }));
 
-      if (existingHistoryEntry) {
-          // Append the new done issues to the existing history entry for today
-          existingHistoryEntry.issues.push(...issueHistoryEntries);
-          await existingIssueHistory.save();
-      } else {
-          // Create a new history entry for today if it doesn't exist
-          const newHistoryEntry = {
-              date: today, // Save the date as a string in "YYYY-MM-DD" format
-              issues: issueHistoryEntries,
-          };
+      // Add the new issues to today's history
+      todayHistory.issues.push(...issueHistoryEntries);
 
-          if (existingIssueHistory) {
-              existingIssueHistory.history.push(newHistoryEntry);
-              await existingIssueHistory.save();
-          } else {
-              const issueHistory = new this.issueHistoryModel({
-                  userName: user.displayName,
-                  accountId: user.accountId,  // Get accountId from user table
-                  history: [newHistoryEntry],
-              });
-              await issueHistory.save();
-          }
-      }
+      // Update the history for the date
+      issueHistory.history[dateString] = todayHistory;
 
-      console.log(`Done issues saved to Issue History for user: ${user.displayName} on ${today}`);
+      await this.issueHistoryModel.findOneAndUpdate(
+        { userName: user.displayName },
+        {
+          $set: {
+            history: issueHistory.history,
+          },
+        },
+        { upsert: true, new: true },
+      );
+    }
+
+    return 'Done issues saved for all users';
   }
 
-  return 'Done issues saved for all users';
-}
-
-  
   async getIssuesByAccountAndDate(accountId: string, date: string) {
-    return this.issueHistoryModel.findOne(
-      { accountId, 'history.date': date },
-      { 'history.$': 1 }
-    ).exec();
+    const historyPath = `history.${date}`;
+
+    return this.issueHistoryModel
+      .findOne(
+        { accountId, [historyPath]: { $exists: true } },
+        { [historyPath]: 1 },
+      ) 
+      .exec();
   }
-  
 }

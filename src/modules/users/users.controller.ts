@@ -69,12 +69,12 @@ export class UserController {
     return this.userService.archiveUser(accountId);
   }
 
-  @Post('collect-history/all/morning')
+  @Put('collect-history/all/morning')
   async collectIssueHistoryMorning(): Promise<{ message: string }> {
       await this.userService.fetchAndSaveNotDoneIssuesForAllUsers();
       return { message: 'Issue history collected and saved successfully.' };
   }
-  @Post('collect-history/all/evening')
+  @Put('collect-history/all/evening')
   async collectIssueHistoryEvening(): Promise<{ message: string }> {
       await this.userService.fetchAndSaveDoneIssuesForAllUsers();
       return { message: 'Issue history collected and saved successfully.' };

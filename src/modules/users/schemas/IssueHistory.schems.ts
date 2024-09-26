@@ -1,15 +1,34 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 
-export interface IssueEntry {
+@Schema()
+class IssueEntry {
+  @Prop({ type: Number })
   serialNumber?: number;
+
+  @Prop({ type: String, required: true })
   issueType: string;
+
+  @Prop({ type: String, required: true })
   issueId: string;
+
+  @Prop({ type: String, required: true })
+  issueSummary?: string;
+
+  @Prop({ type: String, required: true })
   issueStatus: string;
+
+  @Prop({ type: Boolean, default: false })
   planned?: boolean;
+
+  @Prop({ type: Boolean, default: false })
   checked?: boolean;
+
+  @Prop({ type: Number, default: 0 })
   link?: number;
 }
+
+export const IssueEntrySchema = SchemaFactory.createForClass(IssueEntry);
 
 @Schema({ timestamps: true })
 export class IssueHistory extends Document {
@@ -20,22 +39,14 @@ export class IssueHistory extends Document {
   accountId: string;
 
   @Prop({
-    type: [{
-      date: { type: String },
-      issues: {
-        type: [{
-          serialNumber: { type: Number, required: true },
-          issueType: { type: String, required: true },
-          issueId: { type: String, required: true },
-          issueStatus: { type: String, required: true },
-          planned: { type: Boolean, default: false },
-          checked: { type: Boolean, default: false },
-          link: { type: Number, default: 0 },
-        }]
-      }
-    }]
+    type: MongooseSchema.Types.Mixed,
+    default: {},
   })
-  history: { date: string; issues: IssueEntry[] }[];
+  history: {
+    [date: string]: {
+      issues: IssueEntry[];
+    };
+  };
 }
 
 export const IssueHistorySchema = SchemaFactory.createForClass(IssueHistory);
