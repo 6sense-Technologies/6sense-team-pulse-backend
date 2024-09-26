@@ -107,38 +107,39 @@ export class JiraService {
     }
   }
 
-  // async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
-  //   const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
+  async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
 
-  //   try {
-  //     const data = await this.fetchFromBothUrls(endpoint);
+    try {
+      const data = await this.fetchFromBothUrls(endpoint);
 
-  //     const transformIssues = (issues) =>
-  //       issues.map((issue) => ({
-  //         id: issue.id,
-  //         key: issue.key,
-  //         summary: issue.fields.summary,
-  //         status: issue.fields.status.name,
-  //         issueType: issue.fields.issuetype.name,
-  //         dueDate: issue.fields.duedate,
-  //       }));
+      const transformIssues = (issues) =>
+        issues.map((issue) => ({
+          id: issue.id,
+          key: issue.key,
+          summary: issue.fields.summary,
+          status: issue.fields.status.name,
+          issueType: issue.fields.issuetype.name,
+          dueDate: issue.fields.duedate,
+          created: issue.fields.created,
+        }));
 
-  //     return [
-  //       {
-  //         message: 'Issues retrieved successfully from URL 1',
-  //         statusCode: 200,
-  //         issues: transformIssues(data.fromUrl1.issues),
-  //       },
-  //       {
-  //         message: 'Issues retrieved successfully from URL 2',
-  //         statusCode: 200,
-  //         issues: transformIssues(data.fromUrl2.issues),
-  //       },
-  //     ];
-  //   } catch (error) {
-  //     throw new InternalServerErrorException('Error fetching issues from Jira');
-  //   }
-  // }
+      return [
+        {
+          message: 'Issues retrieved successfully from URL 1',
+          statusCode: 200,
+          issues: transformIssues(data.fromUrl1.issues),
+        },
+        {
+          message: 'Issues retrieved successfully from URL 2',
+          statusCode: 200,
+          issues: transformIssues(data.fromUrl2.issues),
+        },
+      ];
+    } catch (error) {
+      throw new InternalServerErrorException('Error fetching issues from Jira');
+    }
+  }
 
   async saveUser(
     accountId: string,

@@ -20,12 +20,12 @@ import { Designation, Project } from '../users/schemas/user.schema';
 export class JiraController {
   constructor(private readonly jiraService: JiraService) {}
 
-  // @Get(':accountId/issues')
-  // async getUserIssues(
-  //   @Param('accountId') accountId: string,
-  // ): Promise<IGetUserIssuesResponse[]> {
-  //   return this.jiraService.getUserIssues(accountId);
-  // }
+  @Get(':accountId/issues')
+  async getUserIssues(
+    @Param('accountId') accountId: string,
+  ): Promise<IGetUserIssuesResponse[]> {
+    return this.jiraService.getUserIssues(accountId);
+  }
 
   @Get(':accountId')
   async getUserDetails(
