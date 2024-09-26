@@ -230,16 +230,7 @@ export class JiraService {
       timeZone: 'Asia/Dhaka',
     });
 
-    const previousDay = new Date(new Date().setDate(new Date().getDate() - 1))
-    .toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Dhaka',
-    });
-    
-    console.log(today);
-    console.log(previousDay);
-
-
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${previousDay}`;
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${today}`;
 
     try {
       const [response1, response2] = await Promise.all([
@@ -260,6 +251,17 @@ export class JiraService {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
+
+      if (notDoneIssues.length === 0) {
+        // If no issues found, save with zero counts
+        await this.saveNotDoneIssueCounts(
+          accountId,
+          today,
+          { Task: 0, Bug: 0, Story: 0 },
+          [],
+        );
+        return; // Exit early if there are no issues
+      }
 
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
@@ -327,16 +329,16 @@ export class JiraService {
   }
 
   async countDoneIssuesForToday(accountId: string): Promise<void> {
-    const previousDay = new Date(new Date().setDate(new Date().getDate() - 1))
-    .toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Dhaka',
-    });
+    // const previousDay = new Date(new Date().setDate(new Date().getDate() - 1))
+    // .toLocaleDateString('en-CA', {
+    //   timeZone: 'Asia/Dhaka',
+    // });
 
     const today = new Date().toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
 
-    console.log(previousDay);
+    // console.log(previousDay);
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate=${today}`;
 
     try {
@@ -475,28 +477,6 @@ export class JiraService {
         throw new InternalServerErrorException('User not found');
       }
 
-      // Check for existing history entry in IssueHistory table
-      let issueHistoryEntry = await this.issueHistoryModel.findOne({
-        userId: user._id,
-        date,
-      });
-
-      if (issueHistoryEntry) {
-        // Update existing entry
-        issueHistoryEntry.issuesCount.notDone = counts;
-        issueHistoryEntry.notDoneIssues = issues;
-      } else {
-        // Create new entry
-        issueHistoryEntry = new this.issueHistoryModel({
-          userId: user._id,
-          date,
-          issuesCount: { notDone: counts },
-          notDoneIssues: issues,
-        });
-      }
-
-      await issueHistoryEntry.save();
-
       // Update user's issue history
       const existingHistory = user.issueHistory.find(
         (history) => history.date === date,
@@ -534,30 +514,6 @@ export class JiraService {
       if (!user) {
         throw new InternalServerErrorException('User not found');
       }
-
-      // Check for existing history entry in IssueHistory table
-      let issueHistoryEntry = await this.issueHistoryModel.findOne({
-        userId: user._id,
-        date,
-      });
-
-      if (issueHistoryEntry) {
-        // Update existing entry
-        issueHistoryEntry.issuesCount.done = counts;
-        issueHistoryEntry.doneIssues = issues;
-        issueHistoryEntry.codeToBugRatio = codeToBugRatio;
-      } else {
-        // Create new entry
-        issueHistoryEntry = new this.issueHistoryModel({
-          userId: user._id,
-          date,
-          issuesCount: { done: counts },
-          doneIssues: issues,
-          codeToBugRatio,
-        });
-      }
-
-      await issueHistoryEntry.save();
 
       // Update user's issue history
       const existingHistory = user.issueHistory.find(
@@ -656,7 +612,6 @@ export class JiraService {
   //   }
   // }
 
-  @Cron('33 17 * * *')
   async updateMorningIssueHistory(): Promise<void> {
     console.log('Running updateMorningIssueHistory');
     try {
@@ -671,7 +626,6 @@ export class JiraService {
     }
   }
 
-  @Cron('32 00 * * *')
   async updateEveningIssueHistory(): Promise<void> {
     console.log('Running updateEveningIssueHistory');
     try {
@@ -686,186 +640,185 @@ export class JiraService {
     }
   }
 
-  @Cron('33 00 * * *')
-  @Cron('33 00 * * *')
-async getAllUserMetrics() {
-  console.log('Running metrics');
-  try {
-    const users = await this.userModel.find({}).exec();
-    const updatedUsers = await Promise.all(
-      users.map(async (user) => {
-        const issueHistory = user.issueHistory;
-        const metricsByDay = await Promise.all(
-          issueHistory.map(async (entry) => {
-            const { date, issuesCount, notDoneIssues, doneIssues } = entry;
-            const counts = issuesCount;
+  async getAllUserMetrics() {
+    console.log('Running metrics');
+    try {
+      const users = await this.userModel.find({}).exec();
+      const updatedUsers = await Promise.all(
+        users.map(async (user) => {
+          const issueHistory = user.issueHistory;
+          const metricsByDay = await Promise.all(
+            issueHistory.map(async (entry) => {
+              const { date, issuesCount, notDoneIssues, doneIssues } = entry;
+              const counts = issuesCount;
 
-            let taskCompletionRate = 0;
-            let userStoryCompletionRate = 0;
-            let overallScore = 0;
-            let comment = '';
+              let taskCompletionRate = 0;
+              let userStoryCompletionRate = 0;
+              let overallScore = 0;
+              let comment = '';
 
-            // Map not done task, story, and bug IDs
-            const notDoneTaskIds = notDoneIssues
-              .filter((issue) => issue.issueType === 'Task')
-              .map((issue) => issue.issueId);
+              // Map not done task, story, and bug IDs
+              const notDoneTaskIds = notDoneIssues
+                .filter((issue) => issue.issueType === 'Task')
+                .map((issue) => issue.issueId);
 
-            const notDoneStoryIds = notDoneIssues
-              .filter((issue) => issue.issueType === 'Story')
-              .map((issue) => issue.issueId);
+              const notDoneStoryIds = notDoneIssues
+                .filter((issue) => issue.issueType === 'Story')
+                .map((issue) => issue.issueId);
 
-            const notDoneBugIds = notDoneIssues
-              .filter((issue) => issue.issueType === 'Bug')
-              .map((issue) => issue.issueId);
+              const notDoneBugIds = notDoneIssues
+                .filter((issue) => issue.issueType === 'Bug')
+                .map((issue) => issue.issueId);
 
-            // Filter done issues to count matched ones
-            const matchedDoneTaskIds = doneIssues
-              .filter(
-                (issue) =>
-                  issue.issueType === 'Task' &&
-                  notDoneTaskIds.includes(issue.issueId),
-              )
-              .map((issue) => issue.issueId);
+              // Filter done issues to count matched ones
+              const matchedDoneTaskIds = doneIssues
+                .filter(
+                  (issue) =>
+                    issue.issueType === 'Task' &&
+                    notDoneTaskIds.includes(issue.issueId),
+                )
+                .map((issue) => issue.issueId);
 
-            const matchedDoneStoryIds = doneIssues
-              .filter(
-                (issue) =>
-                  issue.issueType === 'Story' &&
-                  notDoneStoryIds.includes(issue.issueId),
-              )
-              .map((issue) => issue.issueId);
+              const matchedDoneStoryIds = doneIssues
+                .filter(
+                  (issue) =>
+                    issue.issueType === 'Story' &&
+                    notDoneStoryIds.includes(issue.issueId),
+                )
+                .map((issue) => issue.issueId);
 
-            const matchedDoneBugIds = doneIssues
-              .filter(
-                (issue) =>
-                  issue.issueType === 'Bug' &&
-                  notDoneBugIds.includes(issue.issueId),
-              )
-              .map((issue) => issue.issueId);
+              const matchedDoneBugIds = doneIssues
+                .filter(
+                  (issue) =>
+                    issue.issueType === 'Bug' &&
+                    notDoneBugIds.includes(issue.issueId),
+                )
+                .map((issue) => issue.issueId);
 
-            // Count total done tasks, stories, and bugs (both matched and unmatched)
-            const totalAllDoneTasks = doneIssues.filter(
-              (issue) => issue.issueType === 'Task',
-            ).length;
-            const totalAllDoneStories = doneIssues.filter(
-              (issue) => issue.issueType === 'Story',
-            ).length;
-            const totalAllDoneBugs = doneIssues.filter(
-              (issue) => issue.issueType === 'Bug',
-            ).length;
+              // Count total done tasks, stories, and bugs (both matched and unmatched)
+              const totalAllDoneTasks = doneIssues.filter(
+                (issue) => issue.issueType === 'Task',
+              ).length;
+              const totalAllDoneStories = doneIssues.filter(
+                (issue) => issue.issueType === 'Story',
+              ).length;
+              const totalAllDoneBugs = doneIssues.filter(
+                (issue) => issue.issueType === 'Bug',
+              ).length;
 
-            // Total not done issues for comparison
-            const totalNotDoneTasksAndBugs =
-              counts.notDone.Task + counts.notDone.Bug;
-            const totalMatchedDoneTasksAndBugs =
-              matchedDoneTaskIds.length + matchedDoneBugIds.length;
+              // Total not done issues for comparison
+              const totalNotDoneTasksAndBugs =
+                counts.notDone.Task + counts.notDone.Bug;
+              const totalMatchedDoneTasksAndBugs =
+                matchedDoneTaskIds.length + matchedDoneBugIds.length;
 
-            // Calculate task completion rate (only matched)
-            if (totalNotDoneTasksAndBugs > 0) {
-              taskCompletionRate =
-                (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) *
-                100;
-            }
+              // Calculate task completion rate (only matched)
+              if (totalNotDoneTasksAndBugs > 0) {
+                taskCompletionRate =
+                  (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) *
+                  100;
+              }
 
-            // Calculate user story completion rate (only matched)
-            const totalNotDoneStories = counts.notDone.Story;
-            const totalMatchedDoneStories = matchedDoneStoryIds.length;
+              // Calculate user story completion rate (only matched)
+              const totalNotDoneStories = counts.notDone.Story;
+              const totalMatchedDoneStories = matchedDoneStoryIds.length;
 
-            if (totalNotDoneStories > 0) {
-              userStoryCompletionRate =
-                (totalMatchedDoneStories / totalNotDoneStories) * 100;
-            }
+              if (totalNotDoneStories > 0) {
+                userStoryCompletionRate =
+                  (totalMatchedDoneStories / totalNotDoneStories) * 100;
+              }
 
-            // Compare all done vs. not done issues for the comment
-            const totalAllDoneIssues =
-              totalAllDoneTasks + totalAllDoneStories + totalAllDoneBugs;
-            const totalNotDoneIssues =
-              totalNotDoneTasksAndBugs + totalNotDoneStories;
+              // Compare all done vs. not done issues for the comment
+              const totalAllDoneIssues =
+                totalAllDoneTasks + totalAllDoneStories + totalAllDoneBugs;
+              const totalNotDoneIssues =
+                totalNotDoneTasksAndBugs + totalNotDoneStories;
 
-            if (totalAllDoneIssues > totalNotDoneIssues) {
-              comment = `Your target was ${totalNotDoneIssues}, but you completed ${totalAllDoneIssues}.`;
-            }
+              if (totalAllDoneIssues > totalNotDoneIssues) {
+                comment = `Your target was ${totalNotDoneIssues}, but you completed ${totalAllDoneIssues}.`;
+              }
 
-            // Calculate unmatched done issues
-            const unmatchedDoneTasks =
-              totalAllDoneTasks - matchedDoneTaskIds.length;
-            const unmatchedDoneStories =
-              totalAllDoneStories - matchedDoneStoryIds.length;
-            const unmatchedDoneBugs =
-              totalAllDoneBugs - matchedDoneBugIds.length;
+              // Calculate unmatched done issues
+              const unmatchedDoneTasks =
+                totalAllDoneTasks - matchedDoneTaskIds.length;
+              const unmatchedDoneStories =
+                totalAllDoneStories - matchedDoneStoryIds.length;
+              const unmatchedDoneBugs =
+                totalAllDoneBugs - matchedDoneBugIds.length;
 
-            const totalUnmatchedDoneIssues =
-              unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
+              const totalUnmatchedDoneIssues =
+                unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
 
-            if (totalUnmatchedDoneIssues > 0) {
-              comment += ` ${totalUnmatchedDoneIssues} issue(s) that you completed do not match your target issues.`;
-            }
+              if (totalUnmatchedDoneIssues > 0) {
+                comment += ` ${totalUnmatchedDoneIssues} issue(s) that you completed do not match your target issues.`;
+              }
 
-            // Aggregate scores for tasks, stories, and bugs
-            const nonZeroCompletionRates = [];
-            if (totalNotDoneTasksAndBugs > 0) {
-              nonZeroCompletionRates.push(taskCompletionRate);
-            }
-            if (totalNotDoneStories > 0) {
-              nonZeroCompletionRates.push(userStoryCompletionRate);
-            }
+              // Aggregate scores for tasks, stories, and bugs
+              const nonZeroCompletionRates = [];
+              if (totalNotDoneTasksAndBugs > 0) {
+                nonZeroCompletionRates.push(taskCompletionRate);
+              }
+              if (totalNotDoneStories > 0) {
+                nonZeroCompletionRates.push(userStoryCompletionRate);
+              }
 
-            if (nonZeroCompletionRates.length > 0) {
-              overallScore =
-                nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
-                nonZeroCompletionRates.length;
-            }
+              if (nonZeroCompletionRates.length > 0) {
+                overallScore =
+                  nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
+                  nonZeroCompletionRates.length;
+              }
 
-            const taskCompletionRateNum = isNaN(taskCompletionRate)
-              ? 0
-              : taskCompletionRate;
-            const userStoryCompletionRateNum = isNaN(userStoryCompletionRate)
-              ? 0
-              : userStoryCompletionRate;
-            const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
+              const taskCompletionRateNum = isNaN(taskCompletionRate)
+                ? 0
+                : taskCompletionRate;
+              const userStoryCompletionRateNum = isNaN(userStoryCompletionRate)
+                ? 0
+                : userStoryCompletionRate;
+              const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
 
-            entry.taskCompletionRate = taskCompletionRateNum;
-            entry.userStoryCompletionRate = userStoryCompletionRateNum;
-            entry.overallScore = overallScoreNum;
-            entry.comment = comment;
+              entry.taskCompletionRate = taskCompletionRateNum;
+              entry.userStoryCompletionRate = userStoryCompletionRateNum;
+              entry.overallScore = overallScoreNum;
+              entry.comment = comment;
 
-            return {
-              date,
-              numberOfTasks: counts.notDone.Task,
-              numberOfBugs: counts.notDone.Bug,
-              numberOfUserStories: counts.notDone.Story,
-              completedTasks: totalMatchedDoneTasksAndBugs,
-              completedUserStories: totalMatchedDoneStories,
-              taskCompletionRate: taskCompletionRateNum,
-              userStoryCompletionRate: userStoryCompletionRateNum,
-              overallScore: overallScoreNum,
-              comment,
-            };
-          }),
-        );
+              return {
+                date,
+                numberOfTasks: counts.notDone.Task,
+                numberOfBugs: counts.notDone.Bug,
+                numberOfUserStories: counts.notDone.Story,
+                completedTasks: totalMatchedDoneTasksAndBugs,
+                completedUserStories: totalMatchedDoneStories,
+                taskCompletionRate: taskCompletionRateNum,
+                userStoryCompletionRate: userStoryCompletionRateNum,
+                overallScore: overallScoreNum,
+                comment,
+              };
+            }),
+          );
+          
 
-        const totalScore = metricsByDay.reduce(
-          (sum, day) => sum + day.overallScore,
-          0,
-        );
-        const currentPerformance = metricsByDay.length
-          ? totalScore / metricsByDay.length
-          : 0;
+          const totalScore = metricsByDay.reduce(
+            (sum, day) => sum + day.overallScore,
+            0,
+          );
+          const currentPerformance = metricsByDay.length
+            ? totalScore / metricsByDay.length
+            : 0;
 
-        user.currentPerformance = currentPerformance;
-        user.issueHistory = issueHistory;
-        await user.save();
+          user.currentPerformance = currentPerformance;
+          user.issueHistory = issueHistory;
+          await user.save();
 
-        return user;
-      }),
-    );
+          return user;
+        }),
+      );
 
-    return {
-      message: 'User metrics calculated successfully',
-      users: updatedUsers,
-    };
-  } catch (error) {
-    throw error;
+      return {
+        message: 'User metrics calculated successfully',
+        users: updatedUsers,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
-}
 }

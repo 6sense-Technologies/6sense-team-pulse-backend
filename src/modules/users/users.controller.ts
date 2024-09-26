@@ -14,6 +14,7 @@ import {
   IGetAllUsersResponse,
 } from '../../interfaces/jira.interfaces';
 import { Designation, Project } from './schemas/user.schema';
+import { IssueHistory } from './schemas/IssueHistory.schems';
 
 @Controller('users')
 export class UserController {
@@ -66,5 +67,24 @@ export class UserController {
       throw new BadRequestException('accountId is required');
     }
     return this.userService.archiveUser(accountId);
+  }
+
+  @Post('collect-history/all/morning')
+  async collectIssueHistoryMorning(): Promise<{ message: string }> {
+      await this.userService.fetchAndSaveNotDoneIssuesForAllUsers();
+      return { message: 'Issue history collected and saved successfully.' };
+  }
+  @Post('collect-history/all/evening')
+  async collectIssueHistoryEvening(): Promise<{ message: string }> {
+      await this.userService.fetchAndSaveDoneIssuesForAllUsers();
+      return { message: 'Issue history collected and saved successfully.' };
+  }
+
+  @Get('issues/:accountId/:date')
+  async getIssues(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string
+  ) {
+    return this.userService.getIssuesByAccountAndDate(accountId, date);
   }
 }

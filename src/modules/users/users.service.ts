@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,11 +11,14 @@ import {
   IUserResponse,
   IUserWithPagination,
 } from '../../interfaces/jira.interfaces';
+import { IssueEntry, IssueHistory } from './schemas/IssueHistory.schems';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(IssueHistory.name)
+    private readonly issueHistoryModel: Model<IssueHistory>,
   ) {}
 
   async getAllUsers(
@@ -171,4 +175,149 @@ export class UserService {
       throw error;
     }
   }
+
+  async fetchAndSaveNotDoneIssuesForAllUsers() {
+    const users = await this.userModel.find().exec();
+
+    // Get the current date in "YYYY-MM-DD" format
+    const dateString = new Date().toISOString().split('T')[0]; // "2024-09-26"
+
+    for (const user of users) {
+        // Find the history entry for the current date
+        const todayHistory = user.issueHistory.find(history => history.date === dateString);
+
+        if (!todayHistory) {
+            console.log(`No issues found for user: ${user.displayName} on ${dateString}`);
+            continue;
+        }
+
+        const notDoneIssues = todayHistory.notDoneIssues || [];
+
+        if (notDoneIssues.length === 0) {
+            console.log(`No Not Done issues found for user: ${user.displayName} on ${dateString}`);
+            continue;
+        }
+
+        const issueHistoryEntries: IssueEntry[] = notDoneIssues.map((issue, index) => ({
+            serialNumber: index + 1,
+            issueType: issue.issueType,
+            issueId: issue.issueId,
+            issueStatus: issue.status,
+            planned: true,
+        }));
+
+        // Prepare the issue history document to save
+        const issueHistory = new this.issueHistoryModel({
+            userName: user.displayName,
+            accountId: user.accountId,
+            history: [{ date: dateString, issues: issueHistoryEntries }],
+        });
+
+        await issueHistory.save();
+
+        console.log(`Not Done issues saved to Issue History for user: ${user.displayName} on ${dateString}`);
+    }
+
+    return 'Not Done issues saved for all users';
+}
+
+  
+async fetchAndSaveDoneIssuesForAllUsers() {
+  // Fetch all users
+  const users = await this.userModel.find().exec();
+
+  // Get today's date in "YYYY-MM-DD" format
+  const today = new Date().toISOString().split('T')[0]; // "2024-09-26"
+
+  for (const user of users) {
+      // Find the history entry for the current date
+      const todayHistory = user.issueHistory.find(history => history.date === today);
+
+      if (!todayHistory) {
+          console.log(`No Done issues found for user: ${user.displayName} on ${today}`);
+          continue;
+      }
+
+      const doneIssues = todayHistory.doneIssues || [];
+
+      if (doneIssues.length === 0) {
+          console.log(`No Done issues found for user: ${user.displayName} on ${today}`);
+          continue;
+      }
+
+      // Fetch existing Issue History for this user
+      const existingIssueHistory = await this.issueHistoryModel.findOne({ userName: user.displayName }).exec();
+
+      // Extract not done issue IDs to filter out duplicates
+      const notDoneIssueIds = existingIssueHistory
+          ? existingIssueHistory.history.flatMap(entry => entry.issues.map(issue => issue.issueId))
+          : [];
+
+      // Filter out done issues that match any not done issue IDs
+      const uniqueDoneIssues = doneIssues.filter(doneIssue => !notDoneIssueIds.includes(doneIssue.issueId));
+
+      if (uniqueDoneIssues.length === 0) {
+          console.log(`No new Done issues to save for user: ${user.displayName} on ${today}`);
+          continue;
+      }
+
+      // Check if there is already an entry for today's date in the history
+      const existingHistoryEntry = existingIssueHistory?.history.find(
+          (entry) => entry.date === today // Compare directly with the date string
+      );
+
+      // Determine the starting serial number
+      let nextSerialNumber = 1;
+      if (existingHistoryEntry && existingHistoryEntry.issues.length > 0) {
+          // Get the highest serial number for that date and increment it
+          const maxSerialNumber = Math.max(...existingHistoryEntry.issues.map(issue => issue.serialNumber));
+          nextSerialNumber = maxSerialNumber + 1;
+      }
+
+      // Prepare the issue entries with correct serial numbers
+      const issueHistoryEntries: IssueEntry[] = uniqueDoneIssues.map((issue, index) => ({
+          serialNumber: nextSerialNumber + index,  // Serial number starts from the next available one
+          issueType: issue.issueType,
+          issueId: issue.issueId,
+          issueStatus: issue.status,
+      }));
+
+      if (existingHistoryEntry) {
+          // Append the new done issues to the existing history entry for today
+          existingHistoryEntry.issues.push(...issueHistoryEntries);
+          await existingIssueHistory.save();
+      } else {
+          // Create a new history entry for today if it doesn't exist
+          const newHistoryEntry = {
+              date: today, // Save the date as a string in "YYYY-MM-DD" format
+              issues: issueHistoryEntries,
+          };
+
+          if (existingIssueHistory) {
+              existingIssueHistory.history.push(newHistoryEntry);
+              await existingIssueHistory.save();
+          } else {
+              const issueHistory = new this.issueHistoryModel({
+                  userName: user.displayName,
+                  accountId: user.accountId,  // Get accountId from user table
+                  history: [newHistoryEntry],
+              });
+              await issueHistory.save();
+          }
+      }
+
+      console.log(`Done issues saved to Issue History for user: ${user.displayName} on ${today}`);
+  }
+
+  return 'Done issues saved for all users';
+}
+
+  
+  async getIssuesByAccountAndDate(accountId: string, date: string) {
+    return this.issueHistoryModel.findOne(
+      { accountId, 'history.date': date },
+      { 'history.$': 1 }
+    ).exec();
+  }
+  
 }

@@ -1,55 +1,41 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { Issue, IssueCount, IUser } from './user.schema';
+import { Document } from 'mongoose';
+
+export interface IssueEntry {
+  serialNumber?: number;
+  issueType: string;
+  issueId: string;
+  issueStatus: string;
+  planned?: boolean;
+  checked?: boolean;
+  link?: number;
+}
 
 @Schema({ timestamps: true })
 export class IssueHistory extends Document {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: IUser;
+  @Prop({ required: true })
+  userName: string;
 
-  @Prop({ type: String })
-  date: string;
+  @Prop({ required: true })
+  accountId: string;
 
   @Prop({
-    type: {
-      notDone: {
-        Task: { type: Number, default: 0 },
-        Bug: { type: Number, default: 0 },
-        Story: { type: Number, default: 0 },
-      },
-      done: {
-        Task: { type: Number, default: 0 },
-        Bug: { type: Number, default: 0 },
-        Story: { type: Number, default: 0 },
-      },
-    },
-    default: {},
+    type: [{
+      date: { type: String },
+      issues: {
+        type: [{
+          serialNumber: { type: Number, required: true },
+          issueType: { type: String, required: true },
+          issueId: { type: String, required: true },
+          issueStatus: { type: String, required: true },
+          planned: { type: Boolean, default: false },
+          checked: { type: Boolean, default: false },
+          link: { type: Number, default: 0 },
+        }]
+      }
+    }]
   })
-  issuesCount: {
-    notDone?: IssueCount;
-    done?: IssueCount;
-  };
-
-  @Prop({ type: Number, default: 0 })
-  taskCompletionRate?: number;
-
-  @Prop({ type: Number, default: 0 })
-  userStoryCompletionRate?: number;
-
-  @Prop({ type: Number, default: 0 })
-  overallScore?: number;
-
-  @Prop({ type: String, default: '' })
-  comment?: string;
-
-  @Prop({ type: Number, default: 0 })
-  codeToBugRatio?: number;
-
-  @Prop({ type: [Object], default: [] })
-  notDoneIssues?: Issue[];
-
-  @Prop({ type: [Object], default: [] })
-  doneIssues?: Issue[];
+  history: { date: string; issues: IssueEntry[] }[];
 }
 
 export const IssueHistorySchema = SchemaFactory.createForClass(IssueHistory);
