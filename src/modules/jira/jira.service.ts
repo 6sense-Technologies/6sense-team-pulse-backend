@@ -20,9 +20,9 @@ import {
   IJiraUserData,
   IUserResponse,
 } from '../../interfaces/jira.interfaces';
-import { UserService } from '../users/users.service';
+// import { UserService } from '../users/users.service';
 // import { Cron } from '@nestjs/schedule';
-import { IssueHistory } from '../users/schemas/IssueHistory.schema';
+// import { IssueHistory } from '../users/schemas/IssueHistory.schema';
 
 dotenv.config();
 

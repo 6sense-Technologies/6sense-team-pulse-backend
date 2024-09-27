@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cors from 'cors';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   app.use(cors());
 
@@ -15,4 +15,5 @@ async function bootstrap() {
 
   await app.listen(3000);
 }
+
 bootstrap();
