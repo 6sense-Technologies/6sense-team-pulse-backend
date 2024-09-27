@@ -14,30 +14,26 @@ dotenv.config();
 
 @Module({
   imports: [
-    // External modules
-    SentryModule.forRoot(),  // Optional, if already initialized in instrument.ts
+    SentryModule.forRoot(),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    
-    // Database connection
+
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URL'), // MongoDB URI from env
+        uri: configService.get<string>('MONGODB_URL'),
       }),
       inject: [ConfigService],
     }),
-
-    // Internal modules
     UserModule,
     JiraModule,
   ],
   providers: [
     {
       provide: APP_FILTER,
-      useClass: SentryGlobalFilter,  // Global Sentry error filter
+      useClass: SentryGlobalFilter,
     },
   ],
   controllers: [AppController],
