@@ -424,7 +424,9 @@ export class JiraService {
         // Calculate the code to bug ratio
         const tasksAndStoriesCount = counts.Task + counts.Story;
         const linkedBugsCount = issuesByDate[date].filter((issue) => {
-          return issue.issueLinks.some((link) => link.issueType === 'Bug');
+          return issue.issueLinks.some((link) => {
+            return link.issueType === 'Bug';
+          });
         }).length;
 
         let codeToBugRatio = 0;
@@ -502,9 +504,9 @@ export class JiraService {
       }
 
       // Update user's issue history
-      const existingHistory = user.issueHistory.find(
-        (history) => history.date === date,
-      );
+      const existingHistory = user.issueHistory.find((history) => {
+        return history.date === date;
+      });
 
       if (existingHistory) {
         existingHistory.issuesCount.done = counts;
@@ -656,7 +658,9 @@ export class JiraService {
                 .filter((issue) => {
                   return issue.issueType === 'Story';
                 })
-                .map((issue) => issue.issueId);
+                .map((issue) => {
+                  return issue.issueId;
+                });
 
               const notDoneBugIds = notDoneIssues
                 .filter((issue) => {

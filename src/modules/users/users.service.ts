@@ -18,7 +18,9 @@ export class UserService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(IssueHistory.name)
     private readonly issueHistoryModel: Model<IssueHistory>,
-  ) {}
+  ) {
+    //Nothing
+  }
 
   async getAllUsers(
     page = 1,
@@ -92,7 +94,9 @@ export class UserService {
 
       const totalIssueHistory = user.issueHistory.length;
       const sortedIssueHistory = user.issueHistory
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        })
         .slice(skip, skip + limit);
 
       const totalPages = Math.ceil(totalIssueHistory / limit);
@@ -198,7 +202,11 @@ export class UserService {
           issueStatus: issue.status,
           planned: true,
           link: issue.issueLinks
-            ? issue.issueLinks.map((link) => link.issueId).join(',')
+            ? issue.issueLinks
+                .map((link) => {
+                  return link.issueId;
+                })
+                .join(',')
             : '', // Adjusted to store linked issue IDs
         };
       });
@@ -244,8 +252,9 @@ export class UserService {
       const todayHistory = issueHistory.history[dateString] || { issues: [] };
 
       const doneIssues =
-        user.issueHistory.find((history) => history.date === dateString)
-          ?.doneIssues || [];
+        user.issueHistory.find((history) => {
+          return history.date === dateString;
+        })?.doneIssues || [];
 
       // Create a set of not done issue IDs for quick lookup
       const notDoneIssueIds = new Set(
@@ -258,9 +267,9 @@ export class UserService {
       const linkedIssueIdsSet = new Set<string>();
 
       // Filter for new done issues that are not in the not done issues
-      const newDoneIssues = doneIssues.filter(
-        (issue) => !notDoneIssueIds.has(issue.issueId),
-      );
+      const newDoneIssues = doneIssues.filter((issue) => {
+        return !notDoneIssueIds.has(issue.issueId);
+      });
 
       // Create new issue entries for today's history
       const issueHistoryEntries = newDoneIssues.map((issue, index) => {
