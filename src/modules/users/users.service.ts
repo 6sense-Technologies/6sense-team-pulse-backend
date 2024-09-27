@@ -1,7 +1,6 @@
 import {
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -11,7 +10,7 @@ import {
   IUserResponse,
   IUserWithPagination,
 } from '../../interfaces/jira.interfaces';
-import { IssueHistory } from './schemas/IssueHistory.schems';
+import { IssueHistory } from './schemas/IssueHistory.schema';
 
 @Injectable()
 export class UserService {
@@ -180,45 +179,41 @@ export class UserService {
     const users = await this.userModel.find().exec();
 
     // Get the current date in "YYYY-MM-DD" format
-    const dateString = new Date().toISOString().split('T')[0]; // "2024-09-26"
+    const dateString = new Date().toISOString().split('T')[0];
 
     for (const user of users) {
-      // Find or create a new issue history for the user
-      let issueHistory = await this.issueHistoryModel
-        .findOne({ userName: user.displayName })
-        .exec();
-      if (!issueHistory) {
-        issueHistory = new this.issueHistoryModel({
-          userName: user.displayName,
-          accountId: user.accountId,
-          history: {},
-        });
-      }
-
-      // Check if history for the current date already exists
-      const todayHistory = issueHistory.history[dateString] || { issues: [] };
-
+      // Get the not done issues for the user
       const notDoneIssues =
         user.issueHistory.find((history) => history.date === dateString)
           ?.notDoneIssues || [];
 
-      const issueHistoryEntries = notDoneIssues.map((issue, index) => ({
-        serialNumber: todayHistory.issues.length + index + 1,
-        issueType: issue.issueType,
-        issueId: issue.issueId,
-        issueStatus: issue.status,
-        planned: true,
-        issueSummary: issue.summary,
-      }));
+      // Prepare the new issue entries
+      const issueHistoryEntries = notDoneIssues.map((issue, index) => {
+        return {
+          serialNumber: index + 1, // You can adjust this logic if needed
+          issueType: issue.issueType,
+          issueId: issue.issueId,
+          issueSummary: issue.summary,
+          issueStatus: issue.status,
+          planned: true,
+          link: issue.issueLinks
+            ? issue.issueLinks.map((link) => link.issueId).join(',')
+            : '', // Adjusted to store linked issue IDs
+        };
+      });
 
-      // Add the new issues to today's history
-      todayHistory.issues.push(...issueHistoryEntries);
-
-      // Update the history for the date
-      issueHistory.history[dateString] = todayHistory;
-
-      // Save the updated issue history
-      await issueHistory.save();
+      // Update or create the issue history document for the user
+      await this.issueHistoryModel.findOneAndUpdate(
+        { userName: user.displayName },
+        {
+          $set: {
+            [`history.${dateString}`]: {
+              issues: issueHistoryEntries,
+            },
+          },
+        },
+        { upsert: true, new: true },
+      );
     }
 
     return 'Not Done issues saved for all users';
@@ -256,19 +251,32 @@ export class UserService {
         (todayHistory.issues || []).map((issue) => issue.issueId),
       );
 
+      // Create a set to collect linked issue IDs
+      const linkedIssueIdsSet = new Set<string>();
+
       // Filter for new done issues that are not in the not done issues
       const newDoneIssues = doneIssues.filter(
         (issue) => !notDoneIssueIds.has(issue.issueId),
       );
 
       // Create new issue entries for today's history
-      const issueHistoryEntries = newDoneIssues.map((issue, index) => ({
-        serialNumber: todayHistory.issues.length + index + 1,
-        issueType: issue.issueType,
-        issueId: issue.issueId,
-        issueSummary: issue.summary,
-        issueStatus: issue.status,
-      }));
+      const issueHistoryEntries = newDoneIssues.map((issue, index) => {
+        // If the issue has linked issues, add them to the set
+        if (issue.issueLinks) {
+          issue.issueLinks.forEach((linkedIssue) =>
+            linkedIssueIdsSet.add(linkedIssue.issueId),
+          );
+        }
+
+        return {
+          serialNumber: todayHistory.issues.length + index + 1,
+          issueType: issue.issueType,
+          issueId: issue.issueId,
+          issueSummary: issue.summary,
+          issueStatus: issue.status,
+          link: Array.from(linkedIssueIdsSet).join(','), // Store linked issue IDs as a comma-separated string
+        };
+      });
 
       // Add the new issues to today's history
       todayHistory.issues.push(...issueHistoryEntries);
@@ -293,11 +301,30 @@ export class UserService {
   async getIssuesByAccountAndDate(accountId: string, date: string) {
     const historyPath = `history.${date}`;
 
-    return this.issueHistoryModel
-      .findOne(
-        { accountId, [historyPath]: { $exists: true } },
-        { [historyPath]: 1 },
-      ) 
-      .exec();
+    try {
+      const result = await this.issueHistoryModel
+        .findOne(
+          { accountId, [historyPath]: { $exists: true } },
+          { userName: 1, accountId: 1, [historyPath]: 1 },
+        )
+        .exec();
+
+      if (
+        !result ||
+        !result.history[date] ||
+        !result.history[date].issues ||
+        result.history[date].issues.length === 0
+      ) {
+        throw new NotFoundException(`No issues found on date: ${date}`);
+      }
+
+      return {
+        userName: result.userName,
+        accountId: result.accountId,
+        issues: result.history[date].issues,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 }

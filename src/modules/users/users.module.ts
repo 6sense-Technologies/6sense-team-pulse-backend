@@ -4,7 +4,7 @@ import { User, UserSchema } from './schemas/user.schema';
 import {
   IssueHistory,
   IssueHistorySchema,
-} from './schemas/IssueHistory.schems';
+} from './schemas/IssueHistory.schema';
 import { JiraModule } from 'src/modules/jira/jira.module';
 import { UserService } from './users.service';
 import { UserController } from './users.controller';

@@ -21,8 +21,8 @@ import {
   IUserResponse,
 } from '../../interfaces/jira.interfaces';
 import { UserService } from '../users/users.service';
-import { Cron } from '@nestjs/schedule';
-import { IssueHistory } from '../users/schemas/IssueHistory.schems';
+// import { Cron } from '@nestjs/schedule';
+import { IssueHistory } from '../users/schemas/IssueHistory.schema';
 
 dotenv.config();
 
@@ -39,10 +39,7 @@ export class JiraService {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
-    @InjectModel(IssueHistory.name)
-    private readonly issueHistoryModel: Model<IssueHistory>,
   ) {}
 
   private async fetchFromBothUrls(endpoint: string) {
@@ -122,6 +119,7 @@ export class JiraService {
           issueType: issue.fields.issuetype.name,
           dueDate: issue.fields.duedate,
           created: issue.fields.created,
+          issueLinks: issue.fields.issuelinks,
         }));
 
       return [
@@ -295,7 +293,6 @@ export class JiraService {
                     issueType: linkedIssue.fields.issuetype.name,
                     summary: linkedIssue.fields.summary,
                     status: linkedIssue.fields.status.name,
-                    dueDate: linkedIssue.fields.duedate?.split('T')[0] || null,
                   }
                 : null;
             })
@@ -329,17 +326,17 @@ export class JiraService {
   }
 
   async countDoneIssuesForToday(accountId: string): Promise<void> {
-    // const previousDay = new Date(new Date().setDate(new Date().getDate() - 1))
-    // .toLocaleDateString('en-CA', {
-    //   timeZone: 'Asia/Dhaka',
-    // });
-
     const today = new Date().toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
 
-    // console.log(previousDay);
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate=${today}`;
+    // const previousDay = new Date(
+    //   new Date().setDate(new Date().getDate() - 1),
+    // ).toLocaleDateString('en-CA', {
+    //   timeZone: 'Asia/Dhaka',
+    // });
+
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${today}`;
 
     try {
       const [response1, response2] = await Promise.all([
@@ -358,7 +355,7 @@ export class JiraService {
           Task: number;
           Bug: number;
           Story: number;
-          LinkedBugs: number;
+          LinkedIssues: number;
         };
       } = {};
       const issuesByDate: { [key: string]: Issue[] } = {};
@@ -376,17 +373,17 @@ export class JiraService {
               Task: 0,
               Bug: 0,
               Story: 0,
-              LinkedBugs: 0,
+              LinkedIssues: 0,
             };
             issuesByDate[dueDate] = [];
           }
 
           // Count the issue types
-          if (issueType === 'Task') {
+          if (issueType === 'Task' && status === 'Done') {
             countsByDate[dueDate].Task++;
-          } else if (issueType === 'Bug') {
+          } else if (issueType === 'Bug' && status === 'Done') {
             countsByDate[dueDate].Bug++;
-          } else if (issueType === 'Story') {
+          } else if (issueType === 'Story' && status === 'Done') {
             countsByDate[dueDate].Story++;
           }
 
@@ -400,51 +397,38 @@ export class JiraService {
                     issueType: linkedIssue.fields.issuetype.name,
                     summary: linkedIssue.fields.summary,
                     status: linkedIssue.fields.status.name,
-                    dueDate: linkedIssue.fields.duedate?.split('T')[0] || null,
                   }
                 : null;
             })
             .filter(Boolean); // Filter out any null values
 
-          // Count linked bugs
-          const linkedBugsCount = linkedIssues.filter(
-            (linkedIssue) => linkedIssue.issueType === 'Bug',
-          ).length;
+          // Count all linked issues
+          countsByDate[dueDate].LinkedIssues += linkedIssues.length;
 
-          countsByDate[dueDate].LinkedBugs += linkedBugsCount;
-
-          // Save the main issue along with linked issues
+          // Save the main issue along with all linked issues
           issuesByDate[dueDate].push({
             issueId,
             summary,
             status,
             issueType,
             dueDate,
-            issueLinks: linkedIssues, // Include linked issues here
+            issueLinks: linkedIssues, // Include all linked issues here
           });
         }
       }
 
       // Save the counts and issue data
       for (const [date, counts] of Object.entries(countsByDate)) {
-        const tasksWithLinkedBugs = doneIssues.filter(
-          (issue) =>
-            (issue.fields.issuetype.name === 'Task' ||
-              issue.fields.issuetype.name === 'Story') &&
-            issue.fields.issuelinks.some(
-              (link) =>
-                link.outwardIssue?.fields.issuetype.name === 'Bug' ||
-                link.inwardIssue?.fields.issuetype.name === 'Bug',
-            ),
-        );
-
-        const taskAndStoryCount = tasksWithLinkedBugs.length;
-        const linkedBugsCount = counts.LinkedBugs;
+        // Calculate the code to bug ratio
+        const tasksAndStoriesCount = counts.Task + counts.Story;
+        const linkedBugsCount = issuesByDate[date].filter((issue) =>
+          issue.issueLinks.some((link) => link.issueType === 'Bug'),
+        ).length;
 
         let codeToBugRatio = 0;
-        if (taskAndStoryCount > 0) {
+        if (tasksAndStoriesCount > 0) {
           codeToBugRatio = parseFloat(
-            (linkedBugsCount / taskAndStoryCount).toFixed(2),
+            (linkedBugsCount / tasksAndStoriesCount).toFixed(2),
           );
         }
 
@@ -454,7 +438,7 @@ export class JiraService {
           date,
           counts,
           issuesByDate[date],
-          codeToBugRatio,
+          codeToBugRatio, // Save the ratio here
         );
       }
     } catch (error) {
@@ -675,6 +659,7 @@ export class JiraService {
                 .filter(
                   (issue) =>
                     issue.issueType === 'Task' &&
+                    issue.status === 'Done' && // Ensure the issue is completed
                     notDoneTaskIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
@@ -683,6 +668,7 @@ export class JiraService {
                 .filter(
                   (issue) =>
                     issue.issueType === 'Story' &&
+                    issue.status === 'Done' && // Ensure the issue is completed
                     notDoneStoryIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
@@ -691,19 +677,24 @@ export class JiraService {
                 .filter(
                   (issue) =>
                     issue.issueType === 'Bug' &&
+                    issue.status === 'Done' && // Ensure the issue is completed
                     notDoneBugIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
 
               // Count total done tasks, stories, and bugs (both matched and unmatched)
               const totalAllDoneTasks = doneIssues.filter(
-                (issue) => issue.issueType === 'Task',
+                (issue) =>
+                  issue.issueType === 'Task' && issue.status === 'Done', // Only count tasks with status 'Done'
               ).length;
+
               const totalAllDoneStories = doneIssues.filter(
-                (issue) => issue.issueType === 'Story',
+                (issue) =>
+                  issue.issueType === 'Story' && issue.status === 'Done', // Only count stories with status 'Done'
               ).length;
+
               const totalAllDoneBugs = doneIssues.filter(
-                (issue) => issue.issueType === 'Bug',
+                (issue) => issue.issueType === 'Bug' && issue.status === 'Done', // Only count bugs with status 'Done'
               ).length;
 
               // Total not done issues for comparison
@@ -795,7 +786,6 @@ export class JiraService {
               };
             }),
           );
-          
 
           const totalScore = metricsByDay.reduce(
             (sum, day) => sum + day.overallScore,
@@ -815,7 +805,6 @@ export class JiraService {
 
       return {
         message: 'User metrics calculated successfully',
-        users: updatedUsers,
       };
     } catch (error) {
       throw error;

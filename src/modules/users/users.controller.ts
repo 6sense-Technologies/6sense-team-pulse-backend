@@ -14,7 +14,7 @@ import {
   IGetAllUsersResponse,
 } from '../../interfaces/jira.interfaces';
 import { Designation, Project } from './schemas/user.schema';
-import { IssueHistory } from './schemas/IssueHistory.schems';
+import { IssueHistory } from './schemas/IssueHistory.schema';
 
 @Controller('users')
 export class UserController {
@@ -71,20 +71,24 @@ export class UserController {
 
   @Put('collect-history/all/morning')
   async collectIssueHistoryMorning(): Promise<{ message: string }> {
-      await this.userService.fetchAndSaveNotDoneIssuesForAllUsers();
-      return { message: 'Issue history collected and saved successfully.' };
+    await this.userService.fetchAndSaveNotDoneIssuesForAllUsers();
+    return { message: 'Issue history collected and saved successfully.' };
   }
   @Put('collect-history/all/evening')
   async collectIssueHistoryEvening(): Promise<{ message: string }> {
-      await this.userService.fetchAndSaveDoneIssuesForAllUsers();
-      return { message: 'Issue history collected and saved successfully.' };
+    await this.userService.fetchAndSaveDoneIssuesForAllUsers();
+    return { message: 'Issue history collected and saved successfully.' };
   }
 
   @Get('issues/:accountId/:date')
   async getIssues(
     @Param('accountId') accountId: string,
-    @Param('date') date: string
+    @Param('date') date: string,
   ) {
-    return this.userService.getIssuesByAccountAndDate(accountId, date);
+    const response = await this.userService.getIssuesByAccountAndDate(
+      accountId,
+      date,
+    );
+    return response;
   }
 }

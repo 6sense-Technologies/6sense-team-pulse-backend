@@ -34,7 +34,6 @@ export interface IssueLink {
   issueType: string;
   summary: string;
   status: string;
-  dueDate: string;
 }
 
 export interface IssueHistoryEntry {
@@ -114,7 +113,6 @@ export class User extends Document {
                 issueType: { type: String },
                 summary: { type: String },
                 status: { type: String },
-                dueDate: { type: String, default: null },
               },
             ],
           },
@@ -132,7 +130,6 @@ export class User extends Document {
                 issueType: { type: String },
                 summary: { type: String },
                 status: { type: String },
-                dueDate: { type: String, default: null },
               },
             ],
           },

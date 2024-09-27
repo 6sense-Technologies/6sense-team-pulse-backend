@@ -21,11 +21,8 @@ class IssueEntry {
   @Prop({ type: Boolean, default: false })
   planned?: boolean;
 
-  @Prop({ type: Boolean, default: false })
-  checked?: boolean;
-
-  @Prop({ type: Number, default: 0 })
-  link?: number;
+  @Prop({ type: String, default: '' })
+  link?: string;
 }
 
 export const IssueEntrySchema = SchemaFactory.createForClass(IssueEntry);
