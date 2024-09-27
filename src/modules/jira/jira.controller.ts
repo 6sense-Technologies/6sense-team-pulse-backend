@@ -18,7 +18,9 @@ import { Designation, Project } from '../users/schemas/user.schema';
 
 @Controller('jira')
 export class JiraController {
-  constructor(private readonly jiraService: JiraService) {}
+  constructor(private readonly jiraService: JiraService) {
+    // Constructor for injecting JiraService
+  }
 
   @Get(':accountId/issues')
   async getUserIssues(
@@ -68,7 +70,6 @@ export class JiraController {
     @Param('accountId') accountId: string,
   ): Promise<void> {
     await this.jiraService.countNotDoneIssuesForToday(accountId);
-    return;
   }
 
   // @Put(':accountId/issues/done-month')
@@ -82,7 +83,6 @@ export class JiraController {
     @Param('accountId') accountId: string,
   ): Promise<void> {
     await this.jiraService.countNotDoneIssuesForToday(accountId);
-    return;
   }
 
   @Put(':accountId/issues/done-today')
@@ -90,19 +90,16 @@ export class JiraController {
     @Param('accountId') accountId: string,
   ): Promise<void> {
     await this.jiraService.countDoneIssuesForToday(accountId);
-    return;
   }
 
   @Put('update-morning-issue-history')
   async updateMorningIssueHistory(): Promise<void> {
     await this.jiraService.updateMorningIssueHistory();
-    return;
   }
 
   @Put('update-evening-issue-history')
   async updateEveningIssueHistory(): Promise<void> {
     await this.jiraService.updateEveningIssueHistory();
-    return;
   }
 
   // @Put('update-morning-issue-history-30days')
@@ -120,6 +117,5 @@ export class JiraController {
   @Put('metrics')
   async getUserMetrics() {
     await this.jiraService.getAllUserMetrics();
-    return;
   }
 }

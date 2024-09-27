@@ -22,9 +22,11 @@ dotenv.config();
 
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URL'),
-      }),
+      useFactory: async (configService: ConfigService) => {
+        return {
+          uri: configService.get<string>('MONGODB_URL'),
+        };
+      },
       inject: [ConfigService],
     }),
     UserModule,
