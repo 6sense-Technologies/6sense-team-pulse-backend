@@ -11,7 +11,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   Designation,
-  Issue,
+  IIssue,
   Project,
   User,
 } from '../users/schemas/user.schema';
@@ -40,7 +40,9 @@ export class JiraService {
   constructor(
     private readonly httpService: HttpService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
-  ) {}
+  ) {
+    // Constructor for injecting userModel
+  }
 
   private async fetchFromBothUrls(endpoint: string) {
     const url1 = `${this.jiraBaseUrl}${endpoint}`;
@@ -248,7 +250,7 @@ export class JiraService {
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
-      const issuesByDate: { [key: string]: Issue[] } = {};
+      const issuesByDate: { [key: string]: IIssue[] } = {};
 
       if (notDoneIssues.length === 0) {
         // If no issues found, save with zero counts
@@ -358,7 +360,7 @@ export class JiraService {
           LinkedIssues: number;
         };
       } = {};
-      const issuesByDate: { [key: string]: Issue[] } = {};
+      const issuesByDate: { [key: string]: IIssue[] } = {};
 
       for (const issue of doneIssues) {
         const dueDate = issue.fields.duedate?.split('T')[0];
@@ -421,9 +423,9 @@ export class JiraService {
       for (const [date, counts] of Object.entries(countsByDate)) {
         // Calculate the code to bug ratio
         const tasksAndStoriesCount = counts.Task + counts.Story;
-        const linkedBugsCount = issuesByDate[date].filter((issue) =>
-          issue.issueLinks.some((link) => link.issueType === 'Bug'),
-        ).length;
+        const linkedBugsCount = issuesByDate[date].filter((issue) => {
+          return issue.issueLinks.some((link) => link.issueType === 'Bug');
+        }).length;
 
         let codeToBugRatio = 0;
         if (tasksAndStoriesCount > 0) {
@@ -452,7 +454,7 @@ export class JiraService {
     accountId: string,
     date: string,
     counts: { Task: number; Bug: number; Story: number },
-    issues: Issue[],
+    issues: IIssue[],
   ): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId });
@@ -462,9 +464,9 @@ export class JiraService {
       }
 
       // Update user's issue history
-      const existingHistory = user.issueHistory.find(
-        (history) => history.date === date,
-      );
+      const existingHistory = user.issueHistory.find((history) => {
+        return history.date === date;
+      });
 
       if (existingHistory) {
         existingHistory.issuesCount.notDone = counts;
@@ -489,7 +491,7 @@ export class JiraService {
     accountId: string,
     date: string,
     counts: { Task: number; Bug: number; Story: number },
-    issues: Issue[],
+    issues: IIssue[],
     codeToBugRatio: number,
   ): Promise<void> {
     try {
@@ -643,15 +645,23 @@ export class JiraService {
 
               // Map not done task, story, and bug IDs
               const notDoneTaskIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Task')
-                .map((issue) => issue.issueId);
+                .filter((issue) => {
+                  return issue.issueType === 'Task';
+                })
+                .map((issue) => {
+                  return issue.issueId;
+                });
 
               const notDoneStoryIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Story')
+                .filter((issue) => {
+                  return issue.issueType === 'Story';
+                })
                 .map((issue) => issue.issueId);
 
               const notDoneBugIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Bug')
+                .filter((issue) => {
+                  return issue.issueType === 'Bug';
+                })
                 .map((issue) => issue.issueId);
 
               // Filter done issues to count matched ones
@@ -684,17 +694,21 @@ export class JiraService {
 
               // Count total done tasks, stories, and bugs (both matched and unmatched)
               const totalAllDoneTasks = doneIssues.filter(
-                (issue) =>
-                  issue.issueType === 'Task' && issue.status === 'Done', // Only count tasks with status 'Done'
+                (issue) => {
+                  return issue.issueType === 'Task' && issue.status === 'Done';
+                }, // Only count tasks with status 'Done'
               ).length;
 
               const totalAllDoneStories = doneIssues.filter(
-                (issue) =>
-                  issue.issueType === 'Story' && issue.status === 'Done', // Only count stories with status 'Done'
+                (issue) => {
+                  return issue.issueType === 'Story' && issue.status === 'Done';
+                }, // Only count stories with status 'Done'
               ).length;
 
               const totalAllDoneBugs = doneIssues.filter(
-                (issue) => issue.issueType === 'Bug' && issue.status === 'Done', // Only count bugs with status 'Done'
+                (issue) => {
+                  return issue.issueType === 'Bug' && issue.status === 'Done';
+                }, // Only count bugs with status 'Done'
               ).length;
 
               // Total not done issues for comparison
@@ -755,8 +769,9 @@ export class JiraService {
 
               if (nonZeroCompletionRates.length > 0) {
                 overallScore =
-                  nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
-                  nonZeroCompletionRates.length;
+                  nonZeroCompletionRates.reduce((sum, rate) => {
+                    return sum + rate;
+                  }, 0) / nonZeroCompletionRates.length;
               }
 
               const taskCompletionRateNum = isNaN(taskCompletionRate)
@@ -787,10 +802,9 @@ export class JiraService {
             }),
           );
 
-          const totalScore = metricsByDay.reduce(
-            (sum, day) => sum + day.overallScore,
-            0,
-          );
+          const totalScore = metricsByDay.reduce((sum, day) => {
+            return sum + day.overallScore;
+          }, 0);
           const currentPerformance = metricsByDay.length
             ? totalScore / metricsByDay.length
             : 0;

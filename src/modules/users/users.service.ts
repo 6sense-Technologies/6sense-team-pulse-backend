@@ -21,8 +21,8 @@ export class UserService {
   ) {}
 
   async getAllUsers(
-    page: number = 1,
-    limit: number = 10,
+    page = 1,
+    limit = 10,
   ): Promise<{
     message: string;
     statusCode: number;
@@ -73,8 +73,8 @@ export class UserService {
 
   async getUser(
     accountId: string,
-    page: number = 1,
-    limit: number = 1,
+    page = 1,
+    limit = 10,
   ): Promise<IUserResponse> {
     try {
       const user = await this.userModel.findOne({ accountId }).exec();
@@ -184,8 +184,9 @@ export class UserService {
     for (const user of users) {
       // Get the not done issues for the user
       const notDoneIssues =
-        user.issueHistory.find((history) => history.date === dateString)
-          ?.notDoneIssues || [];
+        user.issueHistory.find((history) => {
+          return history.date === dateString;
+        })?.notDoneIssues || [];
 
       // Prepare the new issue entries
       const issueHistoryEntries = notDoneIssues.map((issue, index) => {
@@ -248,7 +249,9 @@ export class UserService {
 
       // Create a set of not done issue IDs for quick lookup
       const notDoneIssueIds = new Set(
-        (todayHistory.issues || []).map((issue) => issue.issueId),
+        (todayHistory.issues || []).map((issue) => {
+          return issue.issueId;
+        }),
       );
 
       // Create a set to collect linked issue IDs
@@ -263,9 +266,9 @@ export class UserService {
       const issueHistoryEntries = newDoneIssues.map((issue, index) => {
         // If the issue has linked issues, add them to the set
         if (issue.issueLinks) {
-          issue.issueLinks.forEach((linkedIssue) =>
-            linkedIssueIdsSet.add(linkedIssue.issueId),
-          );
+          issue.issueLinks.forEach((linkedIssue) => {
+            return linkedIssueIdsSet.add(linkedIssue.issueId);
+          });
         }
 
         return {

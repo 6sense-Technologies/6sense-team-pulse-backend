@@ -4,7 +4,7 @@ import { User, UserSchema } from './schemas/user.schema';
 import {
   IssueHistory,
   IssueHistorySchema,
-} from './schemas/IssueHistory.schema';
+} from './schemas/issueHistory.schema';
 import { JiraModule } from 'src/modules/jira/jira.module';
 import { UserService } from './users.service';
 import { UserController } from './users.controller';
@@ -15,7 +15,9 @@ import { UserController } from './users.controller';
       { name: User.name, schema: UserSchema },
       { name: IssueHistory.name, schema: IssueHistorySchema },
     ]),
-    forwardRef(() => JiraModule),
+    forwardRef(() => {
+      return JiraModule;
+    }),
   ],
   providers: [UserService],
   controllers: [UserController],

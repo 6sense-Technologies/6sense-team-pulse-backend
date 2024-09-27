@@ -4,7 +4,6 @@ import {
   Param,
   Delete,
   Query,
-  Post,
   BadRequestException,
   Put,
 } from '@nestjs/common';
@@ -14,16 +13,17 @@ import {
   IGetAllUsersResponse,
 } from '../../interfaces/jira.interfaces';
 import { Designation, Project } from './schemas/user.schema';
-import { IssueHistory } from './schemas/IssueHistory.schema';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) {
+    // Constructor for injecting UserService
+  }
 
   @Get()
   async getAllUsers(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
   ): Promise<IGetAllUsersResponse> {
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
@@ -34,8 +34,8 @@ export class UserController {
   @Get(':accountId')
   async getUser(
     @Param('accountId') accountId: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
   ): Promise<IUserResponse> {
     return this.userService.getUser(accountId, page, limit);
   }
