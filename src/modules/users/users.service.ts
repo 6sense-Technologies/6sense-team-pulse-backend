@@ -10,7 +10,7 @@ import {
   IUserResponse,
   IUserWithPagination,
 } from '../../interfaces/jira.interfaces';
-import { IssueHistory } from './schemas/IssueHistory.schema';
+import { IssueHistory } from './schemas/IssueHistory.schems';
 
 @Injectable()
 export class UserService {
@@ -233,6 +233,9 @@ export class UserService {
 
     // Get the current date in "YYYY-MM-DD" format
     const dateString = new Date().toISOString().split('T')[0]; // "2024-09-26"
+    // const today = new Date();
+    // today.setDate(today.getDate() - 1);
+    // const dateString = today.toISOString().split('T')[0]; 
 
     for (const user of users) {
       // Find or create a new issue history for the user
