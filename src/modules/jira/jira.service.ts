@@ -20,9 +20,6 @@ import {
   IJiraUserData,
   IUserResponse,
 } from '../../interfaces/jira.interfaces';
-// import { UserService } from '../users/users.service';
-// import { Cron } from '@nestjs/schedule';
-// import { IssueHistory } from '../users/schemas/IssueHistory.schema';
 
 dotenv.config();
 
@@ -526,79 +523,6 @@ export class JiraService {
       throw new InternalServerErrorException('Error saving done issue counts');
     }
   }
-
-  // async saveNotDoneIssueCounts(
-  //   accountId: string,
-  //   date: string,
-  //   counts: { Task: number; Bug: number; Story: number },
-  //   issues: Issue[],
-  // ): Promise<void> {
-  //   try {
-  //     const user = await this.userModel.findOne({ accountId });
-
-  //     if (!user) {
-  //       throw new InternalServerErrorException('User not found');
-  //     }
-
-  //     const existingHistory = user.issueHistory.find(
-  //       (history) => history.date === date,
-  //     );
-
-  //     if (existingHistory) {
-  //       existingHistory.issuesCount.notDone = counts;
-  //       existingHistory.notDoneIssues = issues;
-  //     } else {
-  //       user.issueHistory.push({
-  //         date,
-  //         issuesCount: { notDone: counts },
-  //         notDoneIssues: issues,
-  //       });
-  //     }
-
-  //     await user.save();
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(
-  //       'Error saving not-done issue counts',
-  //     );
-  //   }
-  // }
-
-  // async saveDoneIssueCounts(
-  //   accountId: string,
-  //   date: string,
-  //   counts: { Task: number; Bug: number; Story: number },
-  //   issues: Issue[],
-  //   codeToBugRatio: number,
-  // ): Promise<void> {
-  //   try {
-  //     const user = await this.userModel.findOne({ accountId });
-
-  //     if (!user) {
-  //       throw new InternalServerErrorException('User not found');
-  //     }
-
-  //     const existingHistory = user.issueHistory.find(
-  //       (history) => history.date === date,
-  //     );
-
-  //     if (existingHistory) {
-  //       existingHistory.issuesCount.done = counts;
-  //       existingHistory.doneIssues = issues;
-  //       existingHistory.codeToBugRatio = codeToBugRatio;
-  //     } else {
-  //       user.issueHistory.push({
-  //         date,
-  //         issuesCount: { done: counts },
-  //         doneIssues: issues,
-  //         codeToBugRatio,
-  //       });
-  //     }
-
-  //     await user.save();
-  //   } catch (error) {
-  //     throw new InternalServerErrorException('Error saving done issue counts');
-  //   }
-  // }
 
   async updateMorningIssueHistory(): Promise<void> {
     console.log('Running updateMorningIssueHistory');
