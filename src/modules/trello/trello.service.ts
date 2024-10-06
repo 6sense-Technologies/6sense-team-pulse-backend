@@ -80,7 +80,9 @@ export class TrelloService {
           .toPromise()
           .then((response) => ({
             boardId,
-            boardName: boardDetails.find((board) => board.id === boardId)?.name,
+            boardName: boardDetails.find((board) => {
+              return board.id === boardId;
+            })?.name,
             members: response.data,
           })),
       );
@@ -198,9 +200,9 @@ export class TrelloService {
       };
 
       // Step 4: Fetch cards for all boards
-      const allCardsPromises = boardsData.map((board) =>
-        fetchCardsForBoard(board.id),
-      );
+      const allCardsPromises = boardsData.map((board) => {
+        return fetchCardsForBoard(board.id);
+      });
       // Wait for all board card promises to resolve and flatten the result
       return (await Promise.all(allCardsPromises)).flat();
     } catch (error) {
@@ -291,10 +293,9 @@ export class TrelloService {
     const issuesByDate: { [key: string]: IIssue[] } = {};
 
     // Step 1: Filter out not done issues that are due today
-    const notDoneIssues = userCards.filter(
-      (card) =>
-        card.listName !== 'Done' && card.dueDate?.split('T')[0] === today,
-    );
+    const notDoneIssues = userCards.filter((card) => {
+      return card.listName !== 'Done' && card.dueDate?.split('T')[0] === today;
+    });
 
     // If no issues are found, save zero counts and exit
     if (notDoneIssues.length === 0) {
@@ -403,8 +404,9 @@ export class TrelloService {
 
     // Get not done issues for today from the user's issue history
     const notDoneIssues =
-      user?.issueHistory.find((entry) => entry.date === today)?.notDoneIssues ||
-      [];
+      user?.issueHistory.find((entry) => {
+        return entry.date === today;
+      })?.notDoneIssues || [];
 
     // Prepare storage for counts and issues
     const countsByDate: {

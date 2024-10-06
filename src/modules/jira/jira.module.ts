@@ -6,7 +6,13 @@ import { UserModule } from '../users/users.module';
 import { TrelloModule } from '../trello/trello.module';
 
 @Module({
-  imports: [HttpModule, forwardRef(() => UserModule), TrelloModule],
+  imports: [
+    HttpModule,
+    forwardRef(() => {
+      return UserModule;
+    }),
+    TrelloModule,
+  ],
   providers: [JiraService],
   controllers: [JiraController],
   exports: [JiraService],

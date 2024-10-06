@@ -610,15 +610,23 @@ export class JiraService {
 
               // Map not done task, story, and bug IDs
               const notDoneTaskIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Task')
-                .map((issue) => issue.issueId);
+                .filter((issue) => {
+                  return issue.issueType === 'Task';
+                })
+                .map((issue) => {
+                  return issue.issueId;
+                });
 
               const notDoneStoryIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Story')
+                .filter((issue) => {
+                  return issue.issueType === 'Story';
+                })
                 .map((issue) => issue.issueId);
 
               const notDoneBugIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Bug')
+                .filter((issue) => {
+                  return issue.issueType === 'Bug';
+                })
                 .map((issue) => issue.issueId);
 
               // Filter done issues to count matched ones
@@ -652,19 +660,17 @@ export class JiraService {
                 .map((issue) => issue.issueId);
 
               // Count total done tasks, stories, and bugs (both matched and unmatched)
-              const totalAllDoneTasks = doneIssues.filter(
-                (issue) =>
-                  issue.issueType === 'Task' && issue.status === 'Done',
-              ).length;
+              const totalAllDoneTasks = doneIssues.filter((issue) => {
+                return issue.issueType === 'Task' && issue.status === 'Done';
+              }).length;
 
-              const totalAllDoneStories = doneIssues.filter(
-                (issue) =>
-                  issue.issueType === 'Story' && issue.status === 'Done',
-              ).length;
+              const totalAllDoneStories = doneIssues.filter((issue) => {
+                return issue.issueType === 'Story' && issue.status === 'Done';
+              }).length;
 
-              const totalAllDoneBugs = doneIssues.filter(
-                (issue) => issue.issueType === 'Bug' && issue.status === 'Done',
-              ).length;
+              const totalAllDoneBugs = doneIssues.filter((issue) => {
+                return issue.issueType === 'Bug' && issue.status === 'Done';
+              }).length;
 
               // Total not done issues for comparison
               const totalNotDoneTasksAndBugs =
@@ -771,9 +777,9 @@ export class JiraService {
             return sum + day.overallScore;
           }, 0);
 
-          const validDaysCount = metricsByDay.filter(
-            (day) => day.comment !== 'holidays/leave',
-          ).length;
+          const validDaysCount = metricsByDay.filter((day) => {
+            return day.comment !== 'holidays/leave';
+          }).length;
           const currentPerformance =
             validDaysCount > 0 ? totalScore / validDaysCount : 0;
 
