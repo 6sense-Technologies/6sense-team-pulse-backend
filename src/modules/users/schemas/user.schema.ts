@@ -56,7 +56,7 @@ export interface IUser {
   displayName: string;
   emailAddress: string;
   avatarUrls: string;
-  userFrom:string;
+  userFrom: string;
   currentPerformance: number;
   issueHistory: IIssueHistoryEntry[];
   designation: Designation;
@@ -77,10 +77,10 @@ export class User extends Document {
   @Prop()
   userFrom: string;
 
-  @Prop({ type: String,default: '' })
+  @Prop({ type: String, default: '' })
   emailAddress: string;
 
-  @Prop({ type: String,default: '' })
+  @Prop({ type: String, default: '' })
   avatarUrls: string;
 
   @Prop({

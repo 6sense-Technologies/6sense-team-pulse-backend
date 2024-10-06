@@ -584,40 +584,43 @@ export class JiraService {
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth();
       const currentYear = currentDate.getFullYear();
-  
+
       const updatedUsers = await Promise.all(
         users.map(async (user) => {
           const issueHistory = user.issueHistory;
-  
+
           // Filter issue history for the current month
-          const currentMonthHistory = issueHistory.filter(entry => {
+          const currentMonthHistory = issueHistory.filter((entry) => {
             const entryDate = new Date(entry.date);
-            return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
+            return (
+              entryDate.getMonth() === currentMonth &&
+              entryDate.getFullYear() === currentYear
+            );
           });
-  
+
           const metricsByDay = await Promise.all(
             currentMonthHistory.map(async (entry) => {
               const { date, issuesCount, notDoneIssues, doneIssues } = entry;
               const counts = issuesCount;
-  
+
               let taskCompletionRate = 0;
               let userStoryCompletionRate = 0;
               let overallScore = 0;
               let comment = '';
-  
+
               // Map not done task, story, and bug IDs
               const notDoneTaskIds = notDoneIssues
                 .filter((issue) => issue.issueType === 'Task')
                 .map((issue) => issue.issueId);
-  
+
               const notDoneStoryIds = notDoneIssues
                 .filter((issue) => issue.issueType === 'Story')
                 .map((issue) => issue.issueId);
-  
+
               const notDoneBugIds = notDoneIssues
                 .filter((issue) => issue.issueType === 'Bug')
                 .map((issue) => issue.issueId);
-  
+
               // Filter done issues to count matched ones
               const matchedDoneTaskIds = doneIssues
                 .filter(
@@ -627,7 +630,7 @@ export class JiraService {
                     notDoneTaskIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
-  
+
               const matchedDoneStoryIds = doneIssues
                 .filter(
                   (issue) =>
@@ -638,7 +641,7 @@ export class JiraService {
                     notDoneStoryIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
-  
+
               const matchedDoneBugIds = doneIssues
                 .filter(
                   (issue) =>
@@ -647,55 +650,60 @@ export class JiraService {
                     notDoneBugIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
-  
+
               // Count total done tasks, stories, and bugs (both matched and unmatched)
               const totalAllDoneTasks = doneIssues.filter(
-                (issue) => issue.issueType === 'Task' && issue.status === 'Done',
+                (issue) =>
+                  issue.issueType === 'Task' && issue.status === 'Done',
               ).length;
-  
+
               const totalAllDoneStories = doneIssues.filter(
-                (issue) => issue.issueType === 'Story' && issue.status === 'Done',
+                (issue) =>
+                  issue.issueType === 'Story' && issue.status === 'Done',
               ).length;
-  
+
               const totalAllDoneBugs = doneIssues.filter(
                 (issue) => issue.issueType === 'Bug' && issue.status === 'Done',
               ).length;
-  
+
               // Total not done issues for comparison
               const totalNotDoneTasksAndBugs =
                 counts.notDone.Task + counts.notDone.Bug;
               const totalMatchedDoneTasksAndBugs =
                 matchedDoneTaskIds.length + matchedDoneBugIds.length;
-  
+
               // Calculate task completion rate (only matched)
               if (totalNotDoneTasksAndBugs > 0) {
                 taskCompletionRate =
                   (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) *
                   100;
               }
-  
+
               // Calculate user story completion rate (only matched)
               const totalNotDoneStories = counts.notDone.Story;
               const totalMatchedDoneStories = matchedDoneStoryIds.length;
-  
+
               if (totalNotDoneStories > 0) {
                 userStoryCompletionRate =
                   (totalMatchedDoneStories / totalNotDoneStories) * 100;
               }
-  
+
               // Compare all done vs. not done issues for the comment
               const totalAllDoneIssues =
                 totalAllDoneTasks + totalAllDoneStories + totalAllDoneBugs;
               const totalNotDoneIssues =
                 totalNotDoneTasksAndBugs + totalNotDoneStories;
-  
+
               // Check if both total and completed tasks are zero
-              if (totalNotDoneTasksAndBugs === 0 && totalMatchedDoneTasksAndBugs === 0) {
-                comment = "holidays/leave";
+              if (
+                totalNotDoneTasksAndBugs === 0 &&
+                totalMatchedDoneTasksAndBugs === 0
+              ) {
+                comment = 'holidays/leave';
               } else if (totalAllDoneIssues > totalNotDoneIssues) {
                 comment = `Your target was ${totalNotDoneIssues}, but you completed ${totalAllDoneIssues}.`;
               }
-  
+
               // Calculate unmatched done issues
               const unmatchedDoneTasks =
                 totalAllDoneTasks - matchedDoneTaskIds.length;
@@ -703,14 +711,14 @@ export class JiraService {
                 totalAllDoneStories - matchedDoneStoryIds.length;
               const unmatchedDoneBugs =
                 totalAllDoneBugs - matchedDoneBugIds.length;
-  
+
               const totalUnmatchedDoneIssues =
                 unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
-  
+
               if (totalUnmatchedDoneIssues > 0) {
                 comment += ` ${totalUnmatchedDoneIssues} issue(s) that you completed do not match your target issues.`;
               }
-  
+
               // Aggregate scores for tasks, stories, and bugs
               const nonZeroCompletionRates = [];
               if (totalNotDoneTasksAndBugs > 0) {
@@ -719,14 +727,14 @@ export class JiraService {
               if (totalNotDoneStories > 0) {
                 nonZeroCompletionRates.push(userStoryCompletionRate);
               }
-  
+
               if (nonZeroCompletionRates.length > 0) {
                 overallScore =
                   nonZeroCompletionRates.reduce((sum, rate) => {
                     return sum + rate;
                   }, 0) / nonZeroCompletionRates.length;
               }
-  
+
               const taskCompletionRateNum = isNaN(taskCompletionRate)
                 ? 0
                 : taskCompletionRate;
@@ -734,12 +742,12 @@ export class JiraService {
                 ? 0
                 : userStoryCompletionRate;
               const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
-  
+
               entry.taskCompletionRate = taskCompletionRateNum;
               entry.userStoryCompletionRate = userStoryCompletionRateNum;
               entry.overallScore = overallScoreNum;
               entry.comment = comment;
-  
+
               return {
                 date,
                 numberOfTasks: counts.notDone.Task,
@@ -754,31 +762,34 @@ export class JiraService {
               };
             }),
           );
-  
+
           // Calculate current performance for the current month, excluding holidays/leave comments
           const totalScore = metricsByDay.reduce((sum, day) => {
-            if (day.comment === "holidays/leave") {
+            if (day.comment === 'holidays/leave') {
               return sum; // Skip this day
             }
             return sum + day.overallScore;
           }, 0);
-  
-          const validDaysCount = metricsByDay.filter(day => day.comment !== "holidays/leave").length;
-          const currentPerformance = validDaysCount > 0 ? totalScore / validDaysCount : 0;
-  
+
+          const validDaysCount = metricsByDay.filter(
+            (day) => day.comment !== 'holidays/leave',
+          ).length;
+          const currentPerformance =
+            validDaysCount > 0 ? totalScore / validDaysCount : 0;
+
           user.currentPerformance = currentPerformance;
           user.issueHistory = issueHistory;
           await user.save();
-  
+
           return user;
         }),
       );
-  
+
       return {
         message: 'User metrics calculated successfully',
       };
     } catch (error) {
       throw error;
     }
-  }  
+  }
 }

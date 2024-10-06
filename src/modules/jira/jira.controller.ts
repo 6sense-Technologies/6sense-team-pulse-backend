@@ -74,7 +74,6 @@ export class JiraController {
     await this.jiraService.countNotDoneIssuesForToday(accountId);
   }
 
-
   @Put(':accountId/issues/not-done-today')
   async countNotDoneIssuesForToday(
     @Param('accountId') accountId: string,
@@ -98,18 +97,6 @@ export class JiraController {
   async updateEveningIssueHistory(): Promise<void> {
     await this.jiraService.updateEveningIssueHistory();
   }
-
-  // @Put('update-morning-issue-history-30days')
-  // async updateMorningIssueHistoryFor30days(): Promise<void> {
-  //   await this.jiraService.updateMorningIssueHistoryFor30days();
-  //   return;
-  // }
-
-  // @Put('update-evening-issue-history-30days')
-  // async updateEveningIssueHistoryFor30days(): Promise<void> {
-  //   await this.jiraService.updateEveningIssueHistoryFor30days();
-  //   return;
-  // }
 
   @Put('metrics')
   async getUserMetrics() {

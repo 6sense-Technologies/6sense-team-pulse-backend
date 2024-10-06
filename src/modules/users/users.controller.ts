@@ -74,7 +74,7 @@ export class UserController {
     await this.userService.fetchAndSaveNotDoneIssuesForAllUsers();
     return { message: 'Issue history collected and saved successfully.' };
   }
-  
+
   @Put('collect-history/all/evening')
   async collectIssueHistoryEvening(): Promise<{ message: string }> {
     await this.userService.fetchAndSaveDoneIssuesForAllUsers();

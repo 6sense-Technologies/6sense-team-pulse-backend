@@ -32,7 +32,7 @@ dotenv.config();
     }),
     UserModule,
     JiraModule,
-    TrelloModule
+    TrelloModule,
   ],
   providers: [
     {
