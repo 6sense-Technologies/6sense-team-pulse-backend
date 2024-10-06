@@ -1,4 +1,4 @@
-import { IUser } from '../modules/users/schemas/user.schema';
+import { IUser } from '../../modules/users/schemas/user.schema';
 
 export interface IJiraUserData {
   accountId: string;
@@ -43,4 +43,12 @@ export interface IUserWithPagination extends IUser {
   totalIssueHistory: number;
   currentPage: number;
   totalPages: number;
+}
+
+export interface ITrelloUserData {
+  accountId: string;
+  displayName: string;
+  emailAddress: string;
+  avatarUrls: string;
+  currentPerformance?: number;
 }

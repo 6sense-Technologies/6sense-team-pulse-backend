@@ -13,7 +13,7 @@ import {
   IJiraUserData,
   IUserResponse,
   IGetUserIssuesResponse,
-} from '../../interfaces/jira.interfaces';
+} from '../../common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/schemas/user.schema';
 
 @Controller('jira')
@@ -42,11 +42,12 @@ export class JiraController {
     @Body()
     body: {
       accountId: string;
+      userFrom: string;
       designation: Designation;
       project: Project;
     },
   ): Promise<IUserResponse> {
-    const { accountId, designation, project } = body;
+    const { accountId, userFrom, designation, project } = body;
 
     if (!accountId) {
       throw new BadRequestException('accountId is required');
@@ -60,6 +61,7 @@ export class JiraController {
 
     return await this.jiraService.fetchAndSaveUser(
       accountId,
+      userFrom,
       designation,
       project,
     );
@@ -72,11 +74,6 @@ export class JiraController {
     await this.jiraService.countNotDoneIssuesForToday(accountId);
   }
 
-  // @Put(':accountId/issues/done-month')
-  // async countDoneIssues(@Param('accountId') accountId: string): Promise<void> {
-  //   await this.jiraService.countDoneIssues(accountId);
-  //   return;
-  // }
 
   @Put(':accountId/issues/not-done-today')
   async countNotDoneIssuesForToday(

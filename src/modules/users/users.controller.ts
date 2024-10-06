@@ -11,7 +11,7 @@ import { UserService } from './users.service';
 import {
   IUserResponse,
   IGetAllUsersResponse,
-} from '../../interfaces/jira.interfaces';
+} from '../../common/interfaces/jira.interfaces';
 import { Designation, Project } from './schemas/user.schema';
 
 @Controller('users')
@@ -74,6 +74,7 @@ export class UserController {
     await this.userService.fetchAndSaveNotDoneIssuesForAllUsers();
     return { message: 'Issue history collected and saved successfully.' };
   }
+  
   @Put('collect-history/all/evening')
   async collectIssueHistoryEvening(): Promise<{ message: string }> {
     await this.userService.fetchAndSaveDoneIssuesForAllUsers();

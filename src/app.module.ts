@@ -9,6 +9,7 @@ import { JiraModule } from './modules/jira/jira.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import * as dotenv from 'dotenv';
+import { TrelloModule } from './modules/trello/trello.module';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ dotenv.config();
     }),
     UserModule,
     JiraModule,
+    TrelloModule
   ],
   providers: [
     {
