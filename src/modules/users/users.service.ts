@@ -179,42 +179,35 @@ export class UserService {
     }
   }
 
-  async fetchAndSaveNotDoneIssuesForAllUsers() {
+  async fetchAndSaveNotDoneIssuesForAllUsers(): Promise<void> {
     const users = await this.userModel.find().exec();
 
-    // Get the current date in "YYYY-MM-DD" format
-    // const dateString = new Date().toISOString().split('T')[0];
-    const previousDay = new Date();
-    previousDay.setDate(previousDay.getDate());
-    const dateString = previousDay.toISOString().split('T')[0];
+    // Get the date string for the current day in 'YYYY-MM-DD' format
+    const Day = new Date();
+    Day.setDate(Day.getDate());
+    const dateString = Day.toISOString().split('T')[0];
 
+    // Step 1: Process each user
     for (const user of users) {
-      // Get the not done issues for the user
+      // Step 2: Get the not done issues for the user on the current date
       const notDoneIssues =
-        user.issueHistory.find((history) => {
-          return history.date === dateString;
-        })?.notDoneIssues || [];
+        user.issueHistory.find((history) => history.date === dateString)
+          ?.notDoneIssues || [];
 
-      // Prepare the new issue entries
-      const issueHistoryEntries = notDoneIssues.map((issue, index) => {
-        return {
-          serialNumber: index + 1, // You can adjust this logic if needed
-          issueType: issue.issueType,
-          issueId: issue.issueId,
-          issueSummary: issue.summary,
-          issueStatus: issue.status,
-          planned: true,
-          link: issue.issueLinks
-            ? issue.issueLinks
-                .map((link) => {
-                  return link.issueId;
-                })
-                .join(',')
-            : '', // Adjusted to store linked issue IDs
-        };
-      });
+      // Step 3: Prepare the new issue entries
+      const issueHistoryEntries = notDoneIssues.map((issue, index) => ({
+        serialNumber: index + 1,
+        issueType: issue.issueType,
+        issueId: issue.issueId,
+        issueSummary: issue.summary,
+        issueStatus: issue.status,
+        planned: true,
+        link: issue.issueLinks
+          ? issue.issueLinks.map((link) => link.issueId).join(',')
+          : '', // Store linked issue IDs
+      }));
 
-      // Update or create the issue history document for the user
+      // Step 4: Update or create the issue history document for the user
       await this.issueHistoryModel.findOneAndUpdate(
         { userName: user.displayName, accountId: user.accountId },
         {
@@ -227,22 +220,22 @@ export class UserService {
         { upsert: true, new: true },
       );
     }
-
-    return 'Not Done issues saved for all users';
   }
 
-  async fetchAndSaveDoneIssuesForAllUsers() {
+  async fetchAndSaveDoneIssuesForAllUsers(): Promise<void> {
     const users = await this.userModel.find().exec();
-    // const dateString = new Date().toISOString().split('T')[0];
-    const previousDay = new Date();
-    previousDay.setDate(previousDay.getDate());
-    const dateString = previousDay.toISOString().split('T')[0];
 
+    // Get the date string for the previous day in 'YYYY-MM-DD' format
+    const Day = new Date();
+    Day.setDate(Day.getDate());
+    const dateString = Day.toISOString().split('T')[0];
+
+    // Step 1: Process each user
     for (const user of users) {
+      // Fetch the user's issue history or create a new one if it doesn't exist
       let issueHistory = await this.issueHistoryModel
         .findOne({ userName: user.displayName })
         .exec();
-
       if (!issueHistory) {
         issueHistory = new this.issueHistoryModel({
           userName: user.displayName,
@@ -254,89 +247,71 @@ export class UserService {
       // Get today's history or create a new entry if it doesn't exist
       const todayHistory = issueHistory.history[dateString] || { issues: [] };
 
-      // Get the done issues for the user on the current date
+      // Get the done issues for the user on the previous day
       const doneIssues =
-        user.issueHistory.find((history) => {
-          return history.date === dateString;
-        })?.doneIssues || [];
+        user.issueHistory.find((history) => history.date === dateString)
+          ?.doneIssues || [];
 
       // Create a set of done issue IDs for quick lookup
-      const doneIssueIds = new Set(
-        doneIssues.map((issue) => {
-          return issue.issueId;
-        }),
-      );
+      const doneIssueIds = new Set(doneIssues.map((issue) => issue.issueId));
 
       // Create a set of not done issue IDs for comparison
       const notDoneIssueIds = new Set(
-        todayHistory.issues.map((issue) => {
-          return issue.issueId;
-        }),
+        todayHistory.issues.map((issue) => issue.issueId),
       );
 
-      // Update the status and issue links of "not done" issues that are in the done issues list
+      // Step 2: Update the status of "not done" issues that are now done
       todayHistory.issues = todayHistory.issues.map((issue) => {
         if (doneIssueIds.has(issue.issueId)) {
           // Find the matching done issue
-          const matchedDoneIssue = doneIssues.find((done) => {
-            return done.issueId === issue.issueId;
-          });
+          const matchedDoneIssue = doneIssues.find(
+            (done) => done.issueId === issue.issueId,
+          );
 
           // Update the issue status and linked issue IDs
           const linkedIssueIdsSet = new Set<string>();
-          if (matchedDoneIssue?.issueLinks) {
-            matchedDoneIssue.issueLinks.forEach((link) => {
-              return linkedIssueIdsSet.add(link.issueId);
-            });
-          }
+          matchedDoneIssue?.issueLinks?.forEach((link) =>
+            linkedIssueIdsSet.add(link.issueId),
+          );
 
           return {
             ...issue,
-            issueStatus: matchedDoneIssue?.status || issue.issueStatus, // Update to the new done status
-            link: Array.from(linkedIssueIdsSet).join(','), // Update linked issue IDs
+            issueStatus: matchedDoneIssue?.status || issue.issueStatus,
+            link: Array.from(linkedIssueIdsSet).join(','),
           };
         }
-        return issue; // Keep the issue as is if it's not done
+        return issue;
       });
 
-      // Prepare the new done issues that are **not already in the not done issues**
+      // Step 3: Prepare new done issues that are not already in today's not done issues
       const newDoneIssueEntries = doneIssues
-        .filter((issue) => {
-          return !notDoneIssueIds.has(issue.issueId);
-        }) // Only add issues not already in today's not done issues
+        .filter((issue) => !notDoneIssueIds.has(issue.issueId))
         .map((issue, index) => {
-          // If the issue has linked issues, add them to the set
           const linkedIssueIdsSet = new Set<string>();
-          if (issue.issueLinks) {
-            issue.issueLinks.forEach((link) =>
-              linkedIssueIdsSet.add(link.issueId),
-            );
-          }
+          issue.issueLinks?.forEach((link) =>
+            linkedIssueIdsSet.add(link.issueId),
+          );
 
           return {
             serialNumber: todayHistory.issues.length + index + 1,
             issueType: issue.issueType,
             issueId: issue.issueId,
             issueSummary: issue.summary,
-            issueStatus: issue.status, // Status of the new done issue
-            link: Array.from(linkedIssueIdsSet).join(','), // Store linked issue IDs as a comma-separated string
+            issueStatus: issue.status,
+            link: Array.from(linkedIssueIdsSet).join(','),
           };
         });
 
       // Add the new done issues to today's history
       todayHistory.issues.push(...newDoneIssueEntries);
 
-      // Update the issue history document with the updated and new entries
+      // Step 4: Update the issue history document with the updated and new entries
       await this.issueHistoryModel.findOneAndUpdate(
         { userName: user.displayName, accountId: user.accountId },
-        {
-          $set: { [`history.${dateString}`]: todayHistory },
-        },
+        { $set: { [`history.${dateString}`]: todayHistory } },
         { upsert: true, new: true },
       );
     }
-
-    return 'Done issues saved and status updated for not done issues with issue links added where applicable';
   }
 
   async getIssuesByAccountAndDate(accountId: string, date: string) {
