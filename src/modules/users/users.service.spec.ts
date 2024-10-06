@@ -4,6 +4,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { User } from './schemas/user.schema';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
+import { IssueHistory } from './schemas/IssueHistory.schems';
 
 const mockUser = {
   accountId: '1',
@@ -39,10 +40,24 @@ const mockUserModel = {
   }),
   exec: jest.fn(),
 };
+const mockIssueHistoryModel = {
+  findOne: jest.fn(),
+  findOneAndDelete: jest.fn(),
+  create: jest.fn().mockResolvedValue(mockUser),
+  countDocuments: jest.fn(),
+  find: jest.fn().mockReturnThis(),
+  sort: jest.fn().mockReturnThis(),
+  skip: jest.fn().mockReturnThis(),
+  limit: jest.fn().mockReturnValue({
+    exec: jest.fn().mockResolvedValue([mockUser]),
+  }),
+  exec: jest.fn(),
+};
 
 describe('UserService', () => {
   let userService: UserService;
   let userModel: Model<User>;
+  let issueHistory: Model<IssueHistory>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -51,6 +66,10 @@ describe('UserService', () => {
         {
           provide: getModelToken(User.name),
           useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(IssueHistory.name),
+          useValue: mockIssueHistoryModel,
         },
       ],
     }).compile();
