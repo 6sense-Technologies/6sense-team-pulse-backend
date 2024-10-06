@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: github.actor == '6senseHQ'
+    if: github.actor == 'proshanto08'
     steps:
     - uses: actions/checkout@v4
     - name: Use Node.js
