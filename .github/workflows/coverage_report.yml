@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: github.actor == 'proshanto08'
+    if: github.actor == '6senseHQ'
     steps:
     - uses: actions/checkout@v4
     - name: Use Node.js
@@ -20,7 +20,7 @@ jobs:
       run: npm install
 
     - name: Run Test & Coverage
-      run: npm run test
+      run: npm run test:cov
 
     - name: Run codacy-coverage-reporter
       uses: codacy/codacy-coverage-reporter-action@v1
