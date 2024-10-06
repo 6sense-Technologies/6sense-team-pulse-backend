@@ -236,7 +236,7 @@ export class JiraService {
     // });
 
     const today = new Date(
-      new Date().setDate(new Date().getDate()-1),
+      new Date().setDate(new Date().getDate()),
     ).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
@@ -344,7 +344,7 @@ export class JiraService {
     // });
 
     const previousDay = new Date(
-      new Date().setDate(new Date().getDate() - 2),
+      new Date().setDate(new Date().getDate()),
     ).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
@@ -549,7 +549,7 @@ export class JiraService {
       const users = await this.userModel.find().exec();
       for (const user of users) {
         await this.countNotDoneIssuesForToday(user.accountId);
-        if (user.userFrom === 'Trello') {
+        if (user.userFrom === 'trello') {
           await this.trelloService.countNotDoneIssuesForToday(user.accountId);
         }
       }
@@ -566,7 +566,7 @@ export class JiraService {
       const users = await this.userModel.find().exec();
       for (const user of users) {
         await this.countDoneIssuesForToday(user.accountId);
-        if (user.userFrom === 'Trello') {
+        if (user.userFrom === 'trello') {
           await this.trelloService.countDoneIssuesForToday(user.accountId);
         }
       }

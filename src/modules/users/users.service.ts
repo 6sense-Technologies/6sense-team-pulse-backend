@@ -185,7 +185,7 @@ export class UserService {
     // Get the current date in "YYYY-MM-DD" format
     // const dateString = new Date().toISOString().split('T')[0];
     const previousDay = new Date();
-    previousDay.setDate(previousDay.getDate()-1);
+    previousDay.setDate(previousDay.getDate());
     const dateString = previousDay.toISOString().split('T')[0];
 
     for (const user of users) {
@@ -216,9 +216,7 @@ export class UserService {
 
       // Update or create the issue history document for the user
       await this.issueHistoryModel.findOneAndUpdate(
-        { userName: user.displayName,
-          accountId: user.accountId,
-         },
+        { userName: user.displayName, accountId: user.accountId },
         {
           $set: {
             [`history.${dateString}`]: {
@@ -237,7 +235,7 @@ export class UserService {
     const users = await this.userModel.find().exec();
     // const dateString = new Date().toISOString().split('T')[0];
     const previousDay = new Date();
-    previousDay.setDate(previousDay.getDate() - 2);
+    previousDay.setDate(previousDay.getDate());
     const dateString = previousDay.toISOString().split('T')[0];
 
     for (const user of users) {
@@ -321,7 +319,7 @@ export class UserService {
 
       // Update the issue history document with the updated and new entries
       await this.issueHistoryModel.findOneAndUpdate(
-        { userName: user.displayName },
+        { userName: user.displayName, accountId: user.accountId },
         {
           $set: { [`history.${dateString}`]: todayHistory },
         },

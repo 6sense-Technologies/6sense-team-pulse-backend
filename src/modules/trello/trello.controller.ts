@@ -7,7 +7,6 @@ import {
   Body,
 } from '@nestjs/common';
 import { TrelloService } from './trello.service';
-import { ITrelloUserData } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/schemas/user.schema';
 
 @Controller('trello')
@@ -27,9 +26,7 @@ export class TrelloController {
   }
 
   @Get('users/:accountId')
-  async getUserDetails(
-    @Param('accountId') accountId: string,
-  ) {
+  async getMemberDetails(@Param('accountId') accountId: string) {
     const userDetails = await this.trelloService.getMemberDetails(accountId);
     return userDetails;
   }

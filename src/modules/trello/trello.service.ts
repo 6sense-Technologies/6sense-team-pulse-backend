@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -15,8 +16,7 @@ import {
 } from '../users/schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { AxiosError } from 'axios';
-import { TrelloErrorHelper } from 'src/common/helpers/trello-error.helper';
+import { AxiosErrorHelper } from 'src/common/helpers/axios-exception.helper';
 
 dotenv.config();
 
@@ -33,26 +33,6 @@ export class TrelloService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
   ) {
     // Constructor for injecting userModel
-  }
-
-  private async fetchFromBothBoards(endpoint: string) {
-    try {
-      const requests = this.boardIds.map((boardId) =>
-        this.httpService
-          .get(`${this.trelloBaseUrl}${endpoint}`, {
-            params: {
-              key: process.env.TRELLO_API_KEY,
-              token: process.env.TRELLO_SECRET_KEY,
-            },
-          })
-          .toPromise(),
-      );
-
-      const responses = await Promise.all(requests);
-      return responses.map((response) => response.data);
-    } catch (error) {
-      TrelloErrorHelper.getInstance().handleTrelloApiError(error);
-    }
   }
 
   async getBoards() {
@@ -75,7 +55,9 @@ export class TrelloService {
 
       return boards;
     } catch (error) {
-      TrelloErrorHelper.getInstance().handleTrelloApiError(error);
+      const errorResponse =
+        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
+      throw new HttpException(errorResponse, errorResponse.status);
     }
   }
 
@@ -91,7 +73,7 @@ export class TrelloService {
             {
               params: {
                 key: process.env.TRELLO_API_KEY,
-                token: process.env.TRELLO_SECRET_KEYs,
+                token: process.env.TRELLO_SECRET_KEY,
               },
             },
           )
@@ -115,26 +97,38 @@ export class TrelloService {
 
       return members;
     } catch (error) {
-      TrelloErrorHelper.getInstance().handleTrelloApiError(error);
+      const errorResponse =
+        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
+      throw new HttpException(errorResponse, errorResponse.status);
     }
   }
 
   async getMemberDetails(accountId: string) {
-    try {
-      const endpoint = `/members/${accountId}`;
+    const endpoint = `/members/${accountId}`;
 
-      const memberData = await this.fetchFromBothBoards(endpoint);
-      return memberData;
+    try {
+      const response = await this.httpService
+        .get(`${this.trelloBaseUrl}${endpoint}`, {
+          params: {
+            key: process.env.TRELLO_API_KEY,
+            token: process.env.TRELLO_SECRET_KEY,
+          },
+        })
+        .toPromise();
+
+      return response.data;
     } catch (error) {
-      throw error;
+      const errorResponse =
+        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
+      throw new HttpException(errorResponse, errorResponse.status);
     }
   }
 
   async getUserCards(accountId: string): Promise<any[]> {
-    const boardsEndpoint = `/members/${accountId}/boards`;
-
     try {
-      // Fetch boards
+      const boardsEndpoint = `/members/${accountId}/boards`;
+
+      // Step 1: Fetch boards for the user
       const boardsResponse = await this.httpService
         .get(`${this.trelloBaseUrl}${boardsEndpoint}`, {
           params: {
@@ -146,18 +140,23 @@ export class TrelloService {
 
       const boardsData = boardsResponse.data;
 
-      if (!boardsData || boardsData.length === 0) {
+      // Check if there are any boards
+      if (boardsData.length === 0) {
         throw new InternalServerErrorException(
           'No boards found for this member.',
         );
       }
 
-      const cardPromises = boardsData.map(async (board) => {
-        const listsEndpoint = `/boards/${board.id}/lists`;
+      // Step 2: Calculate the date to check for cards
+      const currentDate = new Date();
+      currentDate.setDate(currentDate.getDate() - 2);
+      const formattedDate = currentDate.toISOString().split('T')[0]; // Format the date as 'YYYY-MM-DD'
 
+      // Function to fetch cards for a specific board
+      const fetchCardsForBoard = async (boardId: string) => {
         // Fetch lists for the board
         const listsResponse = await this.httpService
-          .get(`${this.trelloBaseUrl}${listsEndpoint}`, {
+          .get(`${this.trelloBaseUrl}/boards/${boardId}/lists`, {
             params: {
               key: process.env.TRELLO_API_KEY,
               token: process.env.TRELLO_SECRET_KEY,
@@ -167,17 +166,11 @@ export class TrelloService {
 
         const listsData = listsResponse.data;
 
-        // Get today's date in 'YYYY-MM-DD' format
-        const day = new Date();
-        day.setDate(day.getDate() - 2);
-        const today = day.toISOString().split('T')[0];
-
-        // Map through lists to get cards for each list
+        // Step 3: Fetch cards for each list in the board
         const cardPromises = listsData.map(async (list) => {
-          const cardsEndpoint = `/lists/${list.id}/cards`;
-
+          // Fetch cards for the current list
           const cardsResponse = await this.httpService
-            .get(`${this.trelloBaseUrl}${cardsEndpoint}`, {
+            .get(`${this.trelloBaseUrl}/lists/${list.id}/cards`, {
               params: {
                 key: process.env.TRELLO_API_KEY,
                 token: process.env.TRELLO_SECRET_KEY,
@@ -185,92 +178,35 @@ export class TrelloService {
             })
             .toPromise();
 
-          // Filter cards to get only those belonging to the specified user and with today's due date
+          // Filter cards that belong to the user and are due on the specified date
           return cardsResponse.data
             .filter(
               (card) =>
                 card.idMembers.includes(accountId) &&
-                card.due &&
-                card.due.split('T')[0] === today,
-            ) // Check if the due date is today
+                card.due?.split('T')[0] === formattedDate,
+            )
             .map((card) => ({
               cardId: card.id,
               cardName: card.name,
-              listName: list.name, // Include the name of the list
-              dueDate: card.due.split('T')[0], // Include due date, default to null if not set
+              listName: list.name,
+              dueDate: card.due.split('T')[0],
             }));
         });
 
-        // Wait for all card promises and flatten the result
-        const cards = await Promise.all(cardPromises);
-        return cards.flat();
-      });
-
-      // Wait for all board promises and flatten the result
-      const allCards = await Promise.all(cardPromises);
-      return allCards.flat();
-    } catch (error) {
-      console.error(
-        'Error fetching user cards:',
-        error.response ? error.response.data : error.message,
-      );
-      throw new InternalServerErrorException(
-        'Error fetching user cards from Trello',
-      );
-    }
-  }
-
-  async saveUser(
-    accountId: string,
-    userFrom: string,
-    userData: any,
-    designation: Designation,
-    project: Project,
-  ): Promise<{ statusCode: number; message: string; user?: User }> {
-    try {
-      if (!Object.values(Designation).includes(designation)) {
-        throw new BadRequestException({
-          status: 400,
-          errorCode: 'invalid_designation',
-          message: `Invalid designation: ${designation}`,
-          data: {},
-        });
-      }
-
-      if (!Object.values(Project).includes(project)) {
-        throw new BadRequestException({
-          status: 400,
-          errorCode: 'invalid_project',
-          message: `Invalid project: ${project}`,
-          data: {},
-        });
-      }
-
-      const userToSave = {
-        accountId: userData.id,
-        displayName: userData.fullName,
-        designation,
-        project,
-        userFrom,
+        // Wait for all card promises to resolve and flatten the result
+        return (await Promise.all(cardPromises)).flat();
       };
 
-      const existingUser = await this.userModel.findOne({ accountId });
-      if (existingUser) {
-        return {
-          message: 'User already exists',
-          statusCode: 409,
-        };
-      } else {
-        const newUser = new this.userModel(userToSave);
-        await newUser.save();
-        return {
-          message: 'User saved successfully',
-          statusCode: 201,
-          user: newUser,
-        };
-      }
+      // Step 4: Fetch cards for all boards
+      const allCardsPromises = boardsData.map((board) =>
+        fetchCardsForBoard(board.id),
+      );
+      // Wait for all board card promises to resolve and flatten the result
+      return (await Promise.all(allCardsPromises)).flat();
     } catch (error) {
-      throw error;
+      const errorResponse =
+        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
+      throw new HttpException(errorResponse, errorResponse.status);
     }
   }
 
@@ -281,109 +217,122 @@ export class TrelloService {
     project: Project,
   ): Promise<{ statusCode: number; message: string; user?: User }> {
     try {
+      // Validate designation
+      if (!Object.values(Designation).includes(designation)) {
+        throw new BadRequestException({
+          status: 400,
+          errorCode: 'invalid_designation',
+          message: `Invalid designation: ${designation}`,
+          data: {},
+        });
+      }
+
+      // Validate project
+      if (!Object.values(Project).includes(project)) {
+        throw new BadRequestException({
+          status: 400,
+          errorCode: 'invalid_project',
+          message: `Invalid project: ${project}`,
+          data: {},
+        });
+      }
+
+      // Fetch user details
       const memberDetails = await this.getMemberDetails(accountId);
 
-      // If getMemberDetails returns an array, pick the first element
-      const userDetails = Array.isArray(memberDetails)
-        ? memberDetails[0]
-        : memberDetails;
-
-      const saveResponse = await this.saveUser(
-        accountId,
-        userFrom,
-        userDetails,
+      // Prepare the user data to save
+      const userToSave = {
+        accountId: memberDetails.id,
+        displayName: memberDetails.fullName,
         designation,
         project,
-      );
+        userFrom,
+      };
 
-      if (saveResponse.statusCode === 409) {
-        throw new ConflictException(saveResponse.message);
+      // Check if user already exists
+      const existingUser = await this.userModel.findOne({ accountId });
+      if (existingUser) {
+        throw new ConflictException({
+          status: 409,
+          errorCode: 'user_already_exists',
+          message: `User already exists`,
+          data: {},
+        });
       }
+      // Save new user
+      const newUser = new this.userModel(userToSave);
+      await newUser.save();
 
-      if (saveResponse.statusCode === 400) {
-        throw new BadRequestException(saveResponse.message);
-      }
-
-      return saveResponse;
+      return {
+        message: 'User saved successfully',
+        statusCode: 201,
+        user: newUser,
+      };
     } catch (error) {
-      console.error('Error fetching and saving user:', error);
       throw error;
     }
   }
 
   async countNotDoneIssuesForToday(accountId: string): Promise<void> {
-    // const today = new Date().toLocaleDateString('en-CA', {
-    //   timeZone: 'Asia/Dhaka',
-    // });
-
+    // Get today's date in 'YYYY-MM-DD' format for the Asia/Dhaka timezone
     const today = new Date(
-      new Date().setDate(new Date().getDate() - 2),
+      new Date().setDate(new Date().getDate()),
     ).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
 
-    // Assuming a function exists to get user cards from Trello
-    const userCards = await this.getUserCards(accountId); // This function should fetch Trello cards for the user
+    // Fetch user cards
+    const userCards = await this.getUserCards(accountId);
 
-    // Prepare counts and issues storage
+    // Prepare storage for counts and issues
     const countsByDate: {
       [key: string]: { Task: number; Bug: number; Story: number };
     } = {};
     const issuesByDate: { [key: string]: IIssue[] } = {};
 
-    // Filter cards for not done issues
+    // Step 1: Filter out not done issues that are due today
     const notDoneIssues = userCards.filter(
       (card) =>
         card.listName !== 'Done' && card.dueDate?.split('T')[0] === today,
     );
 
+    // If no issues are found, save zero counts and exit
     if (notDoneIssues.length === 0) {
-      // If no issues found, save with zero counts
       await this.saveNotDoneIssueCounts(
         accountId,
         today,
         { Task: 0, Bug: 0, Story: 0 },
         [],
       );
-      return; // Exit early if there are no issues
+      return;
     }
 
+    // Step 2: Process each not done issue
     notDoneIssues.forEach((card) => {
-      const dueDate = card.dueDate.split('T')[0]; // Extract the due date
-      const issueId = card.cardId; // cardId
-      const summary = card.cardName; // cardName
-      const status = card.listName; // listName
-      let issueType = 'Task'; // Default to Task
+      // Extract relevant information from the card
+      const dueDate = card.dueDate.split('T')[0];
+      const issueId = card.cardId;
+      const summary = card.cardName;
+      const status = card.listName;
 
-      // Determine the issue type based on list name
+      // Determine the issue type based on the list name
+      let issueType: 'Task' | 'Bug' | 'Story' = 'Task'; // Default to Task
       if (card.listName === 'Bug') {
         issueType = 'Bug';
       } else if (card.listName === 'User Stories') {
         issueType = 'Story';
-      } else if (
-        ['To do', 'Work In Progress', 'Unit Testing', 'In Testing'].includes(
-          card.listName,
-        )
-      ) {
-        issueType = 'Task'; // Other lists will be treated as Tasks
       }
 
-      // Initialize the date entry if it doesn't exist
+      // Initialize counts if the date entry does not exist
       if (!countsByDate[dueDate]) {
         countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
         issuesByDate[dueDate] = [];
       }
 
-      // Increment the appropriate counts
-      if (issueType === 'Task') {
-        countsByDate[dueDate].Task++;
-      } else if (issueType === 'Bug') {
-        countsByDate[dueDate].Bug++;
-      } else if (issueType === 'Story') {
-        countsByDate[dueDate].Story++;
-      }
+      // Increment the count for the issue type
+      countsByDate[dueDate][issueType]++;
 
-      // Push the issue into the issuesByDate array
+      // Add the issue to the issuesByDate array
       issuesByDate[dueDate].push({
         issueId,
         summary,
@@ -393,12 +342,12 @@ export class TrelloService {
       });
     });
 
-    // Save the counts and issues for today
-    for (const [date, counts] of Object.entries(countsByDate)) {
+    // Step 3: Save the counts and issues for today
+    for (const date in countsByDate) {
       await this.saveNotDoneIssueCounts(
         accountId,
         date,
-        counts,
+        countsByDate[date],
         issuesByDate[date],
       );
     }
@@ -414,65 +363,61 @@ export class TrelloService {
       const user = await this.userModel.findOne({ accountId });
 
       if (!user) {
-        throw new InternalServerErrorException('User not found');
+        throw new NotFoundException('User not found');
       }
 
-      // Update user's issue history
       const existingHistory = user.issueHistory.find((history) => {
         return history.date === date;
       });
 
       if (existingHistory) {
-        existingHistory.issuesCount.notDone = counts; // Update counts
-        existingHistory.notDoneIssues = issues; // Update issues
+        existingHistory.issuesCount.notDone = counts;
+        existingHistory.notDoneIssues = issues;
       } else {
         user.issueHistory.push({
           date,
-          issuesCount: { notDone: counts }, // New entry for counts
-          notDoneIssues: issues, // New entry for issues
+          issuesCount: { notDone: counts },
+          notDoneIssues: issues,
         });
       }
 
       await user.save();
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error saving not-done issue counts',
-      );
+      throw error;
     }
   }
 
   async countDoneIssuesForToday(accountId: string): Promise<void> {
-    // const today = new Date().toLocaleDateString('en-CA', {
-    //   timeZone: 'Asia/Dhaka',
-    // });
-
+    // Get today's date in 'YYYY-MM-DD' format for the Asia/Dhaka timezone
     const today = new Date(
-      new Date().setDate(new Date().getDate() - 2),
+      new Date().setDate(new Date().getDate()),
     ).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
 
-    // Assuming a function exists to get user cards from Trello
+    // Fetch user cards from Trello
     const userCards = await this.getUserCards(accountId);
 
-    // Fetch the user from the database
+    // Fetch user data from the database
     const user = await this.userModel.findOne({ accountId }).exec();
+
+    // Get not done issues for today from the user's issue history
     const notDoneIssues =
       user?.issueHistory.find((entry) => entry.date === today)?.notDoneIssues ||
-      []; // Access not done issues for today
+      [];
 
-    // Prepare counts and issues storage
+    // Prepare storage for counts and issues
     const countsByDate: {
       [key: string]: { Task: number; Bug: number; Story: number };
     } = {};
     const issuesByDate: { [key: string]: IIssue[] } = {};
 
-    // Now loop through all user cards to store all issues and count done ones
+    // Step 1: Loop through all user cards to count done issues
     userCards.forEach((card) => {
-      const dueDate = card.dueDate.split('T')[0]; // Extract the due date
-      const issueId = card.cardId; // cardId from the user cards
-      const summary = card.name; // cardName
-      const status = card.listName; // listName
+      const dueDate = card.dueDate.split('T')[0];
+      const issueId = card.cardId;
+      const summary = card.name;
+      const status = card.listName;
 
       // Initialize the date entry if it doesn't exist
       if (!countsByDate[dueDate]) {
@@ -480,7 +425,7 @@ export class TrelloService {
         issuesByDate[dueDate] = [];
       }
 
-      // Push the issue into the issuesByDate array (store all issues)
+      // Store the issue in the issuesByDate array
       issuesByDate[dueDate].push({
         issueId,
         summary,
@@ -488,21 +433,20 @@ export class TrelloService {
         dueDate,
       });
 
-      // Only process cards in the "Done" list for counting
+      // Step 2: Only process cards in the "Done" list for counting
       if (card.listName === 'Done') {
-        // Try to find the matching issue in the not done issues array by issueId
+        // Try to find the matching not done issue by issueId
         const matchingNotDoneIssue = notDoneIssues.find(
-          (notDoneIssue) => notDoneIssue.issueId === card.cardId, // Match based on issueId
+          (notDoneIssue) => notDoneIssue.issueId === card.cardId,
         );
 
-        // If found, count according to the issueType of the matched not done issue
         if (matchingNotDoneIssue) {
           if (matchingNotDoneIssue.issueType === 'Bug') {
-            countsByDate[dueDate].Bug++; // Increment Bug count
+            countsByDate[dueDate].Bug++;
           } else if (matchingNotDoneIssue.issueType === 'Story') {
-            countsByDate[dueDate].Story++; // Increment Story count
+            countsByDate[dueDate].Story++;
           } else {
-            countsByDate[dueDate].Task++; // Increment Task count for all other cases
+            countsByDate[dueDate].Task++;
           }
         } else {
           // If no match is found, count as a Task
@@ -511,7 +455,7 @@ export class TrelloService {
       }
     });
 
-    // Save the counts and issues for today
+    // Step 3: Save the counts and issues for today
     for (const [date, counts] of Object.entries(countsByDate)) {
       await this.saveDoneIssueCounts(
         accountId,
@@ -532,28 +476,27 @@ export class TrelloService {
       const user = await this.userModel.findOne({ accountId });
 
       if (!user) {
-        throw new InternalServerErrorException('User not found');
+        throw new NotFoundException('User not found');
       }
 
-      // Update user's issue history
       const existingHistory = user.issueHistory.find((history) => {
         return history.date === date;
       });
 
       if (existingHistory) {
-        existingHistory.issuesCount.done = counts; // Update counts for done issues
-        existingHistory.doneIssues = issues; // Update done issues
+        existingHistory.issuesCount.done = counts;
+        existingHistory.doneIssues = issues;
       } else {
         user.issueHistory.push({
           date,
-          issuesCount: { done: counts }, // New entry for done issue counts
-          doneIssues: issues, // New entry for done issues
+          issuesCount: { done: counts },
+          doneIssues: issues,
         });
       }
 
       await user.save();
     } catch (error) {
-      throw new InternalServerErrorException('Error saving done issue counts');
+      throw error;
     }
   }
 }
