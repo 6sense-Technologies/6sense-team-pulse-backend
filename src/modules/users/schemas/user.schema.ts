@@ -49,6 +49,10 @@ export interface IIssueHistoryEntry {
   notDoneIssues?: IIssue[];
   doneIssues?: IIssue[];
   codeToBugRatio?: number;
+  reportBug?: {
+    noOfBugs: number;
+    comment?: string;
+  };
 }
 
 export interface IUser {
@@ -104,6 +108,10 @@ export class User extends Document {
         overallScore: { type: Number, default: 0 },
         comment: { type: String, default: '' },
         codeToBugRatio: { type: Number, default: 0 },
+        reportBug: {
+          noOfBugs: { type: Number, default: 0 },
+          comment: { type: String, default: '' },
+        },
         notDoneIssues: [
           {
             issueId: { type: String },

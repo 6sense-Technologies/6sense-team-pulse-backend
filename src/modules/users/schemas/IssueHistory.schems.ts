@@ -42,6 +42,8 @@ export class IssueHistory extends Document {
   history: {
     [date: string]: {
       issues: IssueEntry[];
+      noOfBugs: number;
+      comment: string;
     };
   };
 }

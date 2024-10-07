@@ -344,7 +344,7 @@ export class JiraService {
     // });
 
     const previousDay = new Date(
-      new Date().setDate(new Date().getDate()),
+      new Date().setDate(new Date().getDate() - 3),
     ).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });

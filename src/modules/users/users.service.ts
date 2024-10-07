@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import {
   IUserWithPagination,
 } from '../../common/interfaces/jira.interfaces';
 import { IssueHistory } from './schemas/IssueHistory.schems';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UserService {
@@ -18,6 +20,7 @@ export class UserService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(IssueHistory.name)
     private readonly issueHistoryModel: Model<IssueHistory>,
+    private readonly configService: ConfigService,
   ) {
     //Nothing
   }
@@ -182,14 +185,13 @@ export class UserService {
   async fetchAndSaveNotDoneIssuesForAllUsers(): Promise<void> {
     const users = await this.userModel.find().exec();
 
-    // Get the date string for the current day in 'YYYY-MM-DD' format
+    //Step 1: Get the date string for the current day in 'YYYY-MM-DD' format
     const Day = new Date();
     Day.setDate(Day.getDate());
     const dateString = Day.toISOString().split('T')[0];
 
-    // Step 1: Process each user
+    // Step 2: Get the not done issues for the user on the current date
     for (const user of users) {
-      // Step 2: Get the not done issues for the user on the current date
       const notDoneIssues =
         user.issueHistory.find((history) => history.date === dateString)
           ?.notDoneIssues || [];
@@ -204,7 +206,7 @@ export class UserService {
         planned: true,
         link: issue.issueLinks
           ? issue.issueLinks.map((link) => link.issueId).join(',')
-          : '', // Store linked issue IDs
+          : '',
       }));
 
       // Step 4: Update or create the issue history document for the user
@@ -225,12 +227,11 @@ export class UserService {
   async fetchAndSaveDoneIssuesForAllUsers(): Promise<void> {
     const users = await this.userModel.find().exec();
 
-    // Get the date string for the previous day in 'YYYY-MM-DD' format
+    // Step 1: Get the date string for the previous day in 'YYYY-MM-DD' format
     const Day = new Date();
-    Day.setDate(Day.getDate());
+    Day.setDate(Day.getDate() - 3);
     const dateString = Day.toISOString().split('T')[0];
 
-    // Step 1: Process each user
     for (const user of users) {
       // Fetch the user's issue history or create a new one if it doesn't exist
       let issueHistory = await this.issueHistoryModel
@@ -247,7 +248,7 @@ export class UserService {
       // Get today's history or create a new entry if it doesn't exist
       const todayHistory = issueHistory.history[dateString] || { issues: [] };
 
-      // Get the done issues for the user on the previous day
+      // Get the done issues for the user on current day
       const doneIssues =
         user.issueHistory.find((history) => history.date === dateString)
           ?.doneIssues || [];
@@ -338,6 +339,72 @@ export class UserService {
         userName: result.userName,
         accountId: result.accountId,
         issues: result.history[date].issues,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async reportBug(
+    accountId: string,
+    date: string,
+    noOfBugs: number,
+    comment: string,
+    token: string,
+  ): Promise<{ message: string; statusCode: number }> {
+    try {
+      // 1. Validate token
+      const envToken = this.configService.get<string>('REPORT_BUG_TOKEN');
+      if (!token || token !== envToken) {
+        throw new ForbiddenException({
+          status: 403,
+          errorCode: 'invalid_token',
+          message: 'Invalid or missing token',
+          data: {},
+        });
+      }
+
+      // 2. Fetch user and update issueHistory in User model
+      const user = await this.userModel.findOne({ accountId });
+      if (!user) {
+        throw new NotFoundException({
+          status: 404,
+          errorCode: 'user_not_found',
+          message: `User with accountId: ${accountId} not found`,
+          data: {},
+        });
+      }
+
+      const userIssueEntry = user.issueHistory.find(
+        (entry) => entry.date === date,
+      );
+      if (userIssueEntry) {
+        userIssueEntry.reportBug = { noOfBugs, comment };
+        await user.save();
+      } else {
+        throw new NotFoundException({
+          status: 404,
+          errorCode: 'issue_history_not_found',
+          message: `No issue history found for date: ${date}`,
+          data: {},
+        });
+      }
+
+      // 3. Upsert the reportBug in the IssueHistory model
+      await this.issueHistoryModel.findOneAndUpdate(
+        { accountId, [`history.${date}`]: { $exists: true } },
+        {
+          $set: {
+            [`history.${date}.noOfBugs`]: noOfBugs,
+            [`history.${date}.comment`]: comment,
+          },
+        },
+        { upsert: true, new: true },
+      );
+
+      return {
+        message: 'Bug report updated successfully',
+        statusCode: 200,
       };
     } catch (error) {
       throw error;

@@ -6,6 +6,7 @@ import {
   Query,
   BadRequestException,
   Put,
+  Body,
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import {
@@ -89,5 +90,35 @@ export class UserController {
       date,
     );
     return response;
+  }
+
+  @Put(':accountId/bug-report/:date')
+  async reportBug(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+    @Body('noOfBugs') noOfBugs: number,
+    @Body('comment') comment: string,
+    @Body('token') token: string,
+  ): Promise<{ message: string; statusCode: number }> {
+    if (!token) {
+      throw new BadRequestException('Authorization token is required');
+    }
+
+    if (!noOfBugs) {
+      throw new BadRequestException('Number of bugs is required');
+    }
+
+    const response = await this.userService.reportBug(
+      accountId,
+      date,
+      noOfBugs,
+      comment,
+      token,
+    );
+
+    return {
+      message: response.message,
+      statusCode: response.statusCode,
+    };
   }
 }
