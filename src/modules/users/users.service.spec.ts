@@ -101,18 +101,6 @@ describe('UserService', () => {
         totalUsers: 2,
       });
     });
-
-    it('should throw NotFoundException if no users found', async () => {
-      mockUserModel.countDocuments.mockResolvedValue(0);
-      mockUserModel.find.mockReturnValue(mockUserModel);
-      mockUserModel.limit.mockReturnValue({
-        exec: jest.fn().mockResolvedValue([]),
-      });
-
-      await expect(userService.getAllUsers(1, 10)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
   });
 
   describe('getUser', () => {

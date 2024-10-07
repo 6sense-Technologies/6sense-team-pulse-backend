@@ -67,25 +67,50 @@ export class JiraController {
     );
   }
 
-  @Get(':accountId/issues/not-done-today')
+  @Get(':accountId/issues/not-done/:date')
   async countNotDoneIssues(
     @Param('accountId') accountId: string,
+    @Param('date') date: string,
   ): Promise<void> {
-    await this.jiraService.countNotDoneIssuesForToday(accountId);
+    await this.jiraService.countPlannedIssues(accountId, date);
   }
 
-  @Put(':accountId/issues/not-done-today')
+  @Put(':accountId/planned-issues/:date')
   async countNotDoneIssuesForToday(
     @Param('accountId') accountId: string,
+    @Param('date') date: string,
   ): Promise<void> {
-    await this.jiraService.countNotDoneIssuesForToday(accountId);
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Validate date format
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Invalid date format. Please use YYYY-MM-DD.',
+      );
+    }
+    if (!accountId || accountId.trim() === '') {
+      throw new BadRequestException('Account ID cannot be empty.');
+    }
+    await this.jiraService.countPlannedIssues(accountId, date);
   }
 
   @Put(':accountId/issues/done-today')
   async countDoneIssuesForToday(
     @Param('accountId') accountId: string,
+    @Param('date') date: string,
   ): Promise<void> {
-    await this.jiraService.countDoneIssuesForToday(accountId);
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Validate date format
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Invalid date format. Please use YYYY-MM-DD.',
+      );
+    }
+    if (!accountId || accountId.trim() === '') {
+      throw new BadRequestException('Account ID cannot be empty.');
+    }
+    await this.jiraService.countDoneIssues(accountId, date);
   }
 
   @Put('update-morning-issue-history')

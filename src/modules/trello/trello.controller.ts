@@ -20,20 +20,20 @@ export class TrelloController {
   }
 
   @Get('users')
-  async getMembers() {
-    const members = await this.trelloService.getMembers();
-    return members;
+  async getUsers() {
+    const users = await this.trelloService.getUsers();
+    return users;
   }
 
   @Get('users/:accountId')
-  async getMemberDetails(@Param('accountId') accountId: string) {
-    const userDetails = await this.trelloService.getMemberDetails(accountId);
+  async getUserDetails(@Param('accountId') accountId: string) {
+    const userDetails = await this.trelloService.getUserDetails(accountId);
     return userDetails;
   }
 
-  @Get(':accountId/issues')
+  @Get('users/:accountId/issues')
   async getUserIssues(@Param('accountId') accountId: string) {
-    return this.trelloService.getUserCards(accountId);
+    return this.trelloService.getUserIssues(accountId);
   }
 
   @Post('users/create')
@@ -69,19 +69,43 @@ export class TrelloController {
     );
   }
 
-  @Get('not-done/count/:accountId')
-  async countNotDoneIssuesForToday(
+  @Get('not-done/count/:accountId/:date')
+  async countPlannedIssues(
     @Param('accountId') accountId: string,
+    @Param('date') date: string,
   ): Promise<void> {
-    await this.trelloService.countNotDoneIssuesForToday(accountId);
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Validate date format
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Invalid date format. Please use YYYY-MM-DD.',
+      );
+    }
+    if (!accountId || accountId.trim() === '') {
+      throw new BadRequestException('Account ID cannot be empty.');
+    }
+    await this.trelloService.countPlannedIssues(accountId, date);
     return;
   }
 
   @Get('done/count/:accountId')
-  async countDoneIssuesForToday(
+  async countDoneIssues(
     @Param('accountId') accountId: string,
+    @Param('date') date: string,
   ): Promise<void> {
-    await this.trelloService.countDoneIssuesForToday(accountId);
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Validate date format
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Invalid date format. Please use YYYY-MM-DD.',
+      );
+    }
+    if (!accountId || accountId.trim() === '') {
+      throw new BadRequestException('Account ID cannot be empty.');
+    }
+    await this.trelloService.countDoneIssues(accountId, date);
     return;
   }
 }

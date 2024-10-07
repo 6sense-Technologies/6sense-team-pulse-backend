@@ -70,14 +70,43 @@ export class UserController {
     return this.userService.archiveUser(accountId);
   }
 
-  @Put('collect-history/all/morning')
-  async collectIssueHistoryMorning(): Promise<void> {
-    await this.userService.fetchAndSaveNotDoneIssuesForAllUsers();
+  @Put('save-planned-issues/morning/:accountId/:date')
+  async collectIssueHistoryMorning(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<{ status: number; message: string }> {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Validate date format
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Invalid date format. Please use YYYY-MM-DD.',
+      );
+    }
+    if (!accountId || accountId.trim() === '') {
+      throw new BadRequestException('Account ID cannot be empty.');
+    }
+    return await this.userService.fetchAndSavePlannedIssues(accountId, date);
   }
 
-  @Put('collect-history/all/evening')
-  async collectIssueHistoryEvening(): Promise<void> {
-    await this.userService.fetchAndSaveDoneIssuesForAllUsers();
+  @Put('save-all-issues/evening/:accountId/:date')
+  async collectIssueHistoryEvening(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<{ status: number; message: string }> {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Validate date format
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Invalid date format. Please use YYYY-MM-DD.',
+      );
+    }
+    if (!accountId || accountId.trim() === '') {
+      throw new BadRequestException('Account ID cannot be empty.');
+    }
+
+    return await this.userService.fetchAndSaveAllIssues(accountId, date);
   }
 
   @Get('issues/:accountId/:date')
@@ -85,14 +114,11 @@ export class UserController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ) {
-    const response = await this.userService.getIssuesByAccountAndDate(
-      accountId,
-      date,
-    );
+    const response = await this.userService.getIssuesByDate(accountId, date);
     return response;
   }
 
-  @Put(':accountId/bug-report/:date')
+  @Put('bug-report/:accountId/:date')
   async reportBug(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
