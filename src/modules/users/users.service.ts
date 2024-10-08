@@ -13,6 +13,7 @@ import {
 } from '../../common/interfaces/jira.interfaces';
 import { IssueHistory } from './schemas/IssueHistory.schems';
 import { ConfigService } from '@nestjs/config';
+import { handleError } from 'src/common/helpers/error.helper';
 
 @Injectable()
 export class UserService {
@@ -63,7 +64,7 @@ export class UserService {
         totalUsers,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -76,12 +77,7 @@ export class UserService {
       const user = await this.userModel.findOne({ accountId }).exec();
 
       if (!user) {
-        throw new NotFoundException({
-          status: 404,
-          errorCode: 'user_not_found',
-          message: 'User not found',
-          data: {},
-        });
+        throw new NotFoundException('User not found');
       }
 
       const skip = (page - 1) * limit;
@@ -109,7 +105,7 @@ export class UserService {
         user: userWithPagination,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -118,12 +114,7 @@ export class UserService {
       const existingUser = await this.userModel.findOne({ accountId });
 
       if (!existingUser) {
-        throw new NotFoundException({
-          status: 404,
-          errorCode: 'user_not_found',
-          message: 'User not found',
-          data: {},
-        });
+        throw new NotFoundException('User not found');
       }
 
       await this.userModel.findOneAndDelete({ accountId });
@@ -133,7 +124,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -144,21 +135,11 @@ export class UserService {
       const user = await this.userModel.findOne({ accountId });
 
       if (!user) {
-        throw new NotFoundException({
-          status: 404,
-          errorCode: 'user_not_found',
-          message: 'User with accountId not found',
-          data: {},
-        });
+        throw new NotFoundException('User with accountId not found');
       }
 
       if (user.isArchive) {
-        throw new ConflictException({
-          status: 409,
-          errorCode: 'user_already_archived',
-          message: 'User is already archived',
-          data: {},
-        });
+        throw new ConflictException('User is already archived');
       }
 
       user.isArchive = true;
@@ -169,7 +150,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -186,7 +167,6 @@ export class UserService {
         user.issueHistory.find((history) => history.date === dateString)
           ?.notDoneIssues || [];
 
-      //Prepare the new issue entries
       const issueHistoryEntries = notDoneIssues.map((issue, index) => ({
         serialNumber: index + 1,
         issueType: issue.issueType,
@@ -216,7 +196,7 @@ export class UserService {
         message: `Planned issues have been successfully updated.`,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -313,14 +293,14 @@ export class UserService {
         message: `Issues have been successfully updated`,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
   async getIssuesByDate(accountId: string, date: string) {
-    const historyPath = `history.${date}`;
-
     try {
+      const historyPath = `history.${date}`;
+
       const result = await this.issueHistoryModel
         .findOne(
           { accountId, [historyPath]: { $exists: true, $ne: null } },
@@ -328,21 +308,27 @@ export class UserService {
         )
         .exec();
 
-      if (!result || !result.history[date]?.issues) {
+      if (!result || !result.history[date]) {
         return {
-          userName: result?.userName,
-          accountId: result?.accountId,
+          userName: result?.userName || null,
+          accountId: result?.accountId || null,
           issues: [],
+          noOfBugs: 0,
+          comment: '',
         };
       }
+
+      const { issues, noOfBugs, comment } = result.history[date];
 
       return {
         userName: result.userName,
         accountId: result.accountId,
-        issues: result.history[date].issues,
+        issues,
+        noOfBugs,
+        comment,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -356,22 +342,12 @@ export class UserService {
     try {
       const envToken = this.configService.get<string>('REPORT_BUG_TOKEN');
       if (!token || token !== envToken) {
-        throw new ForbiddenException({
-          status: 403,
-          errorCode: 'invalid_token',
-          message: 'Invalid or missing token',
-          data: {},
-        });
+        throw new ForbiddenException('Invalid or missing token');
       }
 
       const user = await this.userModel.findOne({ accountId });
       if (!user) {
-        throw new NotFoundException({
-          status: 404,
-          errorCode: 'user_not_found',
-          message: `User not found`,
-          data: {},
-        });
+        throw new NotFoundException('User not found');
       }
 
       const userIssueEntry = user.issueHistory.find(
@@ -381,12 +357,7 @@ export class UserService {
         userIssueEntry.reportBug = { noOfBugs, comment };
         await user.save();
       } else {
-        throw new NotFoundException({
-          status: 404,
-          errorCode: 'issue_history_not_found',
-          message: `No issue history found`,
-          data: {},
-        });
+        throw new NotFoundException('No issue history found');
       }
 
       await this.issueHistoryModel.findOneAndUpdate(
@@ -405,7 +376,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 }

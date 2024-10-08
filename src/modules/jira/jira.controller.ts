@@ -94,7 +94,7 @@ export class JiraController {
     await this.jiraService.countPlannedIssues(accountId, date);
   }
 
-  @Put(':accountId/issues/done-today')
+  @Put(':accountId/done-issues/:date')
   async countDoneIssuesForToday(
     @Param('accountId') accountId: string,
     @Param('date') date: string,

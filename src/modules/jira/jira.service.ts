@@ -345,7 +345,7 @@ export class JiraService {
       timeZone: 'Asia/Dhaka',
     });
 
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${formattedDate} AND status=Done`;
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${formattedDate}`;
 
     try {
       // Fetch done issues from both JIRA APIs concurrently
@@ -650,7 +650,7 @@ export class JiraService {
                 .filter(
                   (issue) =>
                     issue.issueType === 'Task' &&
-                    issue.status === 'Done' && // Ensure the issue is completed
+                    issue.status === 'Done' &&
                     notDoneTaskIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
@@ -661,7 +661,7 @@ export class JiraService {
                     issue.issueType === 'Story' &&
                     (issue.status === 'Done' ||
                       issue.status === 'USER STORIES (Verified In Test)' ||
-                      issue.status === 'USER STORIES (Verified In Beta)') && // Ensure the issue is completed
+                      issue.status === 'USER STORIES (Verified In Beta)') &&
                     notDoneStoryIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
@@ -670,7 +670,7 @@ export class JiraService {
                 .filter(
                   (issue) =>
                     issue.issueType === 'Bug' &&
-                    issue.status === 'Done' && // Ensure the issue is completed
+                    issue.status === 'Done' &&
                     notDoneBugIds.includes(issue.issueId),
                 )
                 .map((issue) => issue.issueId);
@@ -788,7 +788,7 @@ export class JiraService {
           // Calculate current performance for the current month, excluding holidays/leave comments
           const totalScore = metricsByDay.reduce((sum, day) => {
             if (day.comment === 'holidays/leave') {
-              return sum; // Skip this day
+              return sum;
             }
             return sum + day.overallScore;
           }, 0);
