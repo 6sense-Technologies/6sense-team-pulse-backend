@@ -71,7 +71,7 @@ export class UserController {
   }
 
   @Put('save-planned-issues/morning/:accountId/:date')
-  async collectIssueHistoryMorning(
+  async savePlannedIssuesMorning(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<{ status: number; message: string }> {
@@ -90,7 +90,7 @@ export class UserController {
   }
 
   @Put('save-all-issues/evening/:accountId/:date')
-  async collectIssueHistoryEvening(
+  async saveAllIssuesEvening(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<{ status: number; message: string }> {
@@ -110,7 +110,7 @@ export class UserController {
   }
 
   @Get('issues/:accountId/:date')
-  async getIssues(
+  async getIssuesByDate(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ) {
@@ -119,7 +119,7 @@ export class UserController {
   }
 
   @Put('bug-report/:accountId/:date')
-  async reportBug(
+  async bugReportByDate(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
     @Body('noOfBugs') noOfBugs: number,
@@ -134,7 +134,7 @@ export class UserController {
       throw new BadRequestException('Number of bugs is required');
     }
 
-    const response = await this.userService.reportBug(
+    const response = await this.userService.bugReportByDate(
       accountId,
       date,
       noOfBugs,

@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import {
+  IGetIssuesByDateResponse,
   IUserResponse,
   IUserWithPagination,
 } from '../../common/interfaces/jira.interfaces';
@@ -164,8 +165,9 @@ export class UserService {
 
       //Check for issue history for the given date
       const notDoneIssues =
-        user.issueHistory.find((history) => history.date === dateString)
-          ?.notDoneIssues || [];
+        user.issueHistory.find((history) => {
+          return history.date === dateString;
+        })?.notDoneIssues || [];
 
       const issueHistoryEntries = notDoneIssues.map((issue, index) => ({
         serialNumber: index + 1,
@@ -175,7 +177,11 @@ export class UserService {
         issueStatus: issue.status,
         planned: true,
         link: issue.issueLinks
-          ? issue.issueLinks.map((link) => link.issueId).join(',')
+          ? issue.issueLinks
+              .map((link) => {
+                return link.issueId;
+              })
+              .join(',')
           : '',
       }));
 
@@ -232,25 +238,31 @@ export class UserService {
           ?.doneIssues || [];
 
       // Create a set of done issue IDs for quick lookup
-      const doneIssueIds = new Set(doneIssues.map((issue) => issue.issueId));
+      const doneIssueIds = new Set(
+        doneIssues.map((issue) => {
+          return issue.issueId;
+        }),
+      );
 
       // Create a set of not done issue IDs for comparison
       const notDoneIssueIds = new Set(
-        specificDateHistory.issues.map((issue) => issue.issueId),
+        specificDateHistory.issues.map((issue) => {
+          return issue.issueId;
+        }),
       );
 
       // Update the status of "not done" issues that are now done
       specificDateHistory.issues = specificDateHistory.issues.map((issue) => {
         if (doneIssueIds.has(issue.issueId)) {
-          const matchedDoneIssue = doneIssues.find(
-            (done) => done.issueId === issue.issueId,
-          );
+          const matchedDoneIssue = doneIssues.find((done) => {
+            return done.issueId === issue.issueId;
+          });
 
           // Update the issue status and linked issue IDs
           const linkedIssueIdsSet = new Set<string>();
-          matchedDoneIssue?.issueLinks?.forEach((link) =>
-            linkedIssueIdsSet.add(link.issueId),
-          );
+          matchedDoneIssue?.issueLinks?.forEach((link) => {
+            return linkedIssueIdsSet.add(link.issueId);
+          });
 
           return {
             ...issue,
@@ -263,7 +275,9 @@ export class UserService {
 
       //Prepare new done issues that are not already in today's not done issues
       const newDoneIssueEntries = doneIssues
-        .filter((issue) => !notDoneIssueIds.has(issue.issueId))
+        .filter((issue) => {
+          return !notDoneIssueIds.has(issue.issueId);
+        })
         .map((issue, index) => {
           const linkedIssueIdsSet = new Set<string>();
           issue.issueLinks?.forEach((link) =>
@@ -297,7 +311,10 @@ export class UserService {
     }
   }
 
-  async getIssuesByDate(accountId: string, date: string) {
+  async getIssuesByDate(
+    accountId: string,
+    date: string,
+  ): Promise<IGetIssuesByDateResponse> {
     try {
       const historyPath = `history.${date}`;
 
@@ -310,8 +327,8 @@ export class UserService {
 
       if (!result || !result.history[date]) {
         return {
-          userName: result?.userName || null,
-          accountId: result?.accountId || null,
+          userName: result?.userName,
+          accountId: result?.accountId,
           issues: [],
           noOfBugs: 0,
           comment: '',
@@ -332,7 +349,7 @@ export class UserService {
     }
   }
 
-  async reportBug(
+  async bugReportByDate(
     accountId: string,
     date: string,
     noOfBugs: number,
@@ -350,9 +367,9 @@ export class UserService {
         throw new NotFoundException('User not found');
       }
 
-      const userIssueEntry = user.issueHistory.find(
-        (entry) => entry.date === date,
-      );
+      const userIssueEntry = user.issueHistory.find((entry) => {
+        return entry.date === date;
+      });
       if (userIssueEntry) {
         userIssueEntry.reportBug = { noOfBugs, comment };
         await user.save();

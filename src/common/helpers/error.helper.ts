@@ -7,7 +7,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 
-export const handleError = (error: any) => {
+export const handleError = (error: any): void => {
   if (error instanceof NotFoundException) {
     throw new NotFoundException({
       status: 404,

@@ -52,3 +52,11 @@ export interface ITrelloUserData {
   avatarUrls: string;
   currentPerformance?: number;
 }
+
+export interface IGetIssuesByDateResponse {
+  userName: string;
+  accountId: string;
+  issues: any[];
+  noOfBugs: number;
+  comment: string;
+}
