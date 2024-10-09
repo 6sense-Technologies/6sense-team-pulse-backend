@@ -439,28 +439,12 @@ export class JiraService {
 
       // Save the counts and issue data
       for (const [date, counts] of Object.entries(countsByDate)) {
-        // Calculate the code to bug ratio
-        const tasksAndStoriesCount = counts.Task + counts.Story;
-        const linkedBugsCount = issuesByDate[date].filter((issue) => {
-          return issue.issueLinks.some((link) => {
-            return link.issueType === 'Bug';
-          });
-        }).length;
-
-        let codeToBugRatio = 0;
-        if (tasksAndStoriesCount > 0) {
-          codeToBugRatio = parseFloat(
-            (linkedBugsCount / tasksAndStoriesCount).toFixed(2),
-          );
-        }
-
         // Save counts and issues for the date
         await this.saveDoneIssueCounts(
           accountId,
           date,
           counts,
           issuesByDate[date],
-          codeToBugRatio, // Save the ratio here
         );
       }
     } catch (error) {
@@ -512,7 +496,6 @@ export class JiraService {
     date: string,
     counts: { Task: number; Bug: number; Story: number },
     issues: IIssue[],
-    codeToBugRatio: number,
   ): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId });
@@ -529,13 +512,11 @@ export class JiraService {
       if (existingHistory) {
         existingHistory.issuesCount.done = counts;
         existingHistory.doneIssues = issues;
-        existingHistory.codeToBugRatio = codeToBugRatio;
       } else {
         user.issueHistory.push({
           date,
           issuesCount: { done: counts },
           doneIssues: issues,
-          codeToBugRatio,
         });
       }
 
@@ -574,7 +555,7 @@ export class JiraService {
       const users = await this.userModel.find().exec();
 
       const today = new Date(
-        new Date().setDate(new Date().getDate()-1),
+        new Date().setDate(new Date().getDate()),
       ).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
@@ -594,28 +575,24 @@ export class JiraService {
   }
 
   async getAllUserMetrics() {
-    console.log('Running metrics');
     try {
       const users = await this.userModel.find({}).exec();
       const currentDate = new Date();
-      const currentMonth = currentDate.getMonth();
-      const currentYear = currentDate.getFullYear();
+      const last30days = new Date();
+      last30days.setDate(currentDate.getDate() - 30);
 
-      const updatedUsers = await Promise.all(
+      await Promise.all(
         users.map(async (user) => {
           const issueHistory = user.issueHistory;
 
-          // Filter issue history for the current month
-          const currentMonthHistory = issueHistory.filter((entry) => {
+          // Filter issue history for the last 30 days
+          const recentHistory = issueHistory.filter((entry) => {
             const entryDate = new Date(entry.date);
-            return (
-              entryDate.getMonth() === currentMonth &&
-              entryDate.getFullYear() === currentYear
-            );
+            return entryDate >= last30days && entryDate <= currentDate;
           });
 
           const metricsByDay = await Promise.all(
-            currentMonthHistory.map(async (entry) => {
+            recentHistory.map(async (entry) => {
               const { date, issuesCount, notDoneIssues, doneIssues } = entry;
               const counts = issuesCount;
 
@@ -626,23 +603,15 @@ export class JiraService {
 
               // Map not done task, story, and bug IDs
               const notDoneTaskIds = notDoneIssues
-                .filter((issue) => {
-                  return issue.issueType === 'Task';
-                })
-                .map((issue) => {
-                  return issue.issueId;
-                });
+                .filter((issue) => issue.issueType === 'Task')
+                .map((issue) => issue.issueId);
 
               const notDoneStoryIds = notDoneIssues
-                .filter((issue) => {
-                  return issue.issueType === 'Story';
-                })
+                .filter((issue) => issue.issueType === 'Story')
                 .map((issue) => issue.issueId);
 
               const notDoneBugIds = notDoneIssues
-                .filter((issue) => {
-                  return issue.issueType === 'Bug';
-                })
+                .filter((issue) => issue.issueType === 'Bug')
                 .map((issue) => issue.issueId);
 
               // Filter done issues to count matched ones
@@ -676,17 +645,19 @@ export class JiraService {
                 .map((issue) => issue.issueId);
 
               // Count total done tasks, stories, and bugs (both matched and unmatched)
-              const totalAllDoneTasks = doneIssues.filter((issue) => {
-                return issue.issueType === 'Task' && issue.status === 'Done';
-              }).length;
+              const totalAllDoneTasks = doneIssues.filter(
+                (issue) =>
+                  issue.issueType === 'Task' && issue.status === 'Done',
+              ).length;
 
-              const totalAllDoneStories = doneIssues.filter((issue) => {
-                return issue.issueType === 'Story' && issue.status === 'Done';
-              }).length;
+              const totalAllDoneStories = doneIssues.filter(
+                (issue) =>
+                  issue.issueType === 'Story' && issue.status === 'Done',
+              ).length;
 
-              const totalAllDoneBugs = doneIssues.filter((issue) => {
-                return issue.issueType === 'Bug' && issue.status === 'Done';
-              }).length;
+              const totalAllDoneBugs = doneIssues.filter(
+                (issue) => issue.issueType === 'Bug' && issue.status === 'Done',
+              ).length;
 
               // Total not done issues for comparison
               const totalNotDoneTasksAndBugs =
@@ -757,6 +728,57 @@ export class JiraService {
                   }, 0) / nonZeroCompletionRates.length;
               }
 
+              let totalCompletedCodeIssues = 0;
+
+              // Get the IDs of issues that are not done
+              const notDoneIssueIds = notDoneIssues.map(
+                (issue) => issue.issueId,
+              );
+
+              // Count total completed bugs
+              const totalCompletedBugs = doneIssues.filter(
+                (issue) =>
+                  issue.issueType === 'Bug' &&
+                  issue.status === 'Done' &&
+                  !notDoneIssueIds.includes(issue.issueId), // Exclude bugs that are linked to not done issues
+              ).length;
+
+              // Create a Set to keep track of counted code issues to avoid duplicates
+              const countedCodeIssueIds = new Set();
+
+              doneIssues.forEach((bug) => {
+                // Check if the bug is completed
+                if (bug.issueType === 'Bug' && bug.status === 'Done') {
+                  // Loop through the issue links of the bug
+                  bug.issueLinks.forEach((link) => {
+                    const linkedIssueId = link.issueId;
+                    // Check if the linked issue ID matches any done task or story IDs
+                    if (
+                      matchedDoneTaskIds.includes(linkedIssueId) ||
+                      matchedDoneStoryIds.includes(linkedIssueId)
+                    ) {
+                      // Add the linked issue ID to the Set to ensure uniqueness
+                      countedCodeIssueIds.add(linkedIssueId);
+                    }
+                  });
+                }
+              });
+
+              // The total unique completed code issues count
+              totalCompletedCodeIssues = countedCodeIssueIds.size;
+
+              let codeToBugRatio = 0;
+
+              // Calculate the code to bug ratio
+              if (totalCompletedCodeIssues > 0 && totalCompletedBugs > 0) {
+                codeToBugRatio = parseFloat(
+                  (
+                    (totalCompletedBugs / totalCompletedCodeIssues) *
+                    100
+                  ).toFixed(2),
+                );
+              }
+
               const taskCompletionRateNum = isNaN(taskCompletionRate)
                 ? 0
                 : taskCompletionRate;
@@ -769,6 +791,7 @@ export class JiraService {
               entry.userStoryCompletionRate = userStoryCompletionRateNum;
               entry.overallScore = overallScoreNum;
               entry.comment = comment;
+              entry.codeToBugRatio = codeToBugRatio;
 
               return {
                 date,
@@ -781,11 +804,12 @@ export class JiraService {
                 userStoryCompletionRate: userStoryCompletionRateNum,
                 overallScore: overallScoreNum,
                 comment,
+                codeToBugRatio, // Return the code to bug ratio
               };
             }),
           );
 
-          // Calculate current performance for the current month, excluding holidays/leave comments
+          // Calculate current performance for the last 30 days, excluding holidays/leave comments
           const totalScore = metricsByDay.reduce((sum, day) => {
             if (day.comment === 'holidays/leave') {
               return sum;

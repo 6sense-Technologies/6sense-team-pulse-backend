@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './users.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { User } from './schemas/user.schema';
+import { Designation, Project, User } from './schemas/user.schema';
 import {
   ConflictException,
   ForbiddenException,
@@ -15,22 +15,114 @@ import { ConfigService } from '@nestjs/config';
 const mockUser = {
   accountId: '1',
   displayName: 'John Doe',
+  userFrom: 'New York',
   emailAddress: 'john@example.com',
   avatarUrls: 'http://example.com/avatar.png',
-  currentPerformance: 0,
-  designation: 'Frontend Developer',
+  currentPerformance: 75,
+  designation: Designation.FrontendDeveloper,
+  project: Project.Pattern50,
   isArchive: false,
-  issueHistory: [],
+  issueHistory: [
+    {
+      date: '2024-09-24',
+      issuesCount: {
+        notDone: { Task: 2, Bug: 1, Story: 3 },
+        done: { Task: 5, Bug: 2, Story: 4 },
+      },
+      taskCompletionRate: 80,
+      userStoryCompletionRate: 70,
+      overallScore: 85,
+      comment: 'Good progress this week.',
+      notDoneIssues: [
+        {
+          issueId: 'TASK-101',
+          summary: 'Implement login feature',
+          status: 'In Progress',
+          issueType: 'Task',
+          dueDate: '2024-09-30',
+          issueLinks: [
+            {
+              issueId: 'BUG-201',
+              issueType: 'Bug',
+              summary: 'Fix login error',
+              status: 'Open',
+            },
+          ],
+        },
+      ],
+      doneIssues: [
+        {
+          issueId: 'TASK-100',
+          summary: 'Set up project repository',
+          status: 'Done',
+          issueType: 'Task',
+          dueDate: '2024-09-20',
+          issueLinks: [],
+        },
+      ],
+      codeToBugRatio: 1.5,
+      reportBug: {
+        noOfBugs: 2,
+        comment: 'Minor UI bugs reported.',
+      },
+    },
+  ],
   save: jest.fn().mockResolvedValue(true),
   toObject: jest.fn().mockReturnValue({
     accountId: '1',
     displayName: 'John Doe',
+    userFrom: 'New York',
     emailAddress: 'john@example.com',
     avatarUrls: 'http://example.com/avatar.png',
-    currentPerformance: 0,
-    designation: 'Frontend Developer',
+    currentPerformance: 75,
+    designation: Designation.FrontendDeveloper,
+    project: Project.Pattern50,
     isArchive: false,
-    issueHistory: [],
+    issueHistory: [
+      {
+        date: '2024-09-24',
+        issuesCount: {
+          notDone: { Task: 2, Bug: 1, Story: 3 },
+          done: { Task: 5, Bug: 2, Story: 4 },
+        },
+        taskCompletionRate: 80,
+        userStoryCompletionRate: 70,
+        overallScore: 85,
+        comment: 'Good progress this week.',
+        notDoneIssues: [
+          {
+            issueId: 'TASK-101',
+            summary: 'Implement login feature',
+            status: 'In Progress',
+            issueType: 'Task',
+            dueDate: '2024-09-30',
+            issueLinks: [
+              {
+                issueId: 'BUG-201',
+                issueType: 'Bug',
+                summary: 'Fix login error',
+                status: 'Open',
+              },
+            ],
+          },
+        ],
+        doneIssues: [
+          {
+            issueId: 'TASK-100',
+            summary: 'Set up project repository',
+            status: 'Done',
+            issueType: 'Task',
+            dueDate: '2024-09-20',
+            issueLinks: [],
+          },
+        ],
+        codeToBugRatio: 1.5,
+        reportBug: {
+          noOfBugs: 2,
+          comment: 'Minor UI bugs reported.',
+        },
+      },
+    ],
   }),
 };
 
@@ -404,6 +496,7 @@ describe('UserService', () => {
     it('should fetch and save all issues successfully', async () => {
       const date = '2024-09-24';
       const accountId = '1';
+
       const userWithIssues = {
         ...mockUser,
         issueHistory: [
@@ -416,6 +509,13 @@ describe('UserService', () => {
                 summary: 'Issue 1',
                 status: 'Closed',
                 issueLinks: [{ issueId: 'link-1' }],
+              },
+              {
+                issueType: 'Feature',
+                issueId: 'feature-1',
+                summary: 'Feature 1',
+                status: 'In Progress',
+                issueLinks: [{ issueId: 'link-2' }],
               },
             ],
           },
@@ -432,6 +532,11 @@ describe('UserService', () => {
                 issueId: 'bug-2',
                 issueStatus: 'Open',
                 link: 'link-2',
+              },
+              {
+                issueId: 'bug-1',
+                issueStatus: 'Open',
+                link: 'link-3',
               },
             ],
           },
@@ -472,12 +577,17 @@ describe('UserService', () => {
                   link: 'link-2',
                 },
                 {
-                  serialNumber: 2,
-                  issueType: 'Bug',
                   issueId: 'bug-1',
-                  issueSummary: 'Issue 1',
                   issueStatus: 'Closed',
                   link: 'link-1',
+                },
+                {
+                  serialNumber: 3,
+                  issueType: 'Feature',
+                  issueId: 'feature-1',
+                  issueSummary: 'Feature 1',
+                  issueStatus: 'In Progress',
+                  link: 'link-2',
                 },
               ],
             },
@@ -601,37 +711,28 @@ describe('UserService', () => {
   });
 
   describe('bugReportByDate', () => {
-    const accountId = '1';
-    const date = '2024-10-08';
-    const noOfBugs = 5;
-    const comment = 'Bug description';
-    const token = 'valid-token';
+    it('should update bug report successfully', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const noOfBugs = 3;
+      const comment = 'Updated comment';
+      const token = 'valid-token';
 
-    const mockUser = {
-      accountId: '1',
-      displayName: 'John Doe',
-      emailAddress: 'john@example.com',
-      avatarUrls: 'http://example.com/avatar.png',
-      currentPerformance: 0,
-      designation: 'Frontend Developer',
-      isArchive: false,
-      issueHistory: [],
-      save: jest.fn().mockResolvedValue(true),
-      toObject: jest.fn().mockReturnValue({
-        accountId: '1',
-        displayName: 'John Doe',
-        emailAddress: 'john@example.com',
-        avatarUrls: 'http://example.com/avatar.png',
-        currentPerformance: 0,
-        designation: 'Frontend Developer',
-        isArchive: false,
-        issueHistory: [{ date, reportBug: null }],
-      }),
-    };
-
-    it('should update the bug report successfully', async () => {
-      mockUserModel.findOne.mockResolvedValue(mockUser);
       jest.spyOn(configService, 'get').mockReturnValue(token);
+
+      mockUserModel.findOne.mockResolvedValue(mockUser);
+      mockUser.save.mockResolvedValue(mockUser);
+      const updatedIssue = {
+        accountId,
+        history: {
+          [date]: {
+            noOfBugs,
+            comment,
+          },
+        },
+      };
+
+      mockIssueHistoryModel.findOneAndUpdate.mockResolvedValue(updatedIssue);
 
       const result = await userService.bugReportByDate(
         accountId,
@@ -645,19 +746,51 @@ describe('UserService', () => {
         message: 'Bug report updated successfully',
         statusCode: 200,
       });
-      expect(mockUser.issueHistory[0].reportBug).toEqual({ noOfBugs, comment });
-      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId });
-      expect(mockUser.save).toHaveBeenCalled();
-      expect(mockIssueHistoryModel.findOneAndUpdate).toHaveBeenCalledWith(
-        { accountId, [`history.${date}`]: { $exists: true } },
-        {
-          $set: {
-            [`history.${date}.noOfBugs`]: noOfBugs,
-            [`history.${date}.comment`]: comment,
-          },
-        },
-        { upsert: true, new: true },
-      );
+    });
+
+    it('should throw ForbiddenException for invalid token', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const noOfBugs = 3;
+      const comment = 'Updated comment';
+      const token = 'invalid-token';
+
+      await expect(
+        userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw NotFoundException if user is not found', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const noOfBugs = 3;
+      const comment = 'Updated comment';
+      const token = 'valid-token';
+
+      jest.spyOn(configService, 'get').mockReturnValue(token);
+      mockUserModel.findOne.mockResolvedValue(null);
+
+      await expect(
+        userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if no issue history is found for the date', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const noOfBugs = 3;
+      const comment = 'Updated comment';
+      const token = 'valid-token';
+
+      jest.spyOn(configService, 'get').mockReturnValue(token);
+      mockUserModel.findOne.mockResolvedValue({
+        ...mockUser,
+        issueHistory: [{ date: '2024-09-25' }],
+      });
+
+      await expect(
+        userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

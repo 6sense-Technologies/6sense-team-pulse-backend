@@ -367,9 +367,9 @@ export class UserService {
         throw new NotFoundException('User not found');
       }
 
-      const userIssueEntry = user.issueHistory.find((entry) => {
-        return entry.date === date;
-      });
+      const userIssueEntry = user.issueHistory.find(
+        (entry) => entry.date === date,
+      );
       if (userIssueEntry) {
         userIssueEntry.reportBug = { noOfBugs, comment };
         await user.save();
