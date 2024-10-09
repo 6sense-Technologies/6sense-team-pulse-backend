@@ -14,7 +14,7 @@ import {
 } from '../../common/interfaces/jira.interfaces';
 import { IssueHistory } from './schemas/IssueHistory.schems';
 import { ConfigService } from '@nestjs/config';
-import { handleError } from 'src/common/helpers/error.helper';
+import { handleError } from '../../common/helpers/error.helper';
 
 @Injectable()
 export class UserService {
@@ -155,24 +155,13 @@ export class UserService {
     }
   }
 
-  private async getUserAndDateString(
-    accountId: string,
-    date: string,
-  ): Promise<{ dateString: string; user: User }> {
-    const dateString = new Date(date).toISOString().split('T')[0];
-    const user = await this.userModel.findOne({ accountId }).exec();
-    return { dateString, user };
-  }
-
   async fetchAndSavePlannedIssues(
     accountId: string,
     date: string,
   ): Promise<{ status: number; message: string }> {
     try {
-      const { dateString, user } = await this.getUserAndDateString(
-        accountId,
-        date,
-      );
+      const dateString = new Date(date).toISOString().split('T')[0];
+      const user = await this.userModel.findOne({ accountId }).exec();
 
       //Check for issue history for the given date
       const notDoneIssues =
@@ -180,23 +169,21 @@ export class UserService {
           return history.date === dateString;
         })?.notDoneIssues || [];
 
-      const issueHistoryEntries = notDoneIssues.map((issue, index) => {
-        return {
-          serialNumber: index + 1,
-          issueType: issue.issueType,
-          issueId: issue.issueId,
-          issueSummary: issue.summary,
-          issueStatus: issue.status,
-          planned: true,
-          link: issue.issueLinks
-            ? issue.issueLinks
-                .map((link) => {
-                  return link.issueId;
-                })
-                .join(',')
-            : '',
-        };
-      });
+      const issueHistoryEntries = notDoneIssues.map((issue, index) => ({
+        serialNumber: index + 1,
+        issueType: issue.issueType,
+        issueId: issue.issueId,
+        issueSummary: issue.summary,
+        issueStatus: issue.status,
+        planned: true,
+        link: issue.issueLinks
+          ? issue.issueLinks
+              .map((link) => {
+                return link.issueId;
+              })
+              .join(',')
+          : '',
+      }));
 
       await this.issueHistoryModel.findOneAndUpdate(
         { userName: user.displayName, accountId: user.accountId },
@@ -224,10 +211,8 @@ export class UserService {
     date: string,
   ): Promise<{ status: number; message: string }> {
     try {
-      const { dateString, user } = await this.getUserAndDateString(
-        accountId,
-        date,
-      );
+      const dateString = new Date(date).toISOString().split('T')[0];
+      const user = await this.userModel.findOne({ accountId }).exec();
 
       //Fetch the user's issue history or create a new one if it doesn't exist
       let issueHistory = await this.issueHistoryModel
@@ -249,9 +234,8 @@ export class UserService {
 
       // Get the done issues for the user on the specified date
       const doneIssues =
-        user.issueHistory.find((history) => {
-          return history.date === dateString;
-        })?.doneIssues || [];
+        user.issueHistory.find((history) => history.date === dateString)
+          ?.doneIssues || [];
 
       // Create a set of done issue IDs for quick lookup
       const doneIssueIds = new Set(
@@ -296,9 +280,9 @@ export class UserService {
         })
         .map((issue, index) => {
           const linkedIssueIdsSet = new Set<string>();
-          issue.issueLinks?.forEach((link) => {
-            return linkedIssueIdsSet.add(link.issueId);
-          });
+          issue.issueLinks?.forEach((link) =>
+            linkedIssueIdsSet.add(link.issueId),
+          );
 
           return {
             serialNumber: specificDateHistory.issues.length + index + 1,

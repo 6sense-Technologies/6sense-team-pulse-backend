@@ -574,7 +574,7 @@ export class JiraService {
       const users = await this.userModel.find().exec();
 
       const today = new Date(
-        new Date().setDate(new Date().getDate()),
+        new Date().setDate(new Date().getDate()-1),
       ).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
