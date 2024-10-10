@@ -16,6 +16,11 @@ import {
 import { IssueHistory } from './schemas/IssueHistory.schems';
 import { ConfigService } from '@nestjs/config';
 import { handleError } from '../../common/helpers/error.helper';
+import {
+  validateAccountId,
+  validateDate,
+  validatePagination,
+} from 'src/common/helpers/validation.helper';
 
 @Injectable()
 export class UserService {
@@ -40,17 +45,7 @@ export class UserService {
     totalUsers: number;
   }> {
     try {
-      if (page < 1) {
-        throw new BadRequestException(
-          'Invalid page number. It must be a positive integer greater than 0.',
-        );
-      }
-
-      if (limit < 1) {
-        throw new BadRequestException(
-          'Invalid limit number. It must be a positive integer greater than 0.',
-        );
-      }
+      validatePagination(page, limit);
 
       const skip = (page - 1) * limit;
       const totalUsers = await this.userModel.countDocuments({
@@ -88,21 +83,8 @@ export class UserService {
     limit: number = 30,
   ): Promise<IUserResponse> {
     try {
-      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
-        throw new BadRequestException('Account ID cannot be empty.');
-      }
-
-      if (page < 1) {
-        throw new BadRequestException(
-          'Invalid page number. It must be a positive integer greater than 0.',
-        );
-      }
-
-      if (limit < 1) {
-        throw new BadRequestException(
-          'Invalid limit number. It must be a positive integer greater than 0.',
-        );
-      }
+      validateAccountId(accountId);
+      validatePagination(page, limit);
 
       const user = await this.userModel.findOne({ accountId }).exec();
 
@@ -139,9 +121,8 @@ export class UserService {
 
   async deleteUser(accountId: string): Promise<IUserResponse> {
     try {
-      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
-        throw new BadRequestException('Account ID cannot be empty.');
-      }
+      validateAccountId(accountId);
+
       const existingUser = await this.userModel.findOne({ accountId });
 
       if (!existingUser) {
@@ -163,9 +144,8 @@ export class UserService {
     accountId: string,
   ): Promise<{ message: string; statusCode: number }> {
     try {
-      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
-        throw new BadRequestException('Account ID cannot be empty.');
-      }
+      validateAccountId(accountId);
+
       const user = await this.userModel.findOne({ accountId });
 
       if (!user) {
@@ -193,17 +173,8 @@ export class UserService {
     date: string,
   ): Promise<{ status: number; message: string }> {
     try {
-      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
-        throw new BadRequestException('Account ID cannot be empty.');
-      }
-
-      // Validate date format
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(date)) {
-        throw new BadRequestException(
-          'Invalid date format. Please use YYYY-MM-DD.',
-        );
-      }
+      validateAccountId(accountId);
+      validateDate(date);
 
       const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
@@ -256,16 +227,8 @@ export class UserService {
     date: string,
   ): Promise<{ status: number; message: string }> {
     try {
-      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
-        throw new BadRequestException('Account ID cannot be empty.');
-      }
-
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(date)) {
-        throw new BadRequestException(
-          'Invalid date format. Please use YYYY-MM-DD.',
-        );
-      }
+      validateAccountId(accountId);
+      validateDate(date);
 
       const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
@@ -368,17 +331,8 @@ export class UserService {
     date: string,
   ): Promise<IGetIssuesByDateResponse> {
     try {
-      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
-        throw new BadRequestException('Account ID cannot be empty.');
-      }
-
-      // Validate date format
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(date)) {
-        throw new BadRequestException(
-          'Invalid date format. Please use YYYY-MM-DD.',
-        );
-      }
+      validateAccountId(accountId);
+      validateDate(date);
 
       const historyPath = `history.${date}`;
 
@@ -421,9 +375,8 @@ export class UserService {
     token: string,
   ): Promise<{ message: string; statusCode: number }> {
     try {
-      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
-        throw new BadRequestException('Account ID cannot be empty.');
-      }
+      validateAccountId(accountId);
+      validateDate(date);
 
       // Validate token
       const envToken = this.configService.get<string>('REPORT_BUG_TOKEN');
@@ -434,14 +387,6 @@ export class UserService {
       // Validate noOfBugs
       if (noOfBugs === undefined || noOfBugs === null) {
         throw new BadRequestException('Number of bugs is required');
-      }
-
-      // Validate date format
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(date)) {
-        throw new BadRequestException(
-          'Invalid date format. Please use YYYY-MM-DD.',
-        );
       }
 
       const user = await this.userModel.findOne({ accountId });
