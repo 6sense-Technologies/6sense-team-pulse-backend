@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Param,
-  BadRequestException,
   Post,
   Body,
 } from '@nestjs/common';
@@ -27,8 +26,7 @@ export class TrelloController {
 
   @Get('users/:accountId')
   async getUserDetails(@Param('accountId') accountId: string) {
-    const userDetails = await this.trelloService.getUserDetails(accountId);
-    return userDetails;
+    return await this.trelloService.getUserDetails(accountId);
   }
 
   @Get('users/:accountId/issues')
@@ -38,29 +36,11 @@ export class TrelloController {
 
   @Post('users/create')
   async fetchAndSaveUser(
-    @Body()
-    body: {
-      accountId: string;
-      userFrom: string;
-      designation: Designation;
-      project: Project;
-    },
+    @Param('accountId') accountId: string,
+    @Body('userFrom') userFrom: string,
+    @Body('designation') designation: Designation,
+    @Body('project') project: Project,
   ) {
-    const { accountId, userFrom, designation, project } = body;
-
-    if (!accountId) {
-      throw new BadRequestException('accountId is required');
-    }
-    if (!designation) {
-      throw new BadRequestException('designation is required');
-    }
-    if (!project) {
-      throw new BadRequestException('project is required');
-    }
-    if (!userFrom) {
-      throw new BadRequestException('userFrom is required');
-    }
-
     return await this.trelloService.fetchAndSaveUser(
       accountId,
       userFrom,
@@ -73,39 +53,15 @@ export class TrelloController {
   async countPlannedIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ): Promise<void> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    // Validate date format
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
-    if (!accountId || accountId.trim() === '') {
-      throw new BadRequestException('Account ID cannot be empty.');
-    }
-    await this.trelloService.countPlannedIssues(accountId, date);
-    return;
+  ) {
+    return await this.trelloService.countPlannedIssues(accountId, date);
   }
 
   @Get('done/count/:accountId')
   async countDoneIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ): Promise<void> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    // Validate date format
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
-    if (!accountId || accountId.trim() === '') {
-      throw new BadRequestException('Account ID cannot be empty.');
-    }
-    await this.trelloService.countDoneIssues(accountId, date);
-    return;
+  ) {
+    return await this.trelloService.countDoneIssues(accountId, date);
   }
 }

@@ -18,7 +18,11 @@ import { Model } from 'mongoose';
 import { AxiosErrorHelper } from 'src/common/helpers/axios-exception.helper';
 import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
 import { firstValueFrom } from 'rxjs';
-import { handleError } from 'src/common/helpers/error.helper';
+import { handleError } from '../../common/helpers/error.helper';
+import {
+  validateAccountId,
+  validateDate,
+} from '../../common/helpers/validation.helper';
 
 dotenv.config();
 
@@ -199,7 +203,6 @@ export class TrelloService {
             }));
         });
 
-        // Wait for all card promises to resolve and flatten the result
         return (await Promise.all(cards)).flat();
       };
 
@@ -208,7 +211,6 @@ export class TrelloService {
         return fetchCardsForBoard(board.id, board.name);
       });
 
-      // Wait for all board card promises to resolve and flatten the result
       return (await Promise.all(allCards)).flat();
     } catch (error) {
       const errorResponse =
@@ -224,6 +226,21 @@ export class TrelloService {
     project: Project,
   ): Promise<{ statusCode: number; message: string; user?: User }> {
     try {
+      if (!accountId) {
+        throw new BadRequestException('accountId is required');
+      }
+      if (!userFrom) {
+        throw new BadRequestException('userFrom is required');
+      }
+      if (!designation) {
+        throw new BadRequestException('designation is required');
+      }
+      if (!project) {
+        throw new BadRequestException('project is required');
+      }
+
+      validateAccountId(accountId);
+
       if (!Object.values(Designation).includes(designation)) {
         throw new BadRequestException('Invalid designation');
       }
@@ -262,6 +279,8 @@ export class TrelloService {
 
   async countPlannedIssues(accountId: string, date: string): Promise<void> {
     try {
+      validateAccountId(accountId);
+      validateDate(date);
       const dateString = new Date(date).toISOString().split('T')[0];
 
       // Fetch user cards
@@ -346,6 +365,8 @@ export class TrelloService {
     issues: IIssue[],
   ): Promise<void> {
     try {
+      validateAccountId(accountId);
+      validateDate(date);
       const user = await this.userModel.findOne({ accountId });
 
       if (!user) {
@@ -375,6 +396,8 @@ export class TrelloService {
 
   async countDoneIssues(accountId: string, date: string): Promise<void> {
     try {
+      validateAccountId(accountId);
+      validateDate(date);
       const userCards = await this.getUserIssues(accountId);
       const user = await this.userModel.findOne({ accountId }).exec();
       const dateString = new Date(date).toISOString().split('T')[0];
@@ -452,6 +475,8 @@ export class TrelloService {
     issues: IIssue[],
   ): Promise<void> {
     try {
+      validateAccountId(accountId);
+      validateDate(date);
       const user = await this.userModel.findOne({ accountId });
 
       if (!user) {

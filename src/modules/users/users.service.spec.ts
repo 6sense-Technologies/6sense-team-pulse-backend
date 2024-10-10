@@ -559,7 +559,7 @@ describe('UserService', () => {
 
       expect(result).toEqual({
         status: 200,
-        message: 'Issues have been successfully updated',
+        message: 'Issues have been successfully updated.',
       });
 
       expect(mockIssueHistoryModel.findOneAndUpdate).toHaveBeenCalledWith(

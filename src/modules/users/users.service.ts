@@ -20,7 +20,7 @@ import {
   validateAccountId,
   validateDate,
   validatePagination,
-} from 'src/common/helpers/validation.helper';
+} from '../../common/helpers/validation.helper';
 
 @Injectable()
 export class UserService {
@@ -179,10 +179,6 @@ export class UserService {
       const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      if (!user) {
-        throw new NotFoundException('User not found.');
-      }
-
       // Check for issue history for the given date
       const notDoneIssues =
         user.issueHistory.find((history) => {
@@ -232,10 +228,6 @@ export class UserService {
 
       const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
-
-      if (!user) {
-        throw new NotFoundException('User not found.');
-      }
 
       // Fetch the user's issue history or create a new one if it doesn't exist
       let issueHistory = await this.issueHistoryModel
