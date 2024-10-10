@@ -3,7 +3,6 @@ import {
   ConflictException,
   HttpException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
@@ -19,6 +18,7 @@ import { Model } from 'mongoose';
 import { AxiosErrorHelper } from 'src/common/helpers/axios-exception.helper';
 import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
 import { firstValueFrom } from 'rxjs';
+import { handleError } from 'src/common/helpers/error.helper';
 
 dotenv.config();
 
@@ -146,17 +146,10 @@ export class TrelloService {
 
       const boards = boardsResponse.data;
 
-      // Check if there are any boards
-      if (boards.length === 0) {
-        throw new InternalServerErrorException(
-          'No boards found for this user.',
-        );
-      }
-
       // Step 2: Calculate the date to check for cards
       const day = new Date();
       day.setDate(day.getDate());
-      const dateString = day.toISOString().split('T')[0]; // Format the date as 'YYYY-MM-DD'
+      const dateString = day.toISOString().split('T')[0];
 
       // Function to fetch cards for a specific board
       const fetchCardsForBoard = async (boardId: string, boardName: string) => {
@@ -231,30 +224,16 @@ export class TrelloService {
     project: Project,
   ): Promise<{ statusCode: number; message: string; user?: User }> {
     try {
-      // Validate designation
       if (!Object.values(Designation).includes(designation)) {
-        throw new BadRequestException({
-          status: 400,
-          errorCode: 'invalid_designation',
-          message: `Invalid designation: ${designation}`,
-          data: {},
-        });
+        throw new BadRequestException('Invalid designation');
       }
 
-      // Validate project
       if (!Object.values(Project).includes(project)) {
-        throw new BadRequestException({
-          status: 400,
-          errorCode: 'invalid_project',
-          message: `Invalid project: ${project}`,
-          data: {},
-        });
+        throw new BadRequestException('Invalid project');
       }
 
-      // Fetch user details
       const memberDetails = await this.getUserDetails(accountId);
 
-      // Prepare the user data to save
       const userToSave = {
         accountId: memberDetails.id,
         displayName: memberDetails.fullName,
@@ -263,17 +242,11 @@ export class TrelloService {
         userFrom,
       };
 
-      // Check if user already exists
       const existingUser = await this.userModel.findOne({ accountId });
       if (existingUser) {
-        throw new ConflictException({
-          status: 409,
-          errorCode: 'user_already_exists',
-          message: `User already exists`,
-          data: {},
-        });
+        throw new ConflictException('User already exists');
       }
-      // Save new user
+
       const newUser = new this.userModel(userToSave);
       await newUser.save();
 
@@ -283,7 +256,7 @@ export class TrelloService {
         user: newUser,
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -320,14 +293,13 @@ export class TrelloService {
 
       // Step 2: Process each not done issue
       notDoneIssues.forEach((card) => {
-        // Extract relevant information from the card
         const dueDate = card.dueDate.split('T')[0];
         const issueId = card.cardId;
         const summary = card.cardName;
         const status = card.listName;
 
         // Determine the issue type based on the list name
-        let issueType: 'Task' | 'Bug' | 'Story' = 'Task'; // Default to Task
+        let issueType: 'Task' | 'Bug' | 'Story' = 'Task';
         if (card.listName === 'Bug') {
           issueType = 'Bug';
         } else if (card.listName === 'User Stories') {
@@ -363,7 +335,7 @@ export class TrelloService {
         );
       }
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -397,7 +369,7 @@ export class TrelloService {
 
       await user.save();
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -456,7 +428,6 @@ export class TrelloService {
               countsByDate[dueDate].Task++;
             }
           } else {
-            // If no match is found, count as a Task
             countsByDate[dueDate].Task++;
           }
         }
@@ -470,7 +441,7 @@ export class TrelloService {
         issuesByDate[dateString] || [],
       );
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -504,7 +475,7 @@ export class TrelloService {
 
       await user.save();
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 }

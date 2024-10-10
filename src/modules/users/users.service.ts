@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -28,8 +29,8 @@ export class UserService {
   }
 
   async getAllUsers(
-    page = 1,
-    limit = 10,
+    page: number = 1,
+    limit: number = 10,
   ): Promise<{
     message: string;
     statusCode: number;
@@ -39,6 +40,18 @@ export class UserService {
     totalUsers: number;
   }> {
     try {
+      if (page < 1) {
+        throw new BadRequestException(
+          'Invalid page number. It must be a positive integer greater than 0.',
+        );
+      }
+
+      if (limit < 1) {
+        throw new BadRequestException(
+          'Invalid limit number. It must be a positive integer greater than 0.',
+        );
+      }
+
       const skip = (page - 1) * limit;
       const totalUsers = await this.userModel.countDocuments({
         isArchive: false,
@@ -65,16 +78,32 @@ export class UserService {
         totalUsers,
       };
     } catch (error) {
-      handleError(error);
+      throw handleError(error);
     }
   }
 
   async getUser(
     accountId: string,
-    page = 1,
-    limit = 10,
+    page: number = 1,
+    limit: number = 30,
   ): Promise<IUserResponse> {
     try {
+      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
+        throw new BadRequestException('Account ID cannot be empty.');
+      }
+
+      if (page < 1) {
+        throw new BadRequestException(
+          'Invalid page number. It must be a positive integer greater than 0.',
+        );
+      }
+
+      if (limit < 1) {
+        throw new BadRequestException(
+          'Invalid limit number. It must be a positive integer greater than 0.',
+        );
+      }
+
       const user = await this.userModel.findOne({ accountId }).exec();
 
       if (!user) {
@@ -85,9 +114,7 @@ export class UserService {
 
       const totalIssueHistory = user.issueHistory.length;
       const sortedIssueHistory = user.issueHistory
-        .sort((a, b) => {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        })
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(skip, skip + limit);
 
       const totalPages = Math.ceil(totalIssueHistory / limit);
@@ -106,12 +133,15 @@ export class UserService {
         user: userWithPagination,
       };
     } catch (error) {
-      handleError(error);
+      throw handleError(error);
     }
   }
 
   async deleteUser(accountId: string): Promise<IUserResponse> {
     try {
+      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
+        throw new BadRequestException('Account ID cannot be empty.');
+      }
       const existingUser = await this.userModel.findOne({ accountId });
 
       if (!existingUser) {
@@ -125,7 +155,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      handleError(error);
+      throw handleError(error);
     }
   }
 
@@ -133,6 +163,9 @@ export class UserService {
     accountId: string,
   ): Promise<{ message: string; statusCode: number }> {
     try {
+      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
+        throw new BadRequestException('Account ID cannot be empty.');
+      }
       const user = await this.userModel.findOne({ accountId });
 
       if (!user) {
@@ -151,7 +184,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      handleError(error);
+      throw handleError(error);
     }
   }
 
@@ -160,10 +193,26 @@ export class UserService {
     date: string,
   ): Promise<{ status: number; message: string }> {
     try {
+      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
+        throw new BadRequestException('Account ID cannot be empty.');
+      }
+
+      // Validate date format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date)) {
+        throw new BadRequestException(
+          'Invalid date format. Please use YYYY-MM-DD.',
+        );
+      }
+
       const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      //Check for issue history for the given date
+      if (!user) {
+        throw new NotFoundException('User not found.');
+      }
+
+      // Check for issue history for the given date
       const notDoneIssues =
         user.issueHistory.find((history) => {
           return history.date === dateString;
@@ -177,11 +226,7 @@ export class UserService {
         issueStatus: issue.status,
         planned: true,
         link: issue.issueLinks
-          ? issue.issueLinks
-              .map((link) => {
-                return link.issueId;
-              })
-              .join(',')
+          ? issue.issueLinks.map((link) => link.issueId).join(',')
           : '',
       }));
 
@@ -199,10 +244,10 @@ export class UserService {
 
       return {
         status: 200,
-        message: `Planned issues have been successfully updated.`,
+        message: 'Planned issues have been successfully updated.',
       };
     } catch (error) {
-      handleError(error);
+      throw handleError(error);
     }
   }
 
@@ -211,10 +256,25 @@ export class UserService {
     date: string,
   ): Promise<{ status: number; message: string }> {
     try {
+      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
+        throw new BadRequestException('Account ID cannot be empty.');
+      }
+
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date)) {
+        throw new BadRequestException(
+          'Invalid date format. Please use YYYY-MM-DD.',
+        );
+      }
+
       const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      //Fetch the user's issue history or create a new one if it doesn't exist
+      if (!user) {
+        throw new NotFoundException('User not found.');
+      }
+
+      // Fetch the user's issue history or create a new one if it doesn't exist
       let issueHistory = await this.issueHistoryModel
         .findOne({ userName: user.displayName })
         .exec();
@@ -238,17 +298,11 @@ export class UserService {
           ?.doneIssues || [];
 
       // Create a set of done issue IDs for quick lookup
-      const doneIssueIds = new Set(
-        doneIssues.map((issue) => {
-          return issue.issueId;
-        }),
-      );
+      const doneIssueIds = new Set(doneIssues.map((issue) => issue.issueId));
 
       // Create a set of not done issue IDs for comparison
       const notDoneIssueIds = new Set(
-        specificDateHistory.issues.map((issue) => {
-          return issue.issueId;
-        }),
+        specificDateHistory.issues.map((issue) => issue.issueId),
       );
 
       // Update the status of "not done" issues that are now done
@@ -261,7 +315,7 @@ export class UserService {
           // Update the issue status and linked issue IDs
           const linkedIssueIdsSet = new Set<string>();
           matchedDoneIssue?.issueLinks?.forEach((link) => {
-            return linkedIssueIdsSet.add(link.issueId);
+            linkedIssueIdsSet.add(link.issueId);
           });
 
           return {
@@ -273,11 +327,9 @@ export class UserService {
         return issue;
       });
 
-      //Prepare new done issues that are not already in today's not done issues
+      // Prepare new done issues that are not already in today's not done issues
       const newDoneIssueEntries = doneIssues
-        .filter((issue) => {
-          return !notDoneIssueIds.has(issue.issueId);
-        })
+        .filter((issue) => !notDoneIssueIds.has(issue.issueId))
         .map((issue, index) => {
           const linkedIssueIdsSet = new Set<string>();
           issue.issueLinks?.forEach((link) =>
@@ -304,10 +356,10 @@ export class UserService {
 
       return {
         status: 200,
-        message: `Issues have been successfully updated`,
+        message: 'Issues have been successfully updated.',
       };
     } catch (error) {
-      handleError(error);
+      throw handleError(error);
     }
   }
 
@@ -316,6 +368,18 @@ export class UserService {
     date: string,
   ): Promise<IGetIssuesByDateResponse> {
     try {
+      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
+        throw new BadRequestException('Account ID cannot be empty.');
+      }
+
+      // Validate date format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date)) {
+        throw new BadRequestException(
+          'Invalid date format. Please use YYYY-MM-DD.',
+        );
+      }
+
       const historyPath = `history.${date}`;
 
       const result = await this.issueHistoryModel
@@ -345,7 +409,7 @@ export class UserService {
         comment,
       };
     } catch (error) {
-      handleError(error);
+      throw handleError(error);
     }
   }
 
@@ -357,9 +421,27 @@ export class UserService {
     token: string,
   ): Promise<{ message: string; statusCode: number }> {
     try {
+      if (!accountId || accountId.trim() === '' || accountId == ':accountId') {
+        throw new BadRequestException('Account ID cannot be empty.');
+      }
+
+      // Validate token
       const envToken = this.configService.get<string>('REPORT_BUG_TOKEN');
       if (!token || token !== envToken) {
         throw new ForbiddenException('Invalid or missing token');
+      }
+
+      // Validate noOfBugs
+      if (noOfBugs === undefined || noOfBugs === null) {
+        throw new BadRequestException('Number of bugs is required');
+      }
+
+      // Validate date format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date)) {
+        throw new BadRequestException(
+          'Invalid date format. Please use YYYY-MM-DD.',
+        );
       }
 
       const user = await this.userModel.findOne({ accountId });
@@ -393,7 +475,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      handleError(error);
+      throw handleError(error);
     }
   }
 }

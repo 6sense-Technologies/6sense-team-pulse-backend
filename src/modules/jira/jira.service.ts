@@ -112,7 +112,12 @@ export class JiraService {
 
   async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
     try {
-      const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
+      const today = new Date(
+        new Date().setDate(new Date().getDate() - 1),
+      ).toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Dhaka',
+      });
+      const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${today}`;
 
       const data = await this.fetchFromBothUrls(endpoint);
 
@@ -272,7 +277,7 @@ export class JiraService {
           { Task: 0, Bug: 0, Story: 0 },
           [],
         );
-        return; // Exit early if there are no issues
+        return;
       }
 
       notDoneIssues.forEach((issue) => {
@@ -555,7 +560,7 @@ export class JiraService {
       const users = await this.userModel.find().exec();
 
       const today = new Date(
-        new Date().setDate(new Date().getDate()),
+        new Date().setDate(new Date().getDate() - 1),
       ).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
@@ -645,17 +650,19 @@ export class JiraService {
                 .map((issue) => issue.issueId);
 
               // Count total done tasks, stories, and bugs (both matched and unmatched)
-              const totalAllDoneTasks = doneIssues.filter(
+              const totalDoneTasks = doneIssues.filter(
                 (issue) =>
                   issue.issueType === 'Task' && issue.status === 'Done',
               ).length;
 
-              const totalAllDoneStories = doneIssues.filter(
+              const totalDoneStories = doneIssues.filter(
                 (issue) =>
-                  issue.issueType === 'Story' && issue.status === 'Done',
+                  (issue.issueType === 'Story' && issue.status === 'Done') ||
+                  issue.status === 'USER STORIES (Verified In Test)' ||
+                  issue.status === 'USER STORIES (Verified In Beta)',
               ).length;
 
-              const totalAllDoneBugs = doneIssues.filter(
+              const totalDoneBugs = doneIssues.filter(
                 (issue) => issue.issueType === 'Bug' && issue.status === 'Done',
               ).length;
 
@@ -683,7 +690,7 @@ export class JiraService {
 
               // Compare all done vs. not done issues for the comment
               const totalAllDoneIssues =
-                totalAllDoneTasks + totalAllDoneStories + totalAllDoneBugs;
+                totalDoneTasks + totalDoneStories + totalDoneBugs;
               const totalNotDoneIssues =
                 totalNotDoneTasksAndBugs + totalNotDoneStories;
 
@@ -699,11 +706,11 @@ export class JiraService {
 
               // Calculate unmatched done issues
               const unmatchedDoneTasks =
-                totalAllDoneTasks - matchedDoneTaskIds.length;
+                totalDoneTasks - matchedDoneTaskIds.length;
               const unmatchedDoneStories =
-                totalAllDoneStories - matchedDoneStoryIds.length;
+                totalDoneStories - matchedDoneStoryIds.length;
               const unmatchedDoneBugs =
-                totalAllDoneBugs - matchedDoneBugIds.length;
+                totalDoneBugs - matchedDoneBugIds.length;
 
               const totalUnmatchedDoneIssues =
                 unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
