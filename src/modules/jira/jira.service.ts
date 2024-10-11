@@ -185,11 +185,7 @@ export class JiraService {
   }
 
   async countPlannedIssues(accountId: string, date: string): Promise<void> {
-    const formattedDate = new Date(date).toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Dhaka',
-    });
-
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${formattedDate}`;
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${date}`;
 
     try {
       const [response1, response2] = await Promise.all([
@@ -219,7 +215,7 @@ export class JiraService {
         const user = await this.userModel.findOne({ accountId });
 
         user.issueHistory.push({
-          date: formattedDate,
+          date: date,
           issuesCount: { notDone: { Task: 0, Bug: 0, Story: 0 } },
           notDoneIssues: [],
         });
@@ -271,37 +267,30 @@ export class JiraService {
       const user = await this.userModel.findOne({ accountId });
 
       const existingHistory = user.issueHistory.find(
-        (history) => history.date === formattedDate,
+        (history) => history.date === date,
       );
 
       if (existingHistory) {
-        existingHistory.issuesCount.notDone = countsByDate[formattedDate];
-        existingHistory.notDoneIssues = issuesByDate[formattedDate];
+        existingHistory.issuesCount.notDone = countsByDate[date];
+        existingHistory.notDoneIssues = issuesByDate[date];
       } else {
         user.issueHistory.push({
-          date: formattedDate,
-          issuesCount: { notDone: countsByDate[formattedDate] },
-          notDoneIssues: issuesByDate[formattedDate],
+          date: date,
+          issuesCount: { notDone: countsByDate[date] },
+          notDoneIssues: issuesByDate[date],
         });
       }
 
       await user.save();
 
-      await this.userService.fetchAndSavePlannedIssues(
-        accountId,
-        formattedDate,
-      );
+      await this.userService.fetchAndSavePlannedIssues(accountId, date);
     } catch (error) {
       handleError(error);
     }
   }
 
   async countDoneIssues(accountId: string, date: string): Promise<void> {
-    const formattedDate = new Date(date).toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Dhaka',
-    });
-
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${formattedDate}`;
+    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
 
     try {
       const [response1, response2] = await Promise.all([
@@ -411,10 +400,7 @@ export class JiraService {
 
       await user.save();
 
-      await this.userService.fetchAndSavePlannedIssues(
-        accountId,
-        formattedDate,
-      );
+      await this.userService.fetchAndSaveAllIssues(accountId, date);
     } catch (error) {
       handleError(error);
     }
@@ -460,6 +446,7 @@ export class JiraService {
         if (user.userFrom === 'trello') {
           await this.trelloService.countDoneIssues(user.accountId, today);
         }
+        await this.calculateDailyMetrics(user.accountId, today);
       });
 
       await Promise.all(userPromises);
@@ -700,7 +687,7 @@ export class JiraService {
                 userStoryCompletionRate: userStoryCompletionRateNum,
                 overallScore: overallScoreNum,
                 comment,
-                codeToBugRatio, // Return the code to bug ratio
+                codeToBugRatio,
               };
             }),
           );
@@ -735,330 +722,243 @@ export class JiraService {
     }
   }
 
-  // async countPlannedIssues(accountId: string, date: string): Promise<void> {
-  //   const formattedDate = new Date(date).toLocaleDateString('en-CA', {
-  //     timeZone: 'Asia/Dhaka',
-  //   });
+  async calculateDailyMetrics(accountId: string, date: string) {
+    try {
+      const user = await this.userModel.findOne({ accountId });
+      const issueHistory = user.issueHistory;
 
-  //   const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${formattedDate}`;
+      // Filter issue history for the specific date
+      const entry = issueHistory.find((entry) => entry.date === date);
+      if (!entry) return null; // No entry found for the specified date
 
-  //   try {
-  //     const [response1, response2] = await Promise.all([
-  //       lastValueFrom(
-  //         this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
-  //           headers: this.headers,
-  //         }),
-  //       ),
-  //       lastValueFrom(
-  //         this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
-  //           headers: this.headers,
-  //         }),
-  //       ),
-  //     ]);
+      const { issuesCount, notDoneIssues, doneIssues } = entry;
+      const counts = issuesCount;
 
-  //     const notDoneIssues = [
-  //       ...response1.data.issues,
-  //       ...response2.data.issues,
-  //     ];
+      // Initialize metrics
+      let taskCompletionRate = 0;
+      let userStoryCompletionRate = 0;
+      let overallScore = 0;
+      let comment = '';
+      let codeToBugRatio = 0;
 
-  //     const countsByDate: {
-  //       [key: string]: { Task: number; Bug: number; Story: number };
-  //     } = {};
-  //     const issuesByDate: { [key: string]: IIssue[] } = {};
+      // Calculate not done issue IDs
+      const notDoneTaskIds = notDoneIssues
+        .filter((issue) => issue.issueType === 'Task')
+        .map((issue) => issue.issueId);
+      const notDoneStoryIds = notDoneIssues
+        .filter((issue) => issue.issueType === 'Story')
+        .map((issue) => issue.issueId);
+      const notDoneBugIds = notDoneIssues
+        .filter((issue) => issue.issueType === 'Bug')
+        .map((issue) => issue.issueId);
 
-  //     if (notDoneIssues.length === 0) {
-  //       // If no issues found, save with zero counts
-  //       await this.savePlannedIssueCounts(
-  //         accountId,
-  //         formattedDate,
-  //         { Task: 0, Bug: 0, Story: 0 },
-  //         [],
-  //       );
-  //       return;
-  //     }
+      // Calculate matched done issue IDs
+      const matchedDoneTaskIds = doneIssues
+        .filter(
+          (issue) =>
+            issue.issueType === 'Task' &&
+            issue.status === 'Done' &&
+            notDoneTaskIds.includes(issue.issueId),
+        )
+        .map((issue) => issue.issueId);
+      const matchedDoneStoryIds = doneIssues
+        .filter(
+          (issue) =>
+            issue.issueType === 'Story' &&
+            (issue.status === 'Done' ||
+              issue.status === 'USER STORIES (Verified In Test)' ||
+              issue.status === 'USER STORIES (Verified In Beta)') &&
+            notDoneStoryIds.includes(issue.issueId),
+        )
+        .map((issue) => issue.issueId);
+      const matchedDoneBugIds = doneIssues
+        .filter(
+          (issue) =>
+            issue.issueType === 'Bug' &&
+            issue.status === 'Done' &&
+            notDoneBugIds.includes(issue.issueId),
+        )
+        .map((issue) => issue.issueId);
 
-  //     notDoneIssues.forEach((issue) => {
-  //       const dueDate = issue.fields.duedate?.split('T')[0];
-  //       const issueType = issue.fields.issuetype.name;
-  //       const issueId = issue.id;
-  //       const summary = issue.fields.summary;
-  //       const status = issue.fields.status.name;
+      // Calculate total done issues
+      const totalDoneTasks = doneIssues.filter(
+        (issue) => issue.issueType === 'Task' && issue.status === 'Done',
+      ).length;
+      const totalDoneStories = doneIssues.filter(
+        (issue) =>
+          (issue.issueType === 'Story' && issue.status === 'Done') ||
+          issue.status === 'USER STORIES (Verified In Test)' ||
+          issue.status === 'USER STORIES (Verified In Beta)',
+      ).length;
+      const totalDoneBugs = doneIssues.filter(
+        (issue) => issue.issueType === 'Bug' && issue.status === 'Done',
+      ).length;
 
-  //       if (dueDate) {
-  //         if (!countsByDate[dueDate]) {
-  //           countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
-  //           issuesByDate[dueDate] = [];
-  //         }
+      // Calculate completion rates
+      const totalNotDoneTasksAndBugs = counts.notDone.Task + counts.notDone.Bug;
+      const totalMatchedDoneTasksAndBugs =
+        matchedDoneTaskIds.length + matchedDoneBugIds.length;
 
-  //         if (issueType === 'Task') {
-  //           countsByDate[dueDate].Task++;
-  //         } else if (issueType === 'Bug') {
-  //           countsByDate[dueDate].Bug++;
-  //         } else if (issueType === 'Story') {
-  //           countsByDate[dueDate].Story++;
-  //         }
+      if (totalNotDoneTasksAndBugs > 0) {
+        taskCompletionRate =
+          (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
+      }
 
-  //         // Extract issue links
-  //         const issueLinks = issue.fields.issuelinks || [];
-  //         const linkedIssues = issueLinks
-  //           .map((link) => {
-  //             const linkedIssue = link.outwardIssue || link.inwardIssue;
-  //             return linkedIssue
-  //               ? {
-  //                   issueId: linkedIssue.id,
-  //                   issueType: linkedIssue.fields.issuetype.name,
-  //                   summary: linkedIssue.fields.summary,
-  //                   status: linkedIssue.fields.status.name,
-  //                 }
-  //               : null;
-  //           })
-  //           .filter(Boolean);
+      const totalNotDoneStories = counts.notDone.Story;
+      const totalMatchedDoneStories = matchedDoneStoryIds.length;
 
-  //         issuesByDate[dueDate].push({
-  //           issueId,
-  //           summary,
-  //           status,
-  //           issueType,
-  //           dueDate,
-  //           issueLinks: linkedIssues,
-  //         });
-  //       }
-  //     });
+      if (totalNotDoneStories > 0) {
+        userStoryCompletionRate =
+          (totalMatchedDoneStories / totalNotDoneStories) * 100;
+      }
 
-  //     for (const [date, counts] of Object.entries(countsByDate)) {
-  //       await this.savePlannedIssueCounts(
-  //         accountId,
-  //         date,
-  //         counts,
-  //         issuesByDate[date],
-  //       );
-  //     }
-  //   } catch (error) {
-  //     handleError(error);
-  //   }
-  // }
+      // Calculate overall score and comments
+      const totalAllDoneIssues =
+        totalDoneTasks + totalDoneStories + totalDoneBugs;
+      const totalNotDoneIssues = totalNotDoneTasksAndBugs + totalNotDoneStories;
 
-  // async savePlannedIssueCounts(
-  //   accountId: string,
-  //   date: string,
-  //   counts: { Task: number; Bug: number; Story: number },
-  //   issues: IIssue[],
-  // ): Promise<void> {
-  //   try {
-  //     const user = await this.userModel.findOne({ accountId });
+      if (
+        totalNotDoneTasksAndBugs === 0 &&
+        totalMatchedDoneTasksAndBugs === 0
+      ) {
+        comment = 'holidays/leave';
+      } else if (totalAllDoneIssues > totalNotDoneIssues) {
+        comment = `Your target was ${totalNotDoneIssues}, but you completed ${totalAllDoneIssues}.`;
+      }
 
-  //     if (!user) {
-  //       throw new InternalServerErrorException('User not found');
-  //     }
+      // Calculate unmatched done issues
+      const unmatchedDoneTasks = totalDoneTasks - matchedDoneTaskIds.length;
+      const unmatchedDoneStories =
+        totalDoneStories - matchedDoneStoryIds.length;
+      const unmatchedDoneBugs = totalDoneBugs - matchedDoneBugIds.length;
+      const totalUnmatchedDoneIssues =
+        unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
 
-  //     // Update user's issue history
-  //     const existingHistory = user.issueHistory.find((history) => {
-  //       return history.date === date;
-  //     });
+      if (totalUnmatchedDoneIssues > 0) {
+        comment += ` ${totalUnmatchedDoneIssues} issue(s) that you completed do not match your target issues.`;
+      }
 
-  //     if (existingHistory) {
-  //       existingHistory.issuesCount.notDone = counts;
-  //       existingHistory.notDoneIssues = issues;
-  //     } else {
-  //       user.issueHistory.push({
-  //         date,
-  //         issuesCount: { notDone: counts },
-  //         notDoneIssues: issues,
-  //       });
-  //     }
+      // Calculate overall score
+      const nonZeroCompletionRates = [];
+      if (totalNotDoneTasksAndBugs > 0)
+        nonZeroCompletionRates.push(taskCompletionRate);
+      if (totalNotDoneStories > 0)
+        nonZeroCompletionRates.push(userStoryCompletionRate);
 
-  //     await user.save();
-  //   } catch (error) {
-  //     handleError(error);
-  //   }
-  // }
+      if (nonZeroCompletionRates.length > 0) {
+        overallScore =
+          nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
+          nonZeroCompletionRates.length;
+      }
 
-  // async countDoneIssues(accountId: string, date: string): Promise<void> {
-  //   const formattedDate = new Date(date).toLocaleDateString('en-CA', {
-  //     timeZone: 'Asia/Dhaka',
-  //   });
+      // Calculate code to bug ratio
+      const notDoneIssueIds = notDoneIssues.map((issue) => issue.issueId);
+      const totalCompletedBugs = doneIssues.filter(
+        (issue) =>
+          issue.issueType === 'Bug' &&
+          issue.status === 'Done' &&
+          !notDoneIssueIds.includes(issue.issueId),
+      ).length;
 
-  //   const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${formattedDate}`;
+      const countedCodeIssueIds = new Set();
+      doneIssues.forEach((bug) => {
+        if (bug.issueType === 'Bug' && bug.status === 'Done') {
+          bug.issueLinks.forEach((link) => {
+            const linkedIssueId = link.issueId;
+            if (
+              matchedDoneTaskIds.includes(linkedIssueId) ||
+              matchedDoneStoryIds.includes(linkedIssueId)
+            ) {
+              countedCodeIssueIds.add(linkedIssueId);
+            }
+          });
+        }
+      });
 
-  //   try {
-  //     const [response1, response2] = await Promise.all([
-  //       lastValueFrom(
-  //         this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
-  //           headers: this.headers,
-  //         }),
-  //       ),
-  //       lastValueFrom(
-  //         this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
-  //           headers: this.headers,
-  //         }),
-  //       ),
-  //     ]);
+      const totalCompletedCodeIssues = countedCodeIssueIds.size;
+      if (totalCompletedCodeIssues > 0 && totalCompletedBugs > 0) {
+        codeToBugRatio = parseFloat(
+          ((totalCompletedBugs / totalCompletedCodeIssues) * 100).toFixed(2),
+        );
+      }
 
-  //     const doneIssues = [...response1.data.issues, ...response2.data.issues];
+      // Save metrics in user object
+      entry.taskCompletionRate = taskCompletionRate;
+      entry.userStoryCompletionRate = userStoryCompletionRate;
+      entry.overallScore = overallScore;
+      entry.comment = comment;
+      entry.codeToBugRatio = codeToBugRatio;
 
-  //     const countsByDate: {
-  //       [key: string]: {
-  //         Task: number;
-  //         Bug: number;
-  //         Story: number;
-  //         LinkedIssues: number;
-  //       };
-  //     } = {};
-  //     const issuesByDate: { [key: string]: IIssue[] } = {};
+      // Save the user object with updated metrics
+      await user.save();
 
-  //     for (const issue of doneIssues) {
-  //       const dueDate = issue.fields.duedate?.split('T')[0];
-  //       const issueType = issue.fields.issuetype.name;
-  //       const issueId = issue.id;
-  //       const summary = issue.fields.summary;
-  //       const status = issue.fields.status.name;
+      await this.calculateCurrentPerformance(user.accountId, date);
 
-  //       if (dueDate) {
-  //         if (!countsByDate[dueDate]) {
-  //           countsByDate[dueDate] = {
-  //             Task: 0,
-  //             Bug: 0,
-  //             Story: 0,
-  //             LinkedIssues: 0,
-  //           };
-  //           issuesByDate[dueDate] = [];
-  //         }
+      return {
+        date,
+        numberOfTasks: counts.notDone.Task,
+        numberOfBugs: counts.notDone.Bug,
+        numberOfUserStories: counts.notDone.Story,
+        completedTasks: totalMatchedDoneTasksAndBugs,
+        completedUserStories: totalMatchedDoneStories,
+        taskCompletionRate,
+        userStoryCompletionRate,
+        overallScore,
+        comment,
+        codeToBugRatio,
+      };
+    } catch (error) {
+      handleError(error);
+    }
+  }
 
-  //         // Count the issue types only if the status is 'Done'
-  //         if (issueType === 'Task' && status === 'Done') {
-  //           countsByDate[dueDate].Task++;
-  //         } else if (issueType === 'Bug' && status === 'Done') {
-  //           countsByDate[dueDate].Bug++;
-  //         } else if (
-  //           issueType === 'Story' &&
-  //           (status === 'Done' ||
-  //             status === 'USER STORIES (Verified In Test)' ||
-  //             status === 'USER STORIES (Verified In Beta)')
-  //         ) {
-  //           countsByDate[dueDate].Story++;
-  //         }
+  async calculateCurrentPerformance(accountId: string, date: string) {
+    // Convert the provided date string to a Date object
+    const endDate = new Date(date);
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - 30); // Subtract 30 days
 
-  //         const issueLinks = issue.fields.issuelinks || [];
-  //         const linkedIssues = issueLinks
-  //           .map((link) => {
-  //             const linkedIssue = link.outwardIssue || link.inwardIssue;
-  //             return linkedIssue
-  //               ? {
-  //                   issueId: linkedIssue.id,
-  //                   issueType: linkedIssue.fields.issuetype.name,
-  //                   summary: linkedIssue.fields.summary,
-  //                   status: linkedIssue.fields.status.name,
-  //                 }
-  //               : null;
-  //           })
-  //           .filter(Boolean);
+    // Format startDate and endDate back to "YYYY-MM-DD" format
+    const formattedStartDate = startDate.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    const formattedEndDate = endDate.toISOString().split('T')[0]; // "YYYY-MM-DD"
 
-  //         countsByDate[dueDate].LinkedIssues += linkedIssues.length;
+    // Find the user by accountId
+    const user = await this.userModel.findOne({ accountId });
+    if (!user) {
+      throw new Error('User not found');
+    }
 
-  //         issuesByDate[dueDate].push({
-  //           issueId,
-  //           summary,
-  //           status,
-  //           issueType,
-  //           dueDate,
-  //           issueLinks: linkedIssues,
-  //         });
-  //       }
-  //     }
+    const issueHistory = user.issueHistory;
 
-  //     for (const [date, counts] of Object.entries(countsByDate)) {
-  //       await this.saveDoneIssueCounts(
-  //         accountId,
-  //         date,
-  //         counts,
-  //         issuesByDate[date],
-  //       );
-  //     }
-  //   } catch (error) {
-  //     handleError(error);
-  //   }
-  // }
+    // Filter issue history for the last 30 days
+    const filteredHistory = issueHistory.filter((entry) => {
+      const entryDate = entry.date; // entry.date is a "YYYY-MM-DD" string
+      return entryDate >= formattedStartDate && entryDate <= formattedEndDate;
+    });
 
-  // async saveDoneIssueCounts(
-  //   accountId: string,
-  //   date: string,
-  //   counts: { Task: number; Bug: number; Story: number },
-  //   issues: IIssue[],
-  // ): Promise<void> {
-  //   try {
-  //     const user = await this.userModel.findOne({ accountId });
+    // Initialize total score and valid days count
+    let totalScore = 0;
+    let validDaysCount = 0;
 
-  //     if (!user) {
-  //       throw new InternalServerErrorException('User not found');
-  //     }
+    // Loop through the filtered issue history
+    filteredHistory.forEach((entry) => {
+      if (entry.comment !== 'holidays/leave') {
+        totalScore += entry.overallScore; // Sum the overallScore
+        validDaysCount++; // Count valid days (excluding holidays/leave)
+      }
+    });
 
-  //     // Update user's issue history
-  //     const existingHistory = user.issueHistory.find((history) => {
-  //       return history.date === date;
-  //     });
+    // The current performance is the total score divided by the valid days count (not 30)
+    const currentPerformance =
+      validDaysCount > 0 ? totalScore / validDaysCount : 0;
 
-  //     if (existingHistory) {
-  //       existingHistory.issuesCount.done = counts;
-  //       existingHistory.doneIssues = issues;
-  //     } else {
-  //       user.issueHistory.push({
-  //         date,
-  //         issuesCount: { done: counts },
-  //         doneIssues: issues,
-  //       });
-  //     }
+    // Update user's current performance
+    user.currentPerformance = currentPerformance;
+    await user.save();
 
-  //     await user.save();
-  //   } catch (error) {
-  //     handleError(error);
-  //   }
-  // }
-
-  // async updateMorningIssueHistory(): Promise<void> {
-  //   try {
-  //     const users = await this.userModel.find().exec();
-
-  //     const today = new Date(
-  //       new Date().setDate(new Date().getDate()),
-  //     ).toLocaleDateString('en-CA', {
-  //       timeZone: 'Asia/Dhaka',
-  //     });
-
-  //     for (const user of users) {
-  //       if (user.userFrom === 'jira') {
-  //         await this.countPlannedIssues(user.accountId, today);
-  //       }
-  //       if (user.userFrom === 'trello') {
-  //         await this.trelloService.countPlannedIssues(user.accountId, today);
-  //       }
-  //       await this.userService.fetchAndSavePlannedIssues(user.accountId, today);
-  //     }
-  //   } catch (error) {
-  //     handleError(error);
-  //   }
-  // }
-
-  // async updateEveningIssueHistory(): Promise<void> {
-  //   try {
-  //     const users = await this.userModel.find().exec();
-
-  //     const today = new Date(
-  //       new Date().setDate(new Date().getDate() - 1),
-  //     ).toLocaleDateString('en-CA', {
-  //       timeZone: 'Asia/Dhaka',
-  //     });
-
-  //     for (const user of users) {
-  //       if (user.userFrom === 'jira') {
-  //         await this.countDoneIssues(user.accountId, today);
-  //       }
-  //       if (user.userFrom === 'trello') {
-  //         await this.trelloService.countDoneIssues(user.accountId, today);
-  //       }
-  //       await this.userService.fetchAndSaveAllIssues(user.accountId, today);
-  //     }
-  //   } catch (error) {
-  //     handleError(error);
-  //   }
-  // }
+    return {
+      message: 'Current performance calculated successfully',
+      currentPerformance,
+    };
+  }
 }

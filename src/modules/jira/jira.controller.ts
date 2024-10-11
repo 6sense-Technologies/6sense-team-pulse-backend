@@ -119,4 +119,43 @@ export class JiraController {
   async getUserMetrics() {
     await this.jiraService.getAllUserMetrics();
   }
+
+  @Put('daily-metrics/:accountId/:date')
+  async calculateDailyMetrics(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Validate date format
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Invalid date format. Please use YYYY-MM-DD.',
+      );
+    }
+    if (!accountId || accountId.trim() === '') {
+      throw new BadRequestException('Account ID cannot be empty.');
+    }
+    const result = await this.jiraService.calculateDailyMetrics(accountId, date);
+    return result;
+  }
+  @Put('current/:accountId/:date')
+  async calculateCurrentPerformance(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Validate date format
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Invalid date format. Please use YYYY-MM-DD.',
+      );
+    }
+    if (!accountId || accountId.trim() === '') {
+      throw new BadRequestException('Account ID cannot be empty.');
+    }
+    const result = await this.jiraService.calculateCurrentPerformance(accountId, date);
+    return result;
+  }
 }
