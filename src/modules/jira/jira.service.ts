@@ -3,8 +3,6 @@ import {
   ConflictException,
   HttpException,
   Injectable,
-  InternalServerErrorException,
-  NotFoundException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
@@ -19,11 +17,12 @@ import {
 import {
   IGetUserIssuesResponse,
   IJiraUserData,
-  IUserResponse,
 } from '../../common/interfaces/jira.interfaces';
 import { TrelloService } from '../trello/trello.service';
 import { UserService } from '../users/users.service';
 import { AxiosErrorHelper } from 'src/common/helpers/axios-exception.helper';
+import { firstValueFrom, lastValueFrom } from 'rxjs';
+import { handleError } from 'src/common/helpers/error.helper';
 
 dotenv.config();
 
@@ -70,55 +69,44 @@ export class JiraService {
 
   async getUserDetails(accountId: string): Promise<IJiraUserData> {
     const endpoint = `/rest/api/3/user?accountId=${accountId}`;
+
     try {
-      const response1 = await this.httpService
-        .get(`${this.jiraBaseUrl}${endpoint}`, {
+      const response1 = await firstValueFrom(
+        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
           headers: this.headers,
-        })
-        .toPromise();
+        }),
+      );
 
       return response1.data;
     } catch (error) {
       if (error.response && error.response.status === 404) {
         try {
-          const response2 = await this.httpService
-            .get(`${this.jiraBaseUrl2}${endpoint}`, {
+          const response2 = await firstValueFrom(
+            this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
               headers: this.headers,
-            })
-            .toPromise();
+            }),
+          );
 
           return response2.data;
-        } catch (error2) {
-          if (error2.response) {
-            if (error2.response.status === 400) {
-              throw new BadRequestException(`Invalid accountId`);
-            } else if (error2.response.status === 404) {
-              throw new NotFoundException(`User not found on both URLs`);
-            }
-          }
-          throw new InternalServerErrorException(
-            'Error fetching user details from the second Jira URL',
-          );
+        } catch (error) {
+          const errorResponse =
+            AxiosErrorHelper.getInstance().handleAxiosApiError(error);
+          throw new HttpException(errorResponse, errorResponse.status);
         }
-      } else if (error.response && error.response.status === 400) {
-        throw new BadRequestException(`Invalid accountId`);
-      } else {
-        throw new InternalServerErrorException(
-          'Error fetching user details from the first Jira URL',
-        );
       }
+
+      const errorResponse =
+        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
+      throw new HttpException(errorResponse, errorResponse.status);
     }
   }
 
-  async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
+  async getUserIssues(
+    accountId: string,
+    date: string,
+  ): Promise<IGetUserIssuesResponse[]> {
     try {
-      const today = new Date(
-        new Date().setDate(new Date().getDate() - 1),
-      ).toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Dhaka',
-      });
-      const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${today}`;
-
+      const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
       const data = await this.fetchFromBothUrls(endpoint);
 
       const transformIssues = (issues) =>
@@ -130,7 +118,6 @@ export class JiraService {
           issueType: issue.fields.issuetype.name,
           dueDate: issue.fields.duedate,
           created: issue.fields.created,
-          issueLinks: issue.fields.issuelinks,
           storypoints: issue.fields.customfield_10016,
         }));
 
@@ -153,51 +140,36 @@ export class JiraService {
     }
   }
 
-  async saveUser(
+  async fetchAndSaveUser(
     accountId: string,
-    userForm: string,
-    userData: IJiraUserData,
+    userFrom: string,
     designation: Designation,
     project: Project,
   ): Promise<{ statusCode: number; message: string; user?: User }> {
     try {
       if (!Object.values(Designation).includes(designation)) {
-        throw new BadRequestException({
-          status: 400,
-          errorCode: 'invalid_designation',
-          message: `Invalid designation: ${designation}`,
-          data: {},
-        });
+        throw new BadRequestException('Invalid designation');
       }
 
       if (!Object.values(Project).includes(project)) {
-        throw new BadRequestException({
-          status: 400,
-          errorCode: 'invalid_project',
-          message: `Invalid project: ${project}`,
-          data: {},
-        });
+        throw new BadRequestException('Invalid project');
       }
 
-      const avatar48x48 = userData.avatarUrls['48x48'];
+      const userDetails = await this.getUserDetails(accountId);
 
       const userToSave = {
-        accountId: userData.accountId,
-        displayName: userData.displayName,
-        emailAddress: userData.emailAddress,
-        avatarUrls: avatar48x48,
-        currentPerformance: userData.currentPerformance || 0,
+        accountId: userDetails.accountId,
+        displayName: userDetails.displayName,
+        emailAddress: userDetails.emailAddress,
+        avatarUrls: userDetails.avatarUrls['48x48'],
+        currentPerformance: userDetails.currentPerformance || 0,
         designation,
         project,
-        userForm,
+        userFrom,
       };
-
       const existingUser = await this.userModel.findOne({ accountId });
       if (existingUser) {
-        return {
-          message: 'User already exists',
-          statusCode: 409,
-        };
+        throw new ConflictException('User already exists');
       } else {
         const newUser = new this.userModel(userToSave);
         await newUser.save();
@@ -208,41 +180,11 @@ export class JiraService {
         };
       }
     } catch (error) {
-      throw error;
-    }
-  }
-
-  async fetchAndSaveUser(
-    accountId: string,
-    userFrom: string,
-    designation: Designation,
-    project: Project,
-  ): Promise<IUserResponse> {
-    try {
-      const userDetails = await this.getUserDetails(accountId);
-      const saveResponse = await this.saveUser(
-        accountId,
-        userFrom,
-        userDetails,
-        designation,
-        project,
-      );
-
-      if (saveResponse.statusCode === 409) {
-        throw new ConflictException(saveResponse.message);
-      }
-
-      if (saveResponse.statusCode === 400) {
-        throw new BadRequestException(saveResponse.message);
-      }
-      return saveResponse;
-    } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
   async countPlannedIssues(accountId: string, date: string): Promise<void> {
-    // Ensure the date is in 'YYYY-MM-DD' format for the API call
     const formattedDate = new Date(date).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
@@ -251,12 +193,16 @@ export class JiraService {
 
     try {
       const [response1, response2] = await Promise.all([
-        this.httpService
-          .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
-          .toPromise(),
-        this.httpService
-          .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
-          .toPromise(),
+        lastValueFrom(
+          this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
+            headers: this.headers,
+          }),
+        ),
+        lastValueFrom(
+          this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
+            headers: this.headers,
+          }),
+        ),
       ]);
 
       const notDoneIssues = [
@@ -270,13 +216,14 @@ export class JiraService {
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
       if (notDoneIssues.length === 0) {
-        // If no issues found, save with zero counts
-        await this.savePlannedIssueCounts(
-          accountId,
-          formattedDate,
-          { Task: 0, Bug: 0, Story: 0 },
-          [],
-        );
+        const user = await this.userModel.findOne({ accountId });
+
+        user.issueHistory.push({
+          date: formattedDate,
+          issuesCount: { notDone: { Task: 0, Bug: 0, Story: 0 } },
+          notDoneIssues: [],
+        });
+        await user.save();
         return;
       }
 
@@ -293,17 +240,10 @@ export class JiraService {
             issuesByDate[dueDate] = [];
           }
 
-          if (issueType === 'Task') {
-            countsByDate[dueDate].Task++;
-          } else if (issueType === 'Bug') {
-            countsByDate[dueDate].Bug++;
-          } else if (issueType === 'Story') {
-            countsByDate[dueDate].Story++;
-          }
+          countsByDate[dueDate][issueType]++;
 
           // Extract issue links
-          const issueLinks = issue.fields.issuelinks || [];
-          const linkedIssues = issueLinks
+          const linkedIssues = (issue.fields.issuelinks || [])
             .map((link) => {
               const linkedIssue = link.outwardIssue || link.inwardIssue;
               return linkedIssue
@@ -315,9 +255,8 @@ export class JiraService {
                   }
                 : null;
             })
-            .filter(Boolean); // Filter out any null values
+            .filter(Boolean);
 
-          // Save the main issue along with linked issues
           issuesByDate[dueDate].push({
             issueId,
             summary,
@@ -329,23 +268,35 @@ export class JiraService {
         }
       });
 
-      for (const [date, counts] of Object.entries(countsByDate)) {
-        await this.savePlannedIssueCounts(
-          accountId,
-          date,
-          counts,
-          issuesByDate[date],
-        );
-      }
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error fetching not-done issues from Jira for the specified date',
+      const user = await this.userModel.findOne({ accountId });
+
+      const existingHistory = user.issueHistory.find(
+        (history) => history.date === formattedDate,
       );
+
+      if (existingHistory) {
+        existingHistory.issuesCount.notDone = countsByDate[formattedDate];
+        existingHistory.notDoneIssues = issuesByDate[formattedDate];
+      } else {
+        user.issueHistory.push({
+          date: formattedDate,
+          issuesCount: { notDone: countsByDate[formattedDate] },
+          notDoneIssues: issuesByDate[formattedDate],
+        });
+      }
+
+      await user.save();
+
+      await this.userService.fetchAndSavePlannedIssues(
+        accountId,
+        formattedDate,
+      );
+    } catch (error) {
+      handleError(error);
     }
   }
 
   async countDoneIssues(accountId: string, date: string): Promise<void> {
-    // Ensure the date is in 'YYYY-MM-DD' format for the API call
     const formattedDate = new Date(date).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Dhaka',
     });
@@ -353,20 +304,21 @@ export class JiraService {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${formattedDate}`;
 
     try {
-      // Fetch done issues from both JIRA APIs concurrently
       const [response1, response2] = await Promise.all([
-        this.httpService
-          .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
-          .toPromise(),
-        this.httpService
-          .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
-          .toPromise(),
+        lastValueFrom(
+          this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
+            headers: this.headers,
+          }),
+        ),
+        lastValueFrom(
+          this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
+            headers: this.headers,
+          }),
+        ),
       ]);
 
-      // Combine results from both responses
       const doneIssues = [...response1.data.issues, ...response2.data.issues];
 
-      // Initialize counts and issues storage
       const countsByDate: {
         [key: string]: {
           Task: number;
@@ -377,7 +329,6 @@ export class JiraService {
       } = {};
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
-      // Process each done issue
       for (const issue of doneIssues) {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
@@ -386,7 +337,6 @@ export class JiraService {
         const status = issue.fields.status.name;
 
         if (dueDate) {
-          // Initialize date entry if not present
           if (!countsByDate[dueDate]) {
             countsByDate[dueDate] = {
               Task: 0,
@@ -411,7 +361,6 @@ export class JiraService {
             countsByDate[dueDate].Story++;
           }
 
-          // Extract issue links
           const issueLinks = issue.fields.issuelinks || [];
           const linkedIssues = issueLinks
             .map((link) => {
@@ -425,113 +374,76 @@ export class JiraService {
                   }
                 : null;
             })
-            .filter(Boolean); // Filter out any null values
+            .filter(Boolean);
 
-          // Count all linked issues
           countsByDate[dueDate].LinkedIssues += linkedIssues.length;
 
-          // Save the main issue along with all linked issues
           issuesByDate[dueDate].push({
             issueId,
             summary,
             status,
             issueType,
             dueDate,
-            issueLinks: linkedIssues, // Include all linked issues here
+            issueLinks: linkedIssues,
           });
         }
       }
 
-      // Save the counts and issue data
+      // Update user's issue history
+      const user = await this.userModel.findOne({ accountId });
+
       for (const [date, counts] of Object.entries(countsByDate)) {
-        // Save counts and issues for the date
-        await this.saveDoneIssueCounts(
-          accountId,
-          date,
-          counts,
-          issuesByDate[date],
+        const existingHistory = user.issueHistory.find(
+          (history) => history.date === date,
         );
-      }
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error fetching done issues from Jira for the specified date',
-      );
-    }
-  }
 
-  async savePlannedIssueCounts(
-    accountId: string,
-    date: string,
-    counts: { Task: number; Bug: number; Story: number },
-    issues: IIssue[],
-  ): Promise<void> {
-    try {
-      const user = await this.userModel.findOne({ accountId });
-
-      if (!user) {
-        throw new InternalServerErrorException('User not found');
-      }
-
-      // Update user's issue history
-      const existingHistory = user.issueHistory.find((history) => {
-        return history.date === date;
-      });
-
-      if (existingHistory) {
-        existingHistory.issuesCount.notDone = counts;
-        existingHistory.notDoneIssues = issues;
-      } else {
-        user.issueHistory.push({
-          date,
-          issuesCount: { notDone: counts },
-          notDoneIssues: issues,
-        });
+        if (existingHistory) {
+          existingHistory.issuesCount.done = counts;
+          existingHistory.doneIssues = issuesByDate[date];
+        } else {
+          user.issueHistory.push({
+            date,
+            issuesCount: { done: counts },
+            doneIssues: issuesByDate[date],
+          });
+        }
       }
 
       await user.save();
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error saving not-done issue counts',
+
+      await this.userService.fetchAndSavePlannedIssues(
+        accountId,
+        formattedDate,
       );
-    }
-  }
-
-  async saveDoneIssueCounts(
-    accountId: string,
-    date: string,
-    counts: { Task: number; Bug: number; Story: number },
-    issues: IIssue[],
-  ): Promise<void> {
-    try {
-      const user = await this.userModel.findOne({ accountId });
-
-      if (!user) {
-        throw new InternalServerErrorException('User not found');
-      }
-
-      // Update user's issue history
-      const existingHistory = user.issueHistory.find((history) => {
-        return history.date === date;
-      });
-
-      if (existingHistory) {
-        existingHistory.issuesCount.done = counts;
-        existingHistory.doneIssues = issues;
-      } else {
-        user.issueHistory.push({
-          date,
-          issuesCount: { done: counts },
-          doneIssues: issues,
-        });
-      }
-
-      await user.save();
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
   async updateMorningIssueHistory(): Promise<void> {
+    try {
+      const users = await this.userModel.find().exec();
+
+      const today = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Dhaka',
+      });
+
+      const userPromises = users.map(async (user) => {
+        if (user.userFrom === 'jira') {
+          await this.countPlannedIssues(user.accountId, today);
+        }
+        if (user.userFrom === 'trello') {
+          await this.trelloService.countPlannedIssues(user.accountId, today);
+        }
+      });
+
+      await Promise.all(userPromises);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async updateEveningIssueHistory(): Promise<void> {
     try {
       const users = await this.userModel.find().exec();
 
@@ -541,41 +453,18 @@ export class JiraService {
         timeZone: 'Asia/Dhaka',
       });
 
-      for (const user of users) {
-        if (user.userFrom === 'jira') {
-          await this.countPlannedIssues(user.accountId, today);
-        }
-        if (user.userFrom === 'trello') {
-          await this.trelloService.countPlannedIssues(user.accountId, today);
-        }
-        await this.userService.fetchAndSavePlannedIssues(user.accountId, today);
-      }
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async updateEveningIssueHistory(): Promise<void> {
-    try {
-      const users = await this.userModel.find().exec();
-
-      const today = new Date(
-        new Date().setDate(new Date().getDate() - 1),
-      ).toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Dhaka',
-      });
-
-      for (const user of users) {
+      const userPromises = users.map(async (user) => {
         if (user.userFrom === 'jira') {
           await this.countDoneIssues(user.accountId, today);
         }
         if (user.userFrom === 'trello') {
           await this.trelloService.countDoneIssues(user.accountId, today);
         }
-        await this.userService.fetchAndSaveAllIssues(user.accountId, today);
-      }
+      });
+
+      await Promise.all(userPromises);
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
 
@@ -842,7 +731,334 @@ export class JiraService {
         message: 'User metrics calculated successfully',
       };
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   }
+
+  // async countPlannedIssues(accountId: string, date: string): Promise<void> {
+  //   const formattedDate = new Date(date).toLocaleDateString('en-CA', {
+  //     timeZone: 'Asia/Dhaka',
+  //   });
+
+  //   const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${formattedDate}`;
+
+  //   try {
+  //     const [response1, response2] = await Promise.all([
+  //       lastValueFrom(
+  //         this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
+  //           headers: this.headers,
+  //         }),
+  //       ),
+  //       lastValueFrom(
+  //         this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
+  //           headers: this.headers,
+  //         }),
+  //       ),
+  //     ]);
+
+  //     const notDoneIssues = [
+  //       ...response1.data.issues,
+  //       ...response2.data.issues,
+  //     ];
+
+  //     const countsByDate: {
+  //       [key: string]: { Task: number; Bug: number; Story: number };
+  //     } = {};
+  //     const issuesByDate: { [key: string]: IIssue[] } = {};
+
+  //     if (notDoneIssues.length === 0) {
+  //       // If no issues found, save with zero counts
+  //       await this.savePlannedIssueCounts(
+  //         accountId,
+  //         formattedDate,
+  //         { Task: 0, Bug: 0, Story: 0 },
+  //         [],
+  //       );
+  //       return;
+  //     }
+
+  //     notDoneIssues.forEach((issue) => {
+  //       const dueDate = issue.fields.duedate?.split('T')[0];
+  //       const issueType = issue.fields.issuetype.name;
+  //       const issueId = issue.id;
+  //       const summary = issue.fields.summary;
+  //       const status = issue.fields.status.name;
+
+  //       if (dueDate) {
+  //         if (!countsByDate[dueDate]) {
+  //           countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
+  //           issuesByDate[dueDate] = [];
+  //         }
+
+  //         if (issueType === 'Task') {
+  //           countsByDate[dueDate].Task++;
+  //         } else if (issueType === 'Bug') {
+  //           countsByDate[dueDate].Bug++;
+  //         } else if (issueType === 'Story') {
+  //           countsByDate[dueDate].Story++;
+  //         }
+
+  //         // Extract issue links
+  //         const issueLinks = issue.fields.issuelinks || [];
+  //         const linkedIssues = issueLinks
+  //           .map((link) => {
+  //             const linkedIssue = link.outwardIssue || link.inwardIssue;
+  //             return linkedIssue
+  //               ? {
+  //                   issueId: linkedIssue.id,
+  //                   issueType: linkedIssue.fields.issuetype.name,
+  //                   summary: linkedIssue.fields.summary,
+  //                   status: linkedIssue.fields.status.name,
+  //                 }
+  //               : null;
+  //           })
+  //           .filter(Boolean);
+
+  //         issuesByDate[dueDate].push({
+  //           issueId,
+  //           summary,
+  //           status,
+  //           issueType,
+  //           dueDate,
+  //           issueLinks: linkedIssues,
+  //         });
+  //       }
+  //     });
+
+  //     for (const [date, counts] of Object.entries(countsByDate)) {
+  //       await this.savePlannedIssueCounts(
+  //         accountId,
+  //         date,
+  //         counts,
+  //         issuesByDate[date],
+  //       );
+  //     }
+  //   } catch (error) {
+  //     handleError(error);
+  //   }
+  // }
+
+  // async savePlannedIssueCounts(
+  //   accountId: string,
+  //   date: string,
+  //   counts: { Task: number; Bug: number; Story: number },
+  //   issues: IIssue[],
+  // ): Promise<void> {
+  //   try {
+  //     const user = await this.userModel.findOne({ accountId });
+
+  //     if (!user) {
+  //       throw new InternalServerErrorException('User not found');
+  //     }
+
+  //     // Update user's issue history
+  //     const existingHistory = user.issueHistory.find((history) => {
+  //       return history.date === date;
+  //     });
+
+  //     if (existingHistory) {
+  //       existingHistory.issuesCount.notDone = counts;
+  //       existingHistory.notDoneIssues = issues;
+  //     } else {
+  //       user.issueHistory.push({
+  //         date,
+  //         issuesCount: { notDone: counts },
+  //         notDoneIssues: issues,
+  //       });
+  //     }
+
+  //     await user.save();
+  //   } catch (error) {
+  //     handleError(error);
+  //   }
+  // }
+
+  // async countDoneIssues(accountId: string, date: string): Promise<void> {
+  //   const formattedDate = new Date(date).toLocaleDateString('en-CA', {
+  //     timeZone: 'Asia/Dhaka',
+  //   });
+
+  //   const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${formattedDate}`;
+
+  //   try {
+  //     const [response1, response2] = await Promise.all([
+  //       lastValueFrom(
+  //         this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
+  //           headers: this.headers,
+  //         }),
+  //       ),
+  //       lastValueFrom(
+  //         this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
+  //           headers: this.headers,
+  //         }),
+  //       ),
+  //     ]);
+
+  //     const doneIssues = [...response1.data.issues, ...response2.data.issues];
+
+  //     const countsByDate: {
+  //       [key: string]: {
+  //         Task: number;
+  //         Bug: number;
+  //         Story: number;
+  //         LinkedIssues: number;
+  //       };
+  //     } = {};
+  //     const issuesByDate: { [key: string]: IIssue[] } = {};
+
+  //     for (const issue of doneIssues) {
+  //       const dueDate = issue.fields.duedate?.split('T')[0];
+  //       const issueType = issue.fields.issuetype.name;
+  //       const issueId = issue.id;
+  //       const summary = issue.fields.summary;
+  //       const status = issue.fields.status.name;
+
+  //       if (dueDate) {
+  //         if (!countsByDate[dueDate]) {
+  //           countsByDate[dueDate] = {
+  //             Task: 0,
+  //             Bug: 0,
+  //             Story: 0,
+  //             LinkedIssues: 0,
+  //           };
+  //           issuesByDate[dueDate] = [];
+  //         }
+
+  //         // Count the issue types only if the status is 'Done'
+  //         if (issueType === 'Task' && status === 'Done') {
+  //           countsByDate[dueDate].Task++;
+  //         } else if (issueType === 'Bug' && status === 'Done') {
+  //           countsByDate[dueDate].Bug++;
+  //         } else if (
+  //           issueType === 'Story' &&
+  //           (status === 'Done' ||
+  //             status === 'USER STORIES (Verified In Test)' ||
+  //             status === 'USER STORIES (Verified In Beta)')
+  //         ) {
+  //           countsByDate[dueDate].Story++;
+  //         }
+
+  //         const issueLinks = issue.fields.issuelinks || [];
+  //         const linkedIssues = issueLinks
+  //           .map((link) => {
+  //             const linkedIssue = link.outwardIssue || link.inwardIssue;
+  //             return linkedIssue
+  //               ? {
+  //                   issueId: linkedIssue.id,
+  //                   issueType: linkedIssue.fields.issuetype.name,
+  //                   summary: linkedIssue.fields.summary,
+  //                   status: linkedIssue.fields.status.name,
+  //                 }
+  //               : null;
+  //           })
+  //           .filter(Boolean);
+
+  //         countsByDate[dueDate].LinkedIssues += linkedIssues.length;
+
+  //         issuesByDate[dueDate].push({
+  //           issueId,
+  //           summary,
+  //           status,
+  //           issueType,
+  //           dueDate,
+  //           issueLinks: linkedIssues,
+  //         });
+  //       }
+  //     }
+
+  //     for (const [date, counts] of Object.entries(countsByDate)) {
+  //       await this.saveDoneIssueCounts(
+  //         accountId,
+  //         date,
+  //         counts,
+  //         issuesByDate[date],
+  //       );
+  //     }
+  //   } catch (error) {
+  //     handleError(error);
+  //   }
+  // }
+
+  // async saveDoneIssueCounts(
+  //   accountId: string,
+  //   date: string,
+  //   counts: { Task: number; Bug: number; Story: number },
+  //   issues: IIssue[],
+  // ): Promise<void> {
+  //   try {
+  //     const user = await this.userModel.findOne({ accountId });
+
+  //     if (!user) {
+  //       throw new InternalServerErrorException('User not found');
+  //     }
+
+  //     // Update user's issue history
+  //     const existingHistory = user.issueHistory.find((history) => {
+  //       return history.date === date;
+  //     });
+
+  //     if (existingHistory) {
+  //       existingHistory.issuesCount.done = counts;
+  //       existingHistory.doneIssues = issues;
+  //     } else {
+  //       user.issueHistory.push({
+  //         date,
+  //         issuesCount: { done: counts },
+  //         doneIssues: issues,
+  //       });
+  //     }
+
+  //     await user.save();
+  //   } catch (error) {
+  //     handleError(error);
+  //   }
+  // }
+
+  // async updateMorningIssueHistory(): Promise<void> {
+  //   try {
+  //     const users = await this.userModel.find().exec();
+
+  //     const today = new Date(
+  //       new Date().setDate(new Date().getDate()),
+  //     ).toLocaleDateString('en-CA', {
+  //       timeZone: 'Asia/Dhaka',
+  //     });
+
+  //     for (const user of users) {
+  //       if (user.userFrom === 'jira') {
+  //         await this.countPlannedIssues(user.accountId, today);
+  //       }
+  //       if (user.userFrom === 'trello') {
+  //         await this.trelloService.countPlannedIssues(user.accountId, today);
+  //       }
+  //       await this.userService.fetchAndSavePlannedIssues(user.accountId, today);
+  //     }
+  //   } catch (error) {
+  //     handleError(error);
+  //   }
+  // }
+
+  // async updateEveningIssueHistory(): Promise<void> {
+  //   try {
+  //     const users = await this.userModel.find().exec();
+
+  //     const today = new Date(
+  //       new Date().setDate(new Date().getDate() - 1),
+  //     ).toLocaleDateString('en-CA', {
+  //       timeZone: 'Asia/Dhaka',
+  //     });
+
+  //     for (const user of users) {
+  //       if (user.userFrom === 'jira') {
+  //         await this.countDoneIssues(user.accountId, today);
+  //       }
+  //       if (user.userFrom === 'trello') {
+  //         await this.trelloService.countDoneIssues(user.accountId, today);
+  //       }
+  //       await this.userService.fetchAndSaveAllIssues(user.accountId, today);
+  //     }
+  //   } catch (error) {
+  //     handleError(error);
+  //   }
+  // }
 }

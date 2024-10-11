@@ -60,3 +60,10 @@ export interface IGetIssuesByDateResponse {
   noOfBugs: number;
   comment: string;
 }
+
+export interface IiraErrorResponse {
+  errorMessages?: string[];
+  errors?: Record<string, any>;
+  message?: string;
+}
+

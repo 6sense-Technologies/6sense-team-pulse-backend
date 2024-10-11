@@ -11,7 +11,6 @@ import { JiraService } from './jira.service';
 
 import {
   IJiraUserData,
-  IUserResponse,
   IGetUserIssuesResponse,
 } from '../../common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/schemas/user.schema';
@@ -22,19 +21,20 @@ export class JiraController {
     // Constructor for injecting JiraService
   }
 
-  @Get(':accountId/issues')
-  async getUserIssues(
-    @Param('accountId') accountId: string,
-  ): Promise<IGetUserIssuesResponse[]> {
-    return this.jiraService.getUserIssues(accountId);
-  }
-
   @Get(':accountId')
   async getUserDetails(
     @Param('accountId') accountId: string,
   ): Promise<IJiraUserData> {
     const userDetails = await this.jiraService.getUserDetails(accountId);
     return userDetails;
+  }
+
+  @Get('users/issues/:accountId/:date')
+  async getUserIssues(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<IGetUserIssuesResponse[]> {
+    return this.jiraService.getUserIssues(accountId, date);
   }
 
   @Post('users/create')
@@ -46,7 +46,7 @@ export class JiraController {
       designation: Designation;
       project: Project;
     },
-  ): Promise<IUserResponse> {
+  ) {
     const { accountId, userFrom, designation, project } = body;
 
     if (!accountId) {
@@ -67,15 +67,7 @@ export class JiraController {
     );
   }
 
-  @Get(':accountId/issues/not-done/:date')
-  async countNotDoneIssues(
-    @Param('accountId') accountId: string,
-    @Param('date') date: string,
-  ): Promise<void> {
-    await this.jiraService.countPlannedIssues(accountId, date);
-  }
-
-  @Put(':accountId/planned-issues/:date')
+  @Put('planned-issues/:accountId/:date')
   async countNotDoneIssuesForToday(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
@@ -94,7 +86,7 @@ export class JiraController {
     await this.jiraService.countPlannedIssues(accountId, date);
   }
 
-  @Put(':accountId/done-issues/:date')
+  @Put('done-issues/:accountId/:date')
   async countDoneIssuesForToday(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
@@ -113,7 +105,7 @@ export class JiraController {
     await this.jiraService.countDoneIssues(accountId, date);
   }
 
-  @Put('update-morning-issue-history')
+  @Put('update-morning-issue-history') 
   async updateMorningIssueHistory(): Promise<void> {
     await this.jiraService.updateMorningIssueHistory();
   }

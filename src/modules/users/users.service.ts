@@ -34,8 +34,8 @@ export class UserService {
   }
 
   async getAllUsers(
-    page: number = 1,
-    limit: number = 10,
+    page = 1,
+    limit = 10,
   ): Promise<{
     message: string;
     statusCode: number;
@@ -79,8 +79,8 @@ export class UserService {
 
   async getUser(
     accountId: string,
-    page: number = 1,
-    limit: number = 30,
+    page = 1,
+    limit = 30,
   ): Promise<IUserResponse> {
     try {
       validateAccountId(accountId);
@@ -96,7 +96,9 @@ export class UserService {
 
       const totalIssueHistory = user.issueHistory.length;
       const sortedIssueHistory = user.issueHistory
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        })
         .slice(skip, skip + limit);
 
       const totalPages = Math.ceil(totalIssueHistory / limit);
@@ -193,7 +195,11 @@ export class UserService {
         issueStatus: issue.status,
         planned: true,
         link: issue.issueLinks
-          ? issue.issueLinks.map((link) => link.issueId).join(',')
+          ? issue.issueLinks
+              .map((link) => {
+                return link.issueId;
+              })
+              .join(',')
           : '',
       }));
 
@@ -249,15 +255,22 @@ export class UserService {
 
       // Get the done issues for the user on the specified date
       const doneIssues =
-        user.issueHistory.find((history) => history.date === dateString)
-          ?.doneIssues || [];
+        user.issueHistory.find((history) => {
+          return history.date === dateString;
+        })?.doneIssues || [];
 
       // Create a set of done issue IDs for quick lookup
-      const doneIssueIds = new Set(doneIssues.map((issue) => issue.issueId));
+      const doneIssueIds = new Set(
+        doneIssues.map((issue) => {
+          return issue.issueId;
+        }),
+      );
 
       // Create a set of not done issue IDs for comparison
       const notDoneIssueIds = new Set(
-        specificDateHistory.issues.map((issue) => issue.issueId),
+        specificDateHistory.issues.map((issue) => {
+          return issue.issueId;
+        }),
       );
 
       // Update the status of "not done" issues that are now done
@@ -284,12 +297,14 @@ export class UserService {
 
       // Prepare new done issues that are not already in today's not done issues
       const newDoneIssueEntries = doneIssues
-        .filter((issue) => !notDoneIssueIds.has(issue.issueId))
+        .filter((issue) => {
+          return !notDoneIssueIds.has(issue.issueId);
+        })
         .map((issue, index) => {
           const linkedIssueIdsSet = new Set<string>();
-          issue.issueLinks?.forEach((link) =>
-            linkedIssueIdsSet.add(link.issueId),
-          );
+          issue.issueLinks?.forEach((link) => {
+            return linkedIssueIdsSet.add(link.issueId);
+          });
 
           return {
             serialNumber: specificDateHistory.issues.length + index + 1,
@@ -386,9 +401,9 @@ export class UserService {
         throw new NotFoundException('User not found');
       }
 
-      const userIssueEntry = user.issueHistory.find(
-        (entry) => entry.date === date,
-      );
+      const userIssueEntry = user.issueHistory.find((entry) => {
+        return entry.date === date;
+      });
       if (userIssueEntry) {
         userIssueEntry.reportBug = { noOfBugs, comment };
         await user.save();

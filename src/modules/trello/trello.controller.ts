@@ -4,13 +4,17 @@ import {
   Param,
   Post,
   Body,
+  Put,
+  BadRequestException,
 } from '@nestjs/common';
 import { TrelloService } from './trello.service';
 import { Designation, Project } from '../users/schemas/user.schema';
 
 @Controller('trello')
 export class TrelloController {
-  constructor(private readonly trelloService: TrelloService) {}
+  constructor(private readonly trelloService: TrelloService) {
+    // Constructor for injecting TrelloService
+  }
 
   @Get('boards')
   async getBoards() {
@@ -29,18 +33,36 @@ export class TrelloController {
     return await this.trelloService.getUserDetails(accountId);
   }
 
-  @Get('users/:accountId/issues')
-  async getUserIssues(@Param('accountId') accountId: string) {
-    return this.trelloService.getUserIssues(accountId);
+  @Get('users/issues/:accountId/:date')
+  async getUserIssues(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ) {
+    return this.trelloService.getUserIssues(accountId, date);
   }
 
   @Post('users/create')
   async fetchAndSaveUser(
-    @Param('accountId') accountId: string,
-    @Body('userFrom') userFrom: string,
-    @Body('designation') designation: Designation,
-    @Body('project') project: Project,
+    @Body()
+    body: {
+      accountId: string;
+      userFrom: string;
+      designation: Designation;
+      project: Project;
+    },
   ) {
+    const { accountId, userFrom, designation, project } = body;
+
+    if (!accountId) {
+      throw new BadRequestException('accountId is required');
+    }
+    if (!designation) {
+      throw new BadRequestException('designation is required');
+    }
+    if (!project) {
+      throw new BadRequestException('project is required');
+    }
+
     return await this.trelloService.fetchAndSaveUser(
       accountId,
       userFrom,
@@ -49,7 +71,7 @@ export class TrelloController {
     );
   }
 
-  @Get('not-done/count/:accountId/:date')
+  @Put('not-done/count/:accountId/:date')
   async countPlannedIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
@@ -57,7 +79,7 @@ export class TrelloController {
     return await this.trelloService.countPlannedIssues(accountId, date);
   }
 
-  @Get('done/count/:accountId')
+  @Put('done/count/:accountId/:date')
   async countDoneIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,

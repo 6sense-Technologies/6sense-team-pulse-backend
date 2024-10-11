@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
+import { IiraErrorResponse } from '../interfaces/jira.interfaces';
 
 @Injectable()
 export class AxiosErrorHelper {
@@ -15,12 +16,27 @@ export class AxiosErrorHelper {
   handleAxiosApiError(error: AxiosError) {
     const status = error.response?.status;
     const errorCode = error.response?.statusText;
-    const message = error.response?.data;
+    let message = '';
+
+    const errorData = error.response?.data as IiraErrorResponse;
+
+    if (errorData) {
+      if (errorData.errorMessages && Array.isArray(errorData.errorMessages)) {
+        message = errorData.errorMessages.join(', ');
+      } else {
+        message = errorData.message || JSON.stringify(errorData);
+      }
+    } else {
+      message = error.message;
+    }
+
+    const data = {};
 
     return {
       status,
       errorCode,
       message,
+      data,
     };
   }
 }
