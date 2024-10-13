@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  HttpException,
   Injectable,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
@@ -20,7 +19,6 @@ import {
 } from '../../common/interfaces/jira.interfaces';
 import { TrelloService } from '../trello/trello.service';
 import { UserService } from '../users/users.service';
-import { AxiosErrorHelper } from 'src/common/helpers/axios-exception.helper';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { handleError } from 'src/common/helpers/error.helper';
 
@@ -46,14 +44,14 @@ export class JiraService {
     // Constructor for injecting userModel
   }
 
-  private async fetchFromBothUrls(endpoint: string) {
+  private async fetchFromBothUrls(endpoint: string): Promise<any> {
     try {
       const url1 = `${this.jiraBaseUrl}${endpoint}`;
       const url2 = `${this.jiraBaseUrl2}${endpoint}`;
 
       const [response1, response2] = await Promise.all([
-        this.httpService.get(url1, { headers: this.headers }).toPromise(),
-        this.httpService.get(url2, { headers: this.headers }).toPromise(),
+        firstValueFrom(this.httpService.get(url1, { headers: this.headers })),
+        firstValueFrom(this.httpService.get(url2, { headers: this.headers })),
       ]);
 
       return {
@@ -61,9 +59,7 @@ export class JiraService {
         fromUrl2: response2.data,
       };
     } catch (error) {
-      const errorResponse =
-        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
-      throw new HttpException(errorResponse, errorResponse.status);
+      handleError(error);
     }
   }
 
@@ -79,25 +75,17 @@ export class JiraService {
 
       return response1.data;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
-        try {
-          const response2 = await firstValueFrom(
-            this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
-              headers: this.headers,
-            }),
-          );
+      if (error.response.status === 404) {
+        const response2 = await firstValueFrom(
+          this.httpService.get(`${this.jiraBaseUrl2}${endpoint}`, {
+            headers: this.headers,
+          }),
+        );
 
-          return response2.data;
-        } catch (error) {
-          const errorResponse =
-            AxiosErrorHelper.getInstance().handleAxiosApiError(error);
-          throw new HttpException(errorResponse, errorResponse.status);
-        }
+        return response2.data;
+      } else {
+        handleError(error);
       }
-
-      const errorResponse =
-        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
-      throw new HttpException(errorResponse, errorResponse.status);
     }
   }
 
@@ -134,9 +122,7 @@ export class JiraService {
         },
       ];
     } catch (error) {
-      const errorResponse =
-        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
-      throw new HttpException(errorResponse, errorResponse.status);
+      handleError(error);
     }
   }
 
@@ -188,6 +174,7 @@ export class JiraService {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${date}`;
 
     try {
+      // Fetch issues from both JIRA endpoints concurrently
       const [response1, response2] = await Promise.all([
         lastValueFrom(
           this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
@@ -206,23 +193,38 @@ export class JiraService {
         ...response2.data.issues,
       ];
 
+      // Initialize structures for issue counts and issue details by date
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
-      if (notDoneIssues.length === 0) {
-        const user = await this.userModel.findOne({ accountId });
+      // Fetch user data from the database
+      const user = await this.userModel.findOne({ accountId });
 
-        user.issueHistory.push({
-          date: date,
-          issuesCount: { notDone: { Task: 0, Bug: 0, Story: 0 } },
-          notDoneIssues: [],
-        });
+      // Check if there is already a history entry for this date
+      const existingHistory = user.issueHistory.find(
+        (history) => history.date === date,
+      );
+
+      // If no issues are returned, clear the history for this date (if it exists) or return early
+      if (notDoneIssues.length === 0) {
+        if (existingHistory) {
+          existingHistory.issuesCount.notDone = { Task: 0, Bug: 0, Story: 0 };
+          existingHistory.notDoneIssues = [];
+        } else {
+          // If there's no existing history, add a new empty entry
+          user.issueHistory.push({
+            date: date,
+            issuesCount: { notDone: { Task: 0, Bug: 0, Story: 0 } },
+            notDoneIssues: [],
+          });
+        }
         await user.save();
         return;
       }
 
+      // Process the not-done issues and update counts/issues by date
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
@@ -238,7 +240,7 @@ export class JiraService {
 
           countsByDate[dueDate][issueType]++;
 
-          // Extract issue links
+          // Extract linked issues
           const linkedIssues = (issue.fields.issuelinks || [])
             .map((link) => {
               const linkedIssue = link.outwardIssue || link.inwardIssue;
@@ -264,12 +266,7 @@ export class JiraService {
         }
       });
 
-      const user = await this.userModel.findOne({ accountId });
-
-      const existingHistory = user.issueHistory.find(
-        (history) => history.date === date,
-      );
-
+      // Update the existing history for the given date, or add a new one if none exists
       if (existingHistory) {
         existingHistory.issuesCount.notDone = countsByDate[date];
         existingHistory.notDoneIssues = issuesByDate[date];
@@ -281,8 +278,10 @@ export class JiraService {
         });
       }
 
+      // Save the user document with updated issue history
       await user.save();
 
+      // Fetch and save planned issues (if applicable)
       await this.userService.fetchAndSavePlannedIssues(accountId, date);
     } catch (error) {
       handleError(error);
@@ -293,6 +292,7 @@ export class JiraService {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
 
     try {
+      // Fetch issues from both JIRA endpoints concurrently
       const [response1, response2] = await Promise.all([
         lastValueFrom(
           this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
@@ -308,6 +308,7 @@ export class JiraService {
 
       const doneIssues = [...response1.data.issues, ...response2.data.issues];
 
+      // Initialize structures for issue counts and issue details by date
       const countsByDate: {
         [key: string]: {
           Task: number;
@@ -318,6 +319,7 @@ export class JiraService {
       } = {};
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
+      // Process the done issues and populate counts/issues by date
       for (const issue of doneIssues) {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
@@ -336,7 +338,7 @@ export class JiraService {
             issuesByDate[dueDate] = [];
           }
 
-          // Count the issue types only if the status is 'Done'
+          // Count issue types only if status is 'Done' or relevant for Story
           if (issueType === 'Task' && status === 'Done') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug' && status === 'Done') {
@@ -350,8 +352,8 @@ export class JiraService {
             countsByDate[dueDate].Story++;
           }
 
-          const issueLinks = issue.fields.issuelinks || [];
-          const linkedIssues = issueLinks
+          // Extract linked issues
+          const linkedIssues = (issue.fields.issuelinks || [])
             .map((link) => {
               const linkedIssue = link.outwardIssue || link.inwardIssue;
               return linkedIssue
@@ -378,28 +380,33 @@ export class JiraService {
         }
       }
 
-      // Update user's issue history
+      // Fetch the user document from the database
       const user = await this.userModel.findOne({ accountId });
 
-      for (const [date, counts] of Object.entries(countsByDate)) {
+      // Loop through each date and either update existing history or add new entries
+      for (const [dueDate, counts] of Object.entries(countsByDate)) {
         const existingHistory = user.issueHistory.find(
-          (history) => history.date === date,
+          (history) => history.date === dueDate,
         );
 
         if (existingHistory) {
+          // Update existing history for this date
           existingHistory.issuesCount.done = counts;
-          existingHistory.doneIssues = issuesByDate[date];
+          existingHistory.doneIssues = issuesByDate[dueDate];
         } else {
+          // Add a new history entry if none exists for this date
           user.issueHistory.push({
-            date,
+            date: dueDate,
             issuesCount: { done: counts },
-            doneIssues: issuesByDate[date],
+            doneIssues: issuesByDate[dueDate],
           });
         }
       }
 
+      // Save the user document with updated issue history
       await user.save();
 
+      // Fetch and save all issues (if applicable)
       await this.userService.fetchAndSaveAllIssues(accountId, date);
     } catch (error) {
       handleError(error);
@@ -410,7 +417,9 @@ export class JiraService {
     try {
       const users = await this.userModel.find().exec();
 
-      const today = new Date().toLocaleDateString('en-CA', {
+      const today = new Date(
+        new Date().setDate(new Date().getDate()),
+      ).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
 
@@ -450,273 +459,6 @@ export class JiraService {
       });
 
       await Promise.all(userPromises);
-    } catch (error) {
-      handleError(error);
-    }
-  }
-
-  async getAllUserMetrics() {
-    try {
-      const users = await this.userModel.find({}).exec();
-      const currentDate = new Date();
-      const last30days = new Date();
-      last30days.setDate(currentDate.getDate() - 30);
-
-      await Promise.all(
-        users.map(async (user) => {
-          const issueHistory = user.issueHistory;
-
-          // Filter issue history for the last 30 days
-          const recentHistory = issueHistory.filter((entry) => {
-            const entryDate = new Date(entry.date);
-            return entryDate >= last30days && entryDate <= currentDate;
-          });
-
-          const metricsByDay = await Promise.all(
-            recentHistory.map(async (entry) => {
-              const { date, issuesCount, notDoneIssues, doneIssues } = entry;
-              const counts = issuesCount;
-
-              let taskCompletionRate = 0;
-              let userStoryCompletionRate = 0;
-              let overallScore = 0;
-              let comment = '';
-
-              // Map not done task, story, and bug IDs
-              const notDoneTaskIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Task')
-                .map((issue) => issue.issueId);
-
-              const notDoneStoryIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Story')
-                .map((issue) => issue.issueId);
-
-              const notDoneBugIds = notDoneIssues
-                .filter((issue) => issue.issueType === 'Bug')
-                .map((issue) => issue.issueId);
-
-              // Filter done issues to count matched ones
-              const matchedDoneTaskIds = doneIssues
-                .filter(
-                  (issue) =>
-                    issue.issueType === 'Task' &&
-                    issue.status === 'Done' &&
-                    notDoneTaskIds.includes(issue.issueId),
-                )
-                .map((issue) => issue.issueId);
-
-              const matchedDoneStoryIds = doneIssues
-                .filter(
-                  (issue) =>
-                    issue.issueType === 'Story' &&
-                    (issue.status === 'Done' ||
-                      issue.status === 'USER STORIES (Verified In Test)' ||
-                      issue.status === 'USER STORIES (Verified In Beta)') &&
-                    notDoneStoryIds.includes(issue.issueId),
-                )
-                .map((issue) => issue.issueId);
-
-              const matchedDoneBugIds = doneIssues
-                .filter(
-                  (issue) =>
-                    issue.issueType === 'Bug' &&
-                    issue.status === 'Done' &&
-                    notDoneBugIds.includes(issue.issueId),
-                )
-                .map((issue) => issue.issueId);
-
-              // Count total done tasks, stories, and bugs (both matched and unmatched)
-              const totalDoneTasks = doneIssues.filter(
-                (issue) =>
-                  issue.issueType === 'Task' && issue.status === 'Done',
-              ).length;
-
-              const totalDoneStories = doneIssues.filter(
-                (issue) =>
-                  (issue.issueType === 'Story' && issue.status === 'Done') ||
-                  issue.status === 'USER STORIES (Verified In Test)' ||
-                  issue.status === 'USER STORIES (Verified In Beta)',
-              ).length;
-
-              const totalDoneBugs = doneIssues.filter(
-                (issue) => issue.issueType === 'Bug' && issue.status === 'Done',
-              ).length;
-
-              // Total not done issues for comparison
-              const totalNotDoneTasksAndBugs =
-                counts.notDone.Task + counts.notDone.Bug;
-              const totalMatchedDoneTasksAndBugs =
-                matchedDoneTaskIds.length + matchedDoneBugIds.length;
-
-              // Calculate task completion rate (only matched)
-              if (totalNotDoneTasksAndBugs > 0) {
-                taskCompletionRate =
-                  (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) *
-                  100;
-              }
-
-              // Calculate user story completion rate (only matched)
-              const totalNotDoneStories = counts.notDone.Story;
-              const totalMatchedDoneStories = matchedDoneStoryIds.length;
-
-              if (totalNotDoneStories > 0) {
-                userStoryCompletionRate =
-                  (totalMatchedDoneStories / totalNotDoneStories) * 100;
-              }
-
-              // Compare all done vs. not done issues for the comment
-              const totalAllDoneIssues =
-                totalDoneTasks + totalDoneStories + totalDoneBugs;
-              const totalNotDoneIssues =
-                totalNotDoneTasksAndBugs + totalNotDoneStories;
-
-              // Check if both total and completed tasks are zero
-              if (
-                totalNotDoneTasksAndBugs === 0 &&
-                totalMatchedDoneTasksAndBugs === 0
-              ) {
-                comment = 'holidays/leave';
-              } else if (totalAllDoneIssues > totalNotDoneIssues) {
-                comment = `Your target was ${totalNotDoneIssues}, but you completed ${totalAllDoneIssues}.`;
-              }
-
-              // Calculate unmatched done issues
-              const unmatchedDoneTasks =
-                totalDoneTasks - matchedDoneTaskIds.length;
-              const unmatchedDoneStories =
-                totalDoneStories - matchedDoneStoryIds.length;
-              const unmatchedDoneBugs =
-                totalDoneBugs - matchedDoneBugIds.length;
-
-              const totalUnmatchedDoneIssues =
-                unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
-
-              if (totalUnmatchedDoneIssues > 0) {
-                comment += ` ${totalUnmatchedDoneIssues} issue(s) that you completed do not match your target issues.`;
-              }
-
-              // Aggregate scores for tasks, stories, and bugs
-              const nonZeroCompletionRates = [];
-              if (totalNotDoneTasksAndBugs > 0) {
-                nonZeroCompletionRates.push(taskCompletionRate);
-              }
-              if (totalNotDoneStories > 0) {
-                nonZeroCompletionRates.push(userStoryCompletionRate);
-              }
-
-              if (nonZeroCompletionRates.length > 0) {
-                overallScore =
-                  nonZeroCompletionRates.reduce((sum, rate) => {
-                    return sum + rate;
-                  }, 0) / nonZeroCompletionRates.length;
-              }
-
-              let totalCompletedCodeIssues = 0;
-
-              // Get the IDs of issues that are not done
-              const notDoneIssueIds = notDoneIssues.map(
-                (issue) => issue.issueId,
-              );
-
-              // Count total completed bugs
-              const totalCompletedBugs = doneIssues.filter(
-                (issue) =>
-                  issue.issueType === 'Bug' &&
-                  issue.status === 'Done' &&
-                  !notDoneIssueIds.includes(issue.issueId), // Exclude bugs that are linked to not done issues
-              ).length;
-
-              // Create a Set to keep track of counted code issues to avoid duplicates
-              const countedCodeIssueIds = new Set();
-
-              doneIssues.forEach((bug) => {
-                // Check if the bug is completed
-                if (bug.issueType === 'Bug' && bug.status === 'Done') {
-                  // Loop through the issue links of the bug
-                  bug.issueLinks.forEach((link) => {
-                    const linkedIssueId = link.issueId;
-                    // Check if the linked issue ID matches any done task or story IDs
-                    if (
-                      matchedDoneTaskIds.includes(linkedIssueId) ||
-                      matchedDoneStoryIds.includes(linkedIssueId)
-                    ) {
-                      // Add the linked issue ID to the Set to ensure uniqueness
-                      countedCodeIssueIds.add(linkedIssueId);
-                    }
-                  });
-                }
-              });
-
-              // The total unique completed code issues count
-              totalCompletedCodeIssues = countedCodeIssueIds.size;
-
-              let codeToBugRatio = 0;
-
-              // Calculate the code to bug ratio
-              if (totalCompletedCodeIssues > 0 && totalCompletedBugs > 0) {
-                codeToBugRatio = parseFloat(
-                  (
-                    (totalCompletedBugs / totalCompletedCodeIssues) *
-                    100
-                  ).toFixed(2),
-                );
-              }
-
-              const taskCompletionRateNum = isNaN(taskCompletionRate)
-                ? 0
-                : taskCompletionRate;
-              const userStoryCompletionRateNum = isNaN(userStoryCompletionRate)
-                ? 0
-                : userStoryCompletionRate;
-              const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
-
-              entry.taskCompletionRate = taskCompletionRateNum;
-              entry.userStoryCompletionRate = userStoryCompletionRateNum;
-              entry.overallScore = overallScoreNum;
-              entry.comment = comment;
-              entry.codeToBugRatio = codeToBugRatio;
-
-              return {
-                date,
-                numberOfTasks: counts.notDone.Task,
-                numberOfBugs: counts.notDone.Bug,
-                numberOfUserStories: counts.notDone.Story,
-                completedTasks: totalMatchedDoneTasksAndBugs,
-                completedUserStories: totalMatchedDoneStories,
-                taskCompletionRate: taskCompletionRateNum,
-                userStoryCompletionRate: userStoryCompletionRateNum,
-                overallScore: overallScoreNum,
-                comment,
-                codeToBugRatio,
-              };
-            }),
-          );
-
-          // Calculate current performance for the last 30 days, excluding holidays/leave comments
-          const totalScore = metricsByDay.reduce((sum, day) => {
-            if (day.comment === 'holidays/leave') {
-              return sum;
-            }
-            return sum + day.overallScore;
-          }, 0);
-
-          const validDaysCount = metricsByDay.filter((day) => {
-            return day.comment !== 'holidays/leave';
-          }).length;
-          const currentPerformance =
-            validDaysCount > 0 ? totalScore / validDaysCount : 0;
-
-          user.currentPerformance = currentPerformance;
-          user.issueHistory = issueHistory;
-          await user.save();
-
-          return user;
-        }),
-      );
-
-      return {
-        message: 'User metrics calculated successfully',
-      };
     } catch (error) {
       handleError(error);
     }
@@ -961,4 +703,271 @@ export class JiraService {
       currentPerformance,
     };
   }
+
+  // async getAllUserMetrics() {
+  //   try {
+  //     const users = await this.userModel.find({}).exec();
+  //     const currentDate = new Date();
+  //     const last30days = new Date();
+  //     last30days.setDate(currentDate.getDate() - 30);
+
+  //     await Promise.all(
+  //       users.map(async (user) => {
+  //         const issueHistory = user.issueHistory;
+
+  //         // Filter issue history for the last 30 days
+  //         const recentHistory = issueHistory.filter((entry) => {
+  //           const entryDate = new Date(entry.date);
+  //           return entryDate >= last30days && entryDate <= currentDate;
+  //         });
+
+  //         const metricsByDay = await Promise.all(
+  //           recentHistory.map(async (entry) => {
+  //             const { date, issuesCount, notDoneIssues, doneIssues } = entry;
+  //             const counts = issuesCount;
+
+  //             let taskCompletionRate = 0;
+  //             let userStoryCompletionRate = 0;
+  //             let overallScore = 0;
+  //             let comment = '';
+
+  //             // Map not done task, story, and bug IDs
+  //             const notDoneTaskIds = notDoneIssues
+  //               .filter((issue) => issue.issueType === 'Task')
+  //               .map((issue) => issue.issueId);
+
+  //             const notDoneStoryIds = notDoneIssues
+  //               .filter((issue) => issue.issueType === 'Story')
+  //               .map((issue) => issue.issueId);
+
+  //             const notDoneBugIds = notDoneIssues
+  //               .filter((issue) => issue.issueType === 'Bug')
+  //               .map((issue) => issue.issueId);
+
+  //             // Filter done issues to count matched ones
+  //             const matchedDoneTaskIds = doneIssues
+  //               .filter(
+  //                 (issue) =>
+  //                   issue.issueType === 'Task' &&
+  //                   issue.status === 'Done' &&
+  //                   notDoneTaskIds.includes(issue.issueId),
+  //               )
+  //               .map((issue) => issue.issueId);
+
+  //             const matchedDoneStoryIds = doneIssues
+  //               .filter(
+  //                 (issue) =>
+  //                   issue.issueType === 'Story' &&
+  //                   (issue.status === 'Done' ||
+  //                     issue.status === 'USER STORIES (Verified In Test)' ||
+  //                     issue.status === 'USER STORIES (Verified In Beta)') &&
+  //                   notDoneStoryIds.includes(issue.issueId),
+  //               )
+  //               .map((issue) => issue.issueId);
+
+  //             const matchedDoneBugIds = doneIssues
+  //               .filter(
+  //                 (issue) =>
+  //                   issue.issueType === 'Bug' &&
+  //                   issue.status === 'Done' &&
+  //                   notDoneBugIds.includes(issue.issueId),
+  //               )
+  //               .map((issue) => issue.issueId);
+
+  //             // Count total done tasks, stories, and bugs (both matched and unmatched)
+  //             const totalDoneTasks = doneIssues.filter(
+  //               (issue) =>
+  //                 issue.issueType === 'Task' && issue.status === 'Done',
+  //             ).length;
+
+  //             const totalDoneStories = doneIssues.filter(
+  //               (issue) =>
+  //                 (issue.issueType === 'Story' && issue.status === 'Done') ||
+  //                 issue.status === 'USER STORIES (Verified In Test)' ||
+  //                 issue.status === 'USER STORIES (Verified In Beta)',
+  //             ).length;
+
+  //             const totalDoneBugs = doneIssues.filter(
+  //               (issue) => issue.issueType === 'Bug' && issue.status === 'Done',
+  //             ).length;
+
+  //             // Total not done issues for comparison
+  //             const totalNotDoneTasksAndBugs =
+  //               counts.notDone.Task + counts.notDone.Bug;
+  //             const totalMatchedDoneTasksAndBugs =
+  //               matchedDoneTaskIds.length + matchedDoneBugIds.length;
+
+  //             // Calculate task completion rate (only matched)
+  //             if (totalNotDoneTasksAndBugs > 0) {
+  //               taskCompletionRate =
+  //                 (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) *
+  //                 100;
+  //             }
+
+  //             // Calculate user story completion rate (only matched)
+  //             const totalNotDoneStories = counts.notDone.Story;
+  //             const totalMatchedDoneStories = matchedDoneStoryIds.length;
+
+  //             if (totalNotDoneStories > 0) {
+  //               userStoryCompletionRate =
+  //                 (totalMatchedDoneStories / totalNotDoneStories) * 100;
+  //             }
+
+  //             // Compare all done vs. not done issues for the comment
+  //             const totalAllDoneIssues =
+  //               totalDoneTasks + totalDoneStories + totalDoneBugs;
+  //             const totalNotDoneIssues =
+  //               totalNotDoneTasksAndBugs + totalNotDoneStories;
+
+  //             // Check if both total and completed tasks are zero
+  //             if (
+  //               totalNotDoneTasksAndBugs === 0 &&
+  //               totalMatchedDoneTasksAndBugs === 0
+  //             ) {
+  //               comment = 'holidays/leave';
+  //             } else if (totalAllDoneIssues > totalNotDoneIssues) {
+  //               comment = `Your target was ${totalNotDoneIssues}, but you completed ${totalAllDoneIssues}.`;
+  //             }
+
+  //             // Calculate unmatched done issues
+  //             const unmatchedDoneTasks =
+  //               totalDoneTasks - matchedDoneTaskIds.length;
+  //             const unmatchedDoneStories =
+  //               totalDoneStories - matchedDoneStoryIds.length;
+  //             const unmatchedDoneBugs =
+  //               totalDoneBugs - matchedDoneBugIds.length;
+
+  //             const totalUnmatchedDoneIssues =
+  //               unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
+
+  //             if (totalUnmatchedDoneIssues > 0) {
+  //               comment += ` ${totalUnmatchedDoneIssues} issue(s) that you completed do not match your target issues.`;
+  //             }
+
+  //             // Aggregate scores for tasks, stories, and bugs
+  //             const nonZeroCompletionRates = [];
+  //             if (totalNotDoneTasksAndBugs > 0) {
+  //               nonZeroCompletionRates.push(taskCompletionRate);
+  //             }
+  //             if (totalNotDoneStories > 0) {
+  //               nonZeroCompletionRates.push(userStoryCompletionRate);
+  //             }
+
+  //             if (nonZeroCompletionRates.length > 0) {
+  //               overallScore =
+  //                 nonZeroCompletionRates.reduce((sum, rate) => {
+  //                   return sum + rate;
+  //                 }, 0) / nonZeroCompletionRates.length;
+  //             }
+
+  //             let totalCompletedCodeIssues = 0;
+
+  //             // Get the IDs of issues that are not done
+  //             const notDoneIssueIds = notDoneIssues.map(
+  //               (issue) => issue.issueId,
+  //             );
+
+  //             // Count total completed bugs
+  //             const totalCompletedBugs = doneIssues.filter(
+  //               (issue) =>
+  //                 issue.issueType === 'Bug' &&
+  //                 issue.status === 'Done' &&
+  //                 !notDoneIssueIds.includes(issue.issueId), // Exclude bugs that are linked to not done issues
+  //             ).length;
+
+  //             // Create a Set to keep track of counted code issues to avoid duplicates
+  //             const countedCodeIssueIds = new Set();
+
+  //             doneIssues.forEach((bug) => {
+  //               // Check if the bug is completed
+  //               if (bug.issueType === 'Bug' && bug.status === 'Done') {
+  //                 // Loop through the issue links of the bug
+  //                 bug.issueLinks.forEach((link) => {
+  //                   const linkedIssueId = link.issueId;
+  //                   // Check if the linked issue ID matches any done task or story IDs
+  //                   if (
+  //                     matchedDoneTaskIds.includes(linkedIssueId) ||
+  //                     matchedDoneStoryIds.includes(linkedIssueId)
+  //                   ) {
+  //                     // Add the linked issue ID to the Set to ensure uniqueness
+  //                     countedCodeIssueIds.add(linkedIssueId);
+  //                   }
+  //                 });
+  //               }
+  //             });
+
+  //             // The total unique completed code issues count
+  //             totalCompletedCodeIssues = countedCodeIssueIds.size;
+
+  //             let codeToBugRatio = 0;
+
+  //             // Calculate the code to bug ratio
+  //             if (totalCompletedCodeIssues > 0 && totalCompletedBugs > 0) {
+  //               codeToBugRatio = parseFloat(
+  //                 (
+  //                   (totalCompletedBugs / totalCompletedCodeIssues) *
+  //                   100
+  //                 ).toFixed(2),
+  //               );
+  //             }
+
+  //             const taskCompletionRateNum = isNaN(taskCompletionRate)
+  //               ? 0
+  //               : taskCompletionRate;
+  //             const userStoryCompletionRateNum = isNaN(userStoryCompletionRate)
+  //               ? 0
+  //               : userStoryCompletionRate;
+  //             const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
+
+  //             entry.taskCompletionRate = taskCompletionRateNum;
+  //             entry.userStoryCompletionRate = userStoryCompletionRateNum;
+  //             entry.overallScore = overallScoreNum;
+  //             entry.comment = comment;
+  //             entry.codeToBugRatio = codeToBugRatio;
+
+  //             return {
+  //               date,
+  //               numberOfTasks: counts.notDone.Task,
+  //               numberOfBugs: counts.notDone.Bug,
+  //               numberOfUserStories: counts.notDone.Story,
+  //               completedTasks: totalMatchedDoneTasksAndBugs,
+  //               completedUserStories: totalMatchedDoneStories,
+  //               taskCompletionRate: taskCompletionRateNum,
+  //               userStoryCompletionRate: userStoryCompletionRateNum,
+  //               overallScore: overallScoreNum,
+  //               comment,
+  //               codeToBugRatio,
+  //             };
+  //           }),
+  //         );
+
+  //         // Calculate current performance for the last 30 days, excluding holidays/leave comments
+  //         const totalScore = metricsByDay.reduce((sum, day) => {
+  //           if (day.comment === 'holidays/leave') {
+  //             return sum;
+  //           }
+  //           return sum + day.overallScore;
+  //         }, 0);
+
+  //         const validDaysCount = metricsByDay.filter((day) => {
+  //           return day.comment !== 'holidays/leave';
+  //         }).length;
+  //         const currentPerformance =
+  //           validDaysCount > 0 ? totalScore / validDaysCount : 0;
+
+  //         user.currentPerformance = currentPerformance;
+  //         user.issueHistory = issueHistory;
+  //         await user.save();
+
+  //         return user;
+  //       }),
+  //     );
+
+  //     return {
+  //       message: 'User metrics calculated successfully',
+  //     };
+  //   } catch (error) {
+  //     handleError(error);
+  //   }
+  // }
 }

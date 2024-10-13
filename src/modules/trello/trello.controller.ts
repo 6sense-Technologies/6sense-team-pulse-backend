@@ -62,6 +62,9 @@ export class TrelloController {
     if (!project) {
       throw new BadRequestException('project is required');
     }
+    if (!userFrom) {
+      throw new BadRequestException('userFrom is required');
+    }
 
     return await this.trelloService.fetchAndSaveUser(
       accountId,

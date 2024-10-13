@@ -58,6 +58,9 @@ export class JiraController {
     if (!project) {
       throw new BadRequestException('project is required');
     }
+    if (!userFrom) {
+      throw new BadRequestException('userFrom is required');
+    }
 
     return await this.jiraService.fetchAndSaveUser(
       accountId,
@@ -115,10 +118,10 @@ export class JiraController {
     await this.jiraService.updateEveningIssueHistory();
   }
 
-  @Put('metrics')
-  async getUserMetrics() {
-    await this.jiraService.getAllUserMetrics();
-  }
+  // @Put('metrics')
+  // async getUserMetrics() {
+  //   await this.jiraService.getAllUserMetrics();
+  // }
 
   @Put('daily-metrics/:accountId/:date')
   async calculateDailyMetrics(
