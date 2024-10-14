@@ -136,7 +136,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 
@@ -162,7 +162,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 
@@ -218,7 +218,7 @@ export class UserService {
         message: 'Planned issues have been successfully updated.',
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 
@@ -328,7 +328,7 @@ export class UserService {
         message: 'Issues have been successfully updated.',
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 
@@ -377,7 +377,7 @@ export class UserService {
         comments: sortedComments,
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 
@@ -433,7 +433,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 
@@ -479,7 +479,7 @@ export class UserService {
         statusCode: 200,
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 }
