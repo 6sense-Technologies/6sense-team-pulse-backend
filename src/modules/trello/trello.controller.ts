@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { TrelloService } from './trello.service';
 import { Designation, Project } from '../users/schemas/user.schema';
+import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
+import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 
 @Controller('trello')
 export class TrelloController {
@@ -17,19 +19,18 @@ export class TrelloController {
   }
 
   @Get('boards')
-  async getBoards() {
+  async getBoards(): Promise<ITrelloBoard[]> {
     const boards = await this.trelloService.getBoards();
     return boards;
   }
 
   @Get('users')
-  async getUsers() {
-    const users = await this.trelloService.getUsers();
-    return users;
+  async getUsers(): Promise<ITrelloUsers[]> {
+    return await this.trelloService.getUsers();
   }
 
   @Get('users/:accountId')
-  async getUserDetails(@Param('accountId') accountId: string) {
+  async getUserDetails(@Param('accountId') accountId: string): Promise<any> {
     return await this.trelloService.getUserDetails(accountId);
   }
 
@@ -37,7 +38,7 @@ export class TrelloController {
   async getUserIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ) {
+  ): Promise<any[]> {
     return this.trelloService.getUserIssues(accountId, date);
   }
 
@@ -50,7 +51,7 @@ export class TrelloController {
       designation: Designation;
       project: Project;
     },
-  ) {
+  ): Promise<ISuccessResponse> {
     const { accountId, userFrom, designation, project } = body;
 
     if (!accountId) {
@@ -78,7 +79,7 @@ export class TrelloController {
   async countPlannedIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ) {
+  ): Promise<void> {
     return await this.trelloService.countPlannedIssues(accountId, date);
   }
 
@@ -86,7 +87,7 @@ export class TrelloController {
   async countDoneIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ) {
+  ): Promise<void> {
     return await this.trelloService.countDoneIssues(accountId, date);
   }
 }

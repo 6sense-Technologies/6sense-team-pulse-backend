@@ -8,11 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
-import {
-  IGetIssuesByDateResponse,
-  IUserResponse,
-  IUserWithPagination,
-} from '../../common/interfaces/jira.interfaces';
+import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
 import { IssueHistory } from './schemas/IssueHistory.schems';
 import { ConfigService } from '@nestjs/config';
 import { handleError } from '../../common/helpers/error.helper';
@@ -21,6 +17,12 @@ import {
   validateDate,
   validatePagination,
 } from '../../common/helpers/validation.helper';
+import {
+  IGetAllUsers,
+  IGetUser,
+  IUserIssuesByDate,
+  IUserWithPagination,
+} from './interfaces/users.interfaces';
 
 @Injectable()
 export class UserService {
@@ -33,17 +35,7 @@ export class UserService {
     //Nothing
   }
 
-  async getAllUsers(
-    page = 1,
-    limit = 10,
-  ): Promise<{
-    message: string;
-    statusCode: number;
-    users: User[];
-    totalPages: number;
-    currentPage: number;
-    totalUsers: number;
-  }> {
+  async getAllUsers(page = 1, limit = 10): Promise<IGetAllUsers> {
     try {
       validatePagination(page, limit);
 
@@ -77,11 +69,7 @@ export class UserService {
     }
   }
 
-  async getUser(
-    accountId: string,
-    page = 1,
-    limit = 30,
-  ): Promise<IUserResponse> {
+  async getUser(accountId: string, page = 1, limit = 30): Promise<IGetUser> {
     try {
       validateAccountId(accountId);
       validatePagination(page, limit);
@@ -121,7 +109,7 @@ export class UserService {
     }
   }
 
-  async deleteUser(accountId: string): Promise<IUserResponse> {
+  async deleteUser(accountId: string): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
 
@@ -142,9 +130,7 @@ export class UserService {
     }
   }
 
-  async archiveUser(
-    accountId: string,
-  ): Promise<{ message: string; statusCode: number }> {
+  async archiveUser(accountId: string): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
 
@@ -173,7 +159,7 @@ export class UserService {
   async fetchAndSavePlannedIssues(
     accountId: string,
     date: string,
-  ): Promise<{ status: number; message: string }> {
+  ): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -216,7 +202,7 @@ export class UserService {
       );
 
       return {
-        status: 200,
+        statusCode: 200,
         message: 'Planned issues have been successfully updated.',
       };
     } catch (error) {
@@ -227,7 +213,7 @@ export class UserService {
   async fetchAndSaveAllIssues(
     accountId: string,
     date: string,
-  ): Promise<{ status: number; message: string }> {
+  ): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -325,7 +311,7 @@ export class UserService {
       );
 
       return {
-        status: 200,
+        statusCode: 200,
         message: 'Issues have been successfully updated.',
       };
     } catch (error) {
@@ -336,7 +322,7 @@ export class UserService {
   async getIssuesByDate(
     accountId: string,
     date: string,
-  ): Promise<IGetIssuesByDateResponse> {
+  ): Promise<IUserIssuesByDate> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -388,7 +374,7 @@ export class UserService {
     noOfBugs: number,
     comment: string,
     token: string,
-  ): Promise<{ message: string; statusCode: number }> {
+  ): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -442,7 +428,7 @@ export class UserService {
     accountId: string,
     date: string,
     comment: string,
-  ): Promise<{ message: string; statusCode: number }> {
+  ): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
       validateDate(date);

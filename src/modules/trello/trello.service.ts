@@ -21,6 +21,7 @@ import {
   validateDate,
 } from '../../common/helpers/validation.helper';
 import { UserService } from '../users/users.service';
+import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 
 dotenv.config();
 
@@ -219,7 +220,7 @@ export class TrelloService {
     userFrom: string,
     designation: Designation,
     project: Project,
-  ): Promise<{ statusCode: number; message: string; user?: User }> {
+  ): Promise<ISuccessResponse> {
     try {
       if (!Object.values(Designation).includes(designation)) {
         throw new BadRequestException('Invalid designation');

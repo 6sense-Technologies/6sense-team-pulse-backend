@@ -11,6 +11,12 @@ import {
 import { UserService } from './users.service';
 import { Designation, Project } from './schemas/user.schema';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import {
+  IGetAllUsers,
+  IGetUser,
+  IUserIssuesByDate,
+} from './interfaces/users.interfaces';
+import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 
 @Controller('users')
 export class UserController {
@@ -22,7 +28,7 @@ export class UserController {
   async getAllUsers(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-  ) {
+  ): Promise<IGetAllUsers> {
     return this.userService.getAllUsers(page, limit);
   }
 
@@ -31,12 +37,14 @@ export class UserController {
     @Param('accountId') accountId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-  ) {
+  ): Promise<IGetUser> {
     return this.userService.getUser(accountId, page, limit);
   }
 
   @Delete(':accountId')
-  async deleteUser(@Param('accountId') accountId: string) {
+  async deleteUser(
+    @Param('accountId') accountId: string,
+  ): Promise<ISuccessResponse> {
     return await this.userService.deleteUser(accountId);
   }
 
@@ -53,23 +61,25 @@ export class UserController {
   }
 
   @Put(':accountId/archive')
-  async archiveUser(@Param('accountId') accountId: string) {
+  async archiveUser(
+    @Param('accountId') accountId: string,
+  ): Promise<ISuccessResponse> {
     return this.userService.archiveUser(accountId);
   }
 
   @Put('save-planned-issues/morning/:accountId/:date')
-  async savePlannedIssuesMorning(
+  async fetchAndSavePlannedIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ) {
+  ): Promise<ISuccessResponse> {
     return this.userService.fetchAndSavePlannedIssues(accountId, date);
   }
 
   @Put('save-all-issues/evening/:accountId/:date')
-  async saveAllIssuesEvening(
+  async fetchAndSaveAllIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ) {
+  ): Promise<ISuccessResponse> {
     return await this.userService.fetchAndSaveAllIssues(accountId, date);
   }
 
@@ -77,7 +87,7 @@ export class UserController {
   async getIssuesByDate(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ) {
+  ): Promise<IUserIssuesByDate> {
     return await this.userService.getIssuesByDate(accountId, date);
   }
 
@@ -88,7 +98,7 @@ export class UserController {
     @Body('noOfBugs') noOfBugs: number,
     @Body('comment') comment: string,
     @Body('token') token: string,
-  ) {
+  ): Promise<ISuccessResponse> {
     return await this.userService.bugReportByDate(
       accountId,
       date,
@@ -103,7 +113,7 @@ export class UserController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
     @Body() createCommentDto: CreateCommentDto,
-  ) {
+  ): Promise<ISuccessResponse> {
     const { comment } = createCommentDto;
     return await this.userService.createComment(accountId, date, comment);
   }

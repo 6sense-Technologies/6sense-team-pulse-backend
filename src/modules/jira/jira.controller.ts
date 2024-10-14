@@ -9,6 +9,12 @@ import {
 } from '@nestjs/common';
 import { JiraService } from './jira.service';
 import { Designation, Project } from '../users/schemas/user.schema';
+import {
+  IDailyMetrics,
+  IJiraUserData,
+  IJirsUserIssues,
+  ISuccessResponse,
+} from 'src/common/interfaces/jira.interfaces';
 
 @Controller('jira')
 export class JiraController {
@@ -17,7 +23,9 @@ export class JiraController {
   }
 
   @Get(':accountId')
-  async getUserDetails(@Param('accountId') accountId: string) {
+  async getUserDetails(
+    @Param('accountId') accountId: string,
+  ): Promise<IJiraUserData> {
     return await this.jiraService.getUserDetails(accountId);
   }
 
@@ -25,7 +33,7 @@ export class JiraController {
   async getUserIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ) {
+  ): Promise<IJirsUserIssues[]> {
     return await this.jiraService.getUserIssues(accountId, date);
   }
 
@@ -38,7 +46,7 @@ export class JiraController {
       designation: Designation;
       project: Project;
     },
-  ) {
+  ): Promise<ISuccessResponse> {
     const { accountId, userFrom, designation, project } = body;
 
     if (!accountId) {
@@ -63,7 +71,9 @@ export class JiraController {
   }
 
   @Put('user/:accountId')
-  async fetchAndUpdateUser(@Param('accountId') accountId: string) {
+  async fetchAndUpdateUser(
+    @Param('accountId') accountId: string,
+  ): Promise<ISuccessResponse> {
     return await this.jiraService.fetchAndUpdateUser(accountId);
   }
 
@@ -122,7 +132,7 @@ export class JiraController {
   async calculateDailyMetrics(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ) {
+  ): Promise<IDailyMetrics> {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
     // Validate date format

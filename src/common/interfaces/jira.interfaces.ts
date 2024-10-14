@@ -7,11 +7,7 @@ export interface IJiraUserData {
   avatarUrls: string;
 }
 
-export interface IUserResponse {
-  message: string;
-  statusCode: number;
-  user?: IUser;
-}
+
 
 export interface IGetAllUsersResponse {
   message: string;
@@ -38,11 +34,7 @@ export interface IJirsUserIssues {
   issues: IJiraIssues[];
 }
 
-export interface IUserWithPagination extends IUser {
-  totalIssueHistory: number;
-  currentPage: number;
-  totalPages: number;
-}
+
 
 export interface ITrelloUserData {
   accountId: string;
@@ -57,14 +49,6 @@ export interface IComment {
   timestamp: Date;
 }
 
-export interface IGetIssuesByDateResponse {
-  userName: string;
-  accountId: string;
-  issues: any[];
-  noOfBugs: number;
-  comment: string;
-  comments: IComment[];
-}
 
 export interface IJiraErrorResponse {
   errorMessages?: string[];
