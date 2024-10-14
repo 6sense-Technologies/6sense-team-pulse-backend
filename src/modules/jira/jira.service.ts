@@ -104,18 +104,16 @@ export class JiraService {
       const data = await this.fetchFromBothUrls(endpoint);
 
       const transformIssues = (issues): IJiraIssue[] =>
-        issues.map((issue) => {
-          return {
-            id: issue.id,
-            key: issue.key,
-            summary: issue.fields.summary,
-            status: issue.fields.status.name,
-            issueType: issue.fields.issuetype.name,
-            dueDate: issue.fields.duedate,
-            created: issue.fields.created,
-            storypoints: issue.fields.customfield_10016,
-          };
-        });
+        issues.map((issue) => ({
+          id: issue.id,
+          key: issue.key,
+          summary: issue.fields.summary,
+          status: issue.fields.status.name,
+          issueType: issue.fields.issuetype.name,
+          dueDate: issue.fields.duedate,
+          created: issue.fields.created,
+          storypoints: issue.fields.customfield_10016,
+        }));
 
       return [
         {
@@ -544,7 +542,9 @@ export class JiraService {
             notDoneStoryIds.includes(issue.issueId)
           );
         })
-        .map((issue) => issue.issueId);
+        .map((issue) => {
+          return issue.issueId;
+        });
       const matchedDoneBugIds = doneIssues
         .filter((issue) => {
           return (

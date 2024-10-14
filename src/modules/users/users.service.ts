@@ -24,7 +24,7 @@ import {
   IUserIssuesByDate,
   IUserWithPagination,
 } from './interfaces/users.interfaces';
-import { Comment } from './schemas/Comment.schema';
+// import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
 export class UserService {
@@ -179,21 +179,23 @@ export class UserService {
           return history.date === dateString;
         })?.notDoneIssues || [];
 
-      const issueHistoryEntries = notDoneIssues.map((issue, index) => ({
-        serialNumber: index + 1,
-        issueType: issue.issueType,
-        issueId: issue.issueId,
-        issueSummary: issue.summary,
-        issueStatus: issue.status,
-        planned: true,
-        link: issue.issueLinks
-          ? issue.issueLinks
-              .map((link) => {
-                return link.issueId;
-              })
-              .join(',')
-          : '',
-      }));
+      const issueHistoryEntries = notDoneIssues.map((issue, index) => {
+        return {
+          serialNumber: index + 1,
+          issueType: issue.issueType,
+          issueId: issue.issueId,
+          issueSummary: issue.summary,
+          issueStatus: issue.status,
+          planned: true,
+          link: issue.issueLinks
+            ? issue.issueLinks
+                .map((link) => {
+                  return link.issueId;
+                })
+                .join(',')
+            : '',
+        };
+      });
 
       await this.issueHistoryModel.findOneAndUpdate(
         { userName: user.displayName, accountId: user.accountId },
