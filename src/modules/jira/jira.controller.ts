@@ -92,7 +92,7 @@ export class JiraController {
     if (!accountId || accountId.trim() === '') {
       throw new BadRequestException('Account ID cannot be empty.');
     }
-    return await this.jiraService.countPlannedIssues(accountId, date);
+    await this.jiraService.countPlannedIssues(accountId, date);
   }
 
   @Put('done-issues/:accountId/:date')
@@ -110,17 +110,17 @@ export class JiraController {
     if (!accountId || accountId.trim() === '') {
       throw new BadRequestException('Account ID cannot be empty.');
     }
-    return await this.jiraService.countDoneIssues(accountId, date);
+    await this.jiraService.countDoneIssues(accountId, date);
   }
 
   @Put('update-morning-issue-history')
   async updateMorningIssueHistory(): Promise<void> {
-    return await this.jiraService.updateMorningIssueHistory();
+    await this.jiraService.updateMorningIssueHistory();
   }
 
   @Put('update-evening-issue-history')
   async updateEveningIssueHistory(): Promise<void> {
-    return await this.jiraService.updateEveningIssueHistory();
+    await this.jiraService.updateEveningIssueHistory();
   }
 
   // @Put('metrics')

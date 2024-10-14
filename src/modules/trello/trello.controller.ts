@@ -80,7 +80,7 @@ export class TrelloController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<void> {
-    return await this.trelloService.countPlannedIssues(accountId, date);
+    await this.trelloService.countPlannedIssues(accountId, date);
   }
 
   @Put('done/count/:accountId/:date')
@@ -88,6 +88,6 @@ export class TrelloController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<void> {
-    return await this.trelloService.countDoneIssues(accountId, date);
+    await this.trelloService.countDoneIssues(accountId, date);
   }
 }

@@ -1,4 +1,4 @@
-import { IUser, User } from '../../modules/users/schemas/user.schema';
+import { User } from '../../modules/users/schemas/user.schema';
 
 export interface IJiraUserData {
   accountId: string;
@@ -6,8 +6,6 @@ export interface IJiraUserData {
   emailAddress: string;
   avatarUrls: string;
 }
-
-
 
 export interface IGetAllUsersResponse {
   message: string;
@@ -34,8 +32,6 @@ export interface IJirsUserIssues {
   issues: IJiraIssues[];
 }
 
-
-
 export interface ITrelloUserData {
   accountId: string;
   displayName: string;
@@ -48,7 +44,6 @@ export interface IComment {
   comment: string;
   timestamp: Date;
 }
-
 
 export interface IJiraErrorResponse {
   errorMessages?: string[];
