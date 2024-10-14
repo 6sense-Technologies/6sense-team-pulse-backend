@@ -8,12 +8,16 @@ import {
 import { JiraModule } from 'src/modules/jira/jira.module';
 import { UserService } from './users.service';
 import { UserController } from './users.controller';
+import { IssueEntry, IssueEntrySchema } from './schemas/IssueEntry.schema';
+import { Comment, CommentSchema } from './schemas/Comment.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: IssueHistory.name, schema: IssueHistorySchema },
+      { name: IssueEntry.name, schema: IssueEntrySchema },
+      { name: Comment.name, schema: CommentSchema },
     ]),
     forwardRef(() => {
       return JiraModule;

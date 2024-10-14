@@ -24,6 +24,7 @@ import {
   IUserIssuesByDate,
   IUserWithPagination,
 } from './interfaces/users.interfaces';
+import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
 export class UserService {
@@ -31,7 +32,10 @@ export class UserService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(IssueHistory.name)
     private readonly issueHistoryModel: Model<IssueHistory>,
+    @InjectModel(IssueEntry.name)
     private readonly issueEntryModel: Model<IssueEntry>,
+    // @InjectModel(Comment.name)
+    // private readonly commentModel: Model<Comment>,
     private readonly configService: ConfigService,
   ) {
     //Nothing
