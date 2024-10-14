@@ -16,20 +16,21 @@ export interface IGetAllUsersResponse {
   totalUsers: number;
 }
 
-export interface IJiraIssues {
+export interface IJiraIssue {
+  id: string;
   key: string;
-  fields: {
-    summary: string;
-    status: {
-      name: string;
-    };
-  };
+  summary: string;
+  status: string;
+  issueType: string;
+  dueDate: string | null;
+  created: string;
+  storypoints?: number;
 }
 
 export interface IJirsUserIssues {
   message: string;
   statusCode: number;
-  issues: IJiraIssues[];
+  issues: IJiraIssue[];
 }
 
 export interface ITrelloUserData {
@@ -69,4 +70,14 @@ export interface ISuccessResponse {
   statusCode: number;
   message: string;
   user?: User;
+}
+
+export interface IAxiosError {
+  isAxiosError: boolean;
+  response?: {
+    status: number;
+    statusText: string;
+    data: IJiraErrorResponse;
+  };
+  message: string;
 }

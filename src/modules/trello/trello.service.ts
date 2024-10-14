@@ -13,7 +13,11 @@ import {
 } from '../users/schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
+import {
+  ITrelloBoard,
+  ITrelloCard,
+  ITrelloUsers,
+} from './interfaces/trello.interfaces';
 import { firstValueFrom } from 'rxjs';
 import { handleError } from '../../common/helpers/error.helper';
 import {
@@ -150,7 +154,10 @@ export class TrelloService {
       const dateString = new Date(date).toISOString().split('T')[0];
 
       // Function to fetch cards for a specific board
-      const fetchCardsForBoard = async (boardId: string, boardName: string) => {
+      const fetchCardsForBoard = async (
+        boardId: string,
+        boardName: string,
+      ): Promise<ITrelloCard[]> => {
         // Fetch lists for the board
         const listsResponse = await firstValueFrom(
           this.httpService.get(

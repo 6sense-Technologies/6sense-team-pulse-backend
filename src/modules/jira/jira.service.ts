@@ -16,8 +16,9 @@ import {
 } from '../users/schemas/user.schema';
 import {
   IDailyMetrics,
-  IJirsUserIssues,
+  IJiraIssue,
   IJiraUserData,
+  IJirsUserIssues,
   ISuccessResponse,
 } from '../../common/interfaces/jira.interfaces';
 import { TrelloService } from '../trello/trello.service';
@@ -102,17 +103,19 @@ export class JiraService {
       const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
       const data = await this.fetchFromBothUrls(endpoint);
 
-      const transformIssues = (issues) =>
-        issues.map((issue) => ({
-          id: issue.id,
-          key: issue.key,
-          summary: issue.fields.summary,
-          status: issue.fields.status.name,
-          issueType: issue.fields.issuetype.name,
-          dueDate: issue.fields.duedate,
-          created: issue.fields.created,
-          storypoints: issue.fields.customfield_10016,
-        }));
+      const transformIssues = (issues): IJiraIssue[] =>
+        issues.map((issue) => {
+          return {
+            id: issue.id,
+            key: issue.key,
+            summary: issue.fields.summary,
+            status: issue.fields.status.name,
+            issueType: issue.fields.issuetype.name,
+            dueDate: issue.fields.duedate,
+            created: issue.fields.created,
+            storypoints: issue.fields.customfield_10016,
+          };
+        });
 
       return [
         {
@@ -516,42 +519,49 @@ export class JiraService {
 
       // Calculate matched done issue IDs
       const matchedDoneTaskIds = doneIssues
-        .filter(
-          (issue) =>
+        .filter((issue) => {
+          return (
             issue.issueType === 'Task' &&
             issue.status === 'Done' &&
-            notDoneTaskIds.includes(issue.issueId),
-        )
+            notDoneTaskIds.includes(issue.issueId)
+          );
+        })
         .map((issue) => issue.issueId);
+
       const matchedDoneStoryIds = doneIssues
-        .filter(
-          (issue) =>
+        .filter((issue) => {
+          return (
             issue.issueType === 'Story' &&
             (issue.status === 'Done' ||
               issue.status === 'USER STORIES (Verified In Test)' ||
               issue.status === 'USER STORIES (Verified In Beta)') &&
-            notDoneStoryIds.includes(issue.issueId),
-        )
+            notDoneStoryIds.includes(issue.issueId)
+          );
+        })
         .map((issue) => issue.issueId);
       const matchedDoneBugIds = doneIssues
-        .filter(
-          (issue) =>
+        .filter((issue) => {
+          return (
             issue.issueType === 'Bug' &&
             issue.status === 'Done' &&
-            notDoneBugIds.includes(issue.issueId),
-        )
+            notDoneBugIds.includes(issue.issueId)
+          );
+        })
         .map((issue) => issue.issueId);
 
       // Calculate total done issues
       const totalDoneTasks = doneIssues.filter((issue) => {
         return issue.issueType === 'Task' && issue.status === 'Done';
       }).length;
-      const totalDoneStories = doneIssues.filter(
-        (issue) =>
+
+      const totalDoneStories = doneIssues.filter((issue) => {
+        return (
           (issue.issueType === 'Story' && issue.status === 'Done') ||
           issue.status === 'USER STORIES (Verified In Test)' ||
-          issue.status === 'USER STORIES (Verified In Beta)',
-      ).length;
+          issue.status === 'USER STORIES (Verified In Beta)'
+        );
+      }).length;
+
       const totalDoneBugs = doneIssues.filter((issue) => {
         return issue.issueType === 'Bug' && issue.status === 'Done';
       }).length;

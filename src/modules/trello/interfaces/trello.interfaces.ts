@@ -10,3 +10,11 @@ export interface ITrelloUsers {
   boardId: string;
   boardName: string;
 }
+
+export interface ITrelloCard {
+  cardId: string;
+  cardName: string;
+  listName: string;
+  boardName: string;
+  dueDate: string | null;
+}

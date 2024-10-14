@@ -6,19 +6,9 @@ import {
   UnauthorizedException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { IJiraErrorResponse } from '../interfaces/jira.interfaces';
+import { IAxiosError, IJiraErrorResponse } from '../interfaces/jira.interfaces';
 
-interface AxiosError {
-  isAxiosError: boolean;
-  response?: {
-    status: number;
-    statusText: string;
-    data: IJiraErrorResponse;
-  };
-  message: string;
-}
-
-export const handleError = (error: AxiosError | Error): void => {
+export const handleError = (error: IAxiosError | Error): void => {
   let axiosResponse;
 
   if ('isAxiosError' in error && error.isAxiosError) {
