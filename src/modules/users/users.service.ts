@@ -71,16 +71,11 @@ export class UserService {
         totalUsers,
       };
     } catch (error) {
-      const handledError = handleError(error);
-      throw handledError;
+      throw handleError(error);
     }
   }
 
-  async getUser(
-    accountId: string,
-    page = 1,
-    limit = 30,
-  ): Promise<IUserResponse> {
+  async getUser(accountId: string, page = 1, limit = 30): Promise<IUserResponse> {
     try {
       validateAccountId(accountId);
       validatePagination(page, limit);

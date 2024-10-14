@@ -103,17 +103,20 @@ export class JiraService {
       const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
       const data = await this.fetchFromBothUrls(endpoint);
 
-      const transformIssues = (issues): IJiraIssue[] =>
-        issues.map((issue) => ({
-          id: issue.id,
-          key: issue.key,
-          summary: issue.fields.summary,
-          status: issue.fields.status.name,
-          issueType: issue.fields.issuetype.name,
-          dueDate: issue.fields.duedate,
-          created: issue.fields.created,
-          storypoints: issue.fields.customfield_10016,
-        }));
+      const transformIssues = (issues): IJiraIssue[] => {
+        return issues.map((issue) => {
+          return {
+            id: issue.id,
+            key: issue.key,
+            summary: issue.fields.summary,
+            status: issue.fields.status.name,
+            issueType: issue.fields.issuetype.name,
+            dueDate: issue.fields.duedate,
+            created: issue.fields.created,
+            storypoints: issue.fields.customfield_10016,
+          };
+        });
+      };
 
       return [
         {
