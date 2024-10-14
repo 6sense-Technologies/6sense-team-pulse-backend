@@ -174,9 +174,7 @@ export class JiraService {
     }
   }
 
-  async fetchAndUpdateUser(
-    accountId: string,
-  ): Promise<ISuccessResponse> {
+  async fetchAndUpdateUser(accountId: string): Promise<ISuccessResponse> {
     try {
       const userDetails = await this.getUserDetails(accountId);
 
@@ -474,7 +472,10 @@ export class JiraService {
     }
   }
 
-  async calculateDailyMetrics(accountId: string, date: string): Promise<IDailyMetrics> {
+  async calculateDailyMetrics(
+    accountId: string,
+    date: string,
+  ): Promise<IDailyMetrics> {
     try {
       const user = await this.userModel.findOne({ accountId });
       const issueHistory = user.issueHistory;
@@ -673,42 +674,45 @@ export class JiraService {
     }
   }
 
-  async calculateCurrentPerformance(accountId: string, date: string): Promise<void> {
-    try{
-    const endDate = new Date(date);
-    const startDate = new Date(endDate);
-    startDate.setDate(endDate.getDate() - 30);
+  async calculateCurrentPerformance(
+    accountId: string,
+    date: string,
+  ): Promise<void> {
+    try {
+      const endDate = new Date(date);
+      const startDate = new Date(endDate);
+      startDate.setDate(endDate.getDate() - 30);
 
-    const formattedStartDate = startDate.toISOString().split('T')[0];
-    const formattedEndDate = endDate.toISOString().split('T')[0];
+      const formattedStartDate = startDate.toISOString().split('T')[0];
+      const formattedEndDate = endDate.toISOString().split('T')[0];
 
-    const user = await this.userModel.findOne({ accountId });
+      const user = await this.userModel.findOne({ accountId });
 
-    const issueHistory = user.issueHistory;
+      const issueHistory = user.issueHistory;
 
-    // Filter issue history for the last 30 days
-    const filteredHistory = issueHistory.filter((entry) => {
-      const entryDate = entry.date;
-      return entryDate >= formattedStartDate && entryDate <= formattedEndDate;
-    });
+      // Filter issue history for the last 30 days
+      const filteredHistory = issueHistory.filter((entry) => {
+        const entryDate = entry.date;
+        return entryDate >= formattedStartDate && entryDate <= formattedEndDate;
+      });
 
-    let totalScore = 0;
-    let validDaysCount = 0;
+      let totalScore = 0;
+      let validDaysCount = 0;
 
-    filteredHistory.forEach((entry) => {
-      if (entry.comment !== 'holidays/leave') {
-        totalScore += entry.overallScore;
-        validDaysCount++;
-      }
-    });
+      filteredHistory.forEach((entry) => {
+        if (entry.comment !== 'holidays/leave') {
+          totalScore += entry.overallScore;
+          validDaysCount++;
+        }
+      });
 
-    const currentPerformance =
-      validDaysCount > 0 ? totalScore / validDaysCount : 0;
+      const currentPerformance =
+        validDaysCount > 0 ? totalScore / validDaysCount : 0;
 
-    user.currentPerformance = currentPerformance;
-    await user.save();
-  } catch (error) {
-    handleError(error);
-  }
+      user.currentPerformance = currentPerformance;
+      await user.save();
+    } catch (error) {
+      handleError(error);
+    }
   }
 }

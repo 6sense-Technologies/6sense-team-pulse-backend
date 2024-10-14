@@ -91,4 +91,3 @@ export interface ISuccessResponse {
   message: string;
   user?: User;
 }
-
