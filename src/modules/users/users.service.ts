@@ -71,11 +71,15 @@ export class UserService {
         totalUsers,
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 
-  async getUser(accountId: string, page = 1, limit = 30): Promise<IUserResponse> {
+  async getUser(
+    accountId: string,
+    page = 1,
+    limit = 30,
+  ): Promise<IUserResponse> {
     try {
       validateAccountId(accountId);
       validatePagination(page, limit);
@@ -111,7 +115,7 @@ export class UserService {
         user: userWithPagination,
       };
     } catch (error) {
-      throw handleError(error);
+      handleError(error);
     }
   }
 
