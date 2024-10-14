@@ -23,7 +23,7 @@ jobs:
       run: npm run test:cov
 
     - name: Run codacy-coverage-reporter
-      uses: codacy/codacy-coverage-reporter-action@abc1234def5678ghijklmnopqrstuvwx
+      uses: codacy/codacy-coverage-reporter-action
       with:
         project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
         coverage-reports: coverage/lcov.info
