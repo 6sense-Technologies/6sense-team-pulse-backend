@@ -352,15 +352,16 @@ export class UserService {
 
       if (!result || !result.history[date]) {
         return {
-          userName: result?.userName,
-          accountId: result?.accountId,
+          userName: result?.userName || '',
+          accountId: result?.accountId || '',
           issues: [],
           noOfBugs: 0,
           comment: '',
+          comments: [],
         };
       }
 
-      const { issues, noOfBugs, comment } = result.history[date];
+      const { issues, noOfBugs, comment, comments } = result.history[date];
 
       return {
         userName: result.userName,
@@ -368,6 +369,7 @@ export class UserService {
         issues,
         noOfBugs,
         comment,
+        comments: comments ?? [],
       };
     } catch (error) {
       throw handleError(error);
@@ -385,13 +387,11 @@ export class UserService {
       validateAccountId(accountId);
       validateDate(date);
 
-      // Validate token
       const envToken = this.configService.get<string>('REPORT_BUG_TOKEN');
       if (!token || token !== envToken) {
         throw new ForbiddenException('Invalid or missing token');
       }
 
-      // Validate noOfBugs
       if (noOfBugs === undefined || noOfBugs === null) {
         throw new BadRequestException('Number of bugs is required');
       }
@@ -404,6 +404,7 @@ export class UserService {
       const userIssueEntry = user.issueHistory.find((entry) => {
         return entry.date === date;
       });
+
       if (userIssueEntry) {
         userIssueEntry.reportBug = { noOfBugs, comment };
         await user.save();
@@ -424,6 +425,52 @@ export class UserService {
 
       return {
         message: 'Bug report updated successfully',
+        statusCode: 200,
+      };
+    } catch (error) {
+      throw handleError(error);
+    }
+  }
+
+  async createComment(
+    accountId: string,
+    date: string,
+    comment: string,
+  ): Promise<{ message: string; statusCode: number }> {
+    try {
+      validateAccountId(accountId);
+      validateDate(date);
+
+      const user = await this.userModel.findOne({ accountId }).exec();
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const historyPath = `history.${date}`;
+      const issueHistory = await this.issueHistoryModel
+        .findOne({ accountId, [historyPath]: { $exists: true } })
+        .exec();
+
+      if (!issueHistory || !issueHistory.history[date]) {
+        throw new NotFoundException(
+          'Issue history for the specified date not found',
+        );
+      }
+
+      // Create a new comment
+      const newComment = {
+        comment,
+        timestamp: new Date(),
+      };
+
+      await this.issueHistoryModel.findOneAndUpdate(
+        { accountId, [`history.${date}`]: { $exists: true } },
+        { $push: { [`history.${date}.comments`]: newComment } },
+        { new: true },
+      );
+
+      return {
+        message: 'Comment added successfully',
         statusCode: 200,
       };
     } catch (error) {

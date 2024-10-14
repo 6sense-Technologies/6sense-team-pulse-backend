@@ -53,12 +53,18 @@ export interface ITrelloUserData {
   currentPerformance?: number;
 }
 
+export interface IComment {
+  comment: string;
+  timestamp: Date;
+}
+
 export interface IGetIssuesByDateResponse {
   userName: string;
   accountId: string;
   issues: any[];
   noOfBugs: number;
   comment: string;
+  comments: IComment[];
 }
 
 export interface IiraErrorResponse {

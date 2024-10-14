@@ -6,9 +6,11 @@ import {
   Query,
   Put,
   Body,
+  Post,
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import { Designation, Project } from './schemas/user.schema';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
 @Controller('users')
 export class UserController {
@@ -94,5 +96,15 @@ export class UserController {
       comment,
       token,
     );
+  }
+
+  @Post('comment/:accountId/:date')
+  async createComment(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+    @Body() createCommentDto: CreateCommentDto,
+  ) {
+    const { comment } = createCommentDto;
+    return await this.userService.createComment(accountId, date, comment);
   }
 }

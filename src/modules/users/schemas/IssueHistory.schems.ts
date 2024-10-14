@@ -2,6 +2,17 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 
 @Schema()
+class Comment {
+  @Prop({ type: String, required: true })
+  comment: string;
+
+  @Prop({ type: Date, default: Date.now })
+  timestamp: Date;
+}
+
+export const CommentSchema = SchemaFactory.createForClass(Comment);
+
+@Schema()
 class IssueEntry {
   @Prop({ type: Number })
   serialNumber?: number;
@@ -44,6 +55,7 @@ export class IssueHistory extends Document {
       issues: IssueEntry[];
       noOfBugs: number;
       comment: string;
+      comments: Comment[];
     };
   };
 }

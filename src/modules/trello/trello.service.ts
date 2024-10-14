@@ -1,9 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
-  HttpException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
@@ -15,7 +13,6 @@ import {
 } from '../users/schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { AxiosErrorHelper } from 'src/common/helpers/axios-exception.helper';
 import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
 import { firstValueFrom } from 'rxjs';
 import { handleError } from '../../common/helpers/error.helper';
@@ -65,9 +62,7 @@ export class TrelloService {
 
       return boards;
     } catch (error) {
-      const errorResponse =
-        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
-      throw new HttpException(errorResponse, errorResponse.status);
+      handleError(error);
     }
   }
 
@@ -111,9 +106,7 @@ export class TrelloService {
 
       return users;
     } catch (error) {
-      const errorResponse =
-        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
-      throw new HttpException(errorResponse, errorResponse.status);
+      handleError(error);
     }
   }
 
@@ -132,9 +125,7 @@ export class TrelloService {
 
       return response.data;
     } catch (error) {
-      const errorResponse =
-        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
-      throw new HttpException(errorResponse, errorResponse.status);
+      handleError(error);
     }
   }
 
@@ -217,9 +208,7 @@ export class TrelloService {
 
       return allCards.flat();
     } catch (error) {
-      const errorResponse =
-        AxiosErrorHelper.getInstance().handleAxiosApiError(error);
-      throw new HttpException(errorResponse, errorResponse.status);
+      handleError(error);
     }
   }
 
