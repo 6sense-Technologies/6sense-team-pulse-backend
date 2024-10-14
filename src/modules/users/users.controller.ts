@@ -12,8 +12,8 @@ import { UserService } from './users.service';
 import { Designation, Project } from './schemas/user.schema';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import {
-  IGetAllUsers,
-  IGetUser,
+  IAllUsers,
+  IUserResponse,
   IUserIssuesByDate,
 } from './interfaces/users.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
@@ -28,7 +28,7 @@ export class UserController {
   async getAllUsers(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-  ): Promise<IGetAllUsers> {
+  ): Promise<IAllUsers> {
     return this.userService.getAllUsers(page, limit);
   }
 
@@ -37,7 +37,7 @@ export class UserController {
     @Param('accountId') accountId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-  ): Promise<IGetUser> {
+  ): Promise<IUserResponse> {
     return this.userService.getUser(accountId, page, limit);
   }
 

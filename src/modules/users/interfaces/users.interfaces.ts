@@ -1,7 +1,7 @@
 import { IComment } from '../../../common/interfaces/jira.interfaces';
 import { IUser, User } from '../schemas/user.schema';
 
-export interface IGetAllUsers {
+export interface IAllUsers {
   message: string;
   statusCode: number;
   users: User[];
@@ -10,7 +10,7 @@ export interface IGetAllUsers {
   totalUsers: number;
 }
 
-export interface IGetUser {
+export interface IUserResponse {
   message: string;
   statusCode: number;
   user?: IUser;

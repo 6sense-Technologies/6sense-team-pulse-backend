@@ -19,8 +19,8 @@ import {
   validatePagination,
 } from '../../common/helpers/validation.helper';
 import {
-  IGetAllUsers,
-  IGetUser,
+  IAllUsers,
+  IUserResponse,
   IUserIssuesByDate,
   IUserWithPagination,
 } from './interfaces/users.interfaces';
@@ -41,7 +41,7 @@ export class UserService {
     //Nothing
   }
 
-  async getAllUsers(page = 1, limit = 10): Promise<IGetAllUsers> {
+  async getAllUsers(page = 1, limit = 10): Promise<IAllUsers> {
     try {
       validatePagination(page, limit);
 
@@ -71,11 +71,16 @@ export class UserService {
         totalUsers,
       };
     } catch (error) {
-      throw handleError(error);
+      const handledError = handleError(error);
+      throw handledError;
     }
   }
 
-  async getUser(accountId: string, page = 1, limit = 30): Promise<IGetUser> {
+  async getUser(
+    accountId: string,
+    page = 1,
+    limit = 30,
+  ): Promise<IUserResponse> {
     try {
       validateAccountId(accountId);
       validatePagination(page, limit);
