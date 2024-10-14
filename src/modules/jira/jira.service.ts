@@ -530,7 +530,9 @@ export class JiraService {
             notDoneTaskIds.includes(issue.issueId)
           );
         })
-        .map((issue) => issue.issueId);
+        .map((issue) => {
+          return issue.issueId;
+        });
 
       const matchedDoneStoryIds = doneIssues
         .filter((issue) => {
@@ -551,7 +553,9 @@ export class JiraService {
             notDoneBugIds.includes(issue.issueId)
           );
         })
-        .map((issue) => issue.issueId);
+        .map((issue) => {
+          return issue.issueId;
+        });
 
       // Calculate total done issues
       const totalDoneTasks = doneIssues.filter((issue) => {

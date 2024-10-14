@@ -10,6 +10,7 @@ import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
 import { IssueHistory } from './schemas/IssueHistory.schems';
+import { IssueEntry } from './schemas/IssueEntry.schema';
 import { ConfigService } from '@nestjs/config';
 import { handleError } from '../../common/helpers/error.helper';
 import {
@@ -30,6 +31,7 @@ export class UserService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(IssueHistory.name)
     private readonly issueHistoryModel: Model<IssueHistory>,
+    private readonly issueEntryModel: Model<IssueEntry>,
     private readonly configService: ConfigService,
   ) {
     //Nothing
@@ -282,24 +284,25 @@ export class UserService {
       });
 
       // Prepare new done issues that are not already in today's not done issues
-      const newDoneIssueEntries = doneIssues
+      const newDoneIssueEntries: IssueEntry[] = doneIssues
         .filter((issue) => {
           return !notDoneIssueIds.has(issue.issueId);
         })
         .map((issue, index) => {
           const linkedIssueIdsSet = new Set<string>();
           issue.issueLinks?.forEach((link) => {
-            return linkedIssueIdsSet.add(link.issueId);
+            linkedIssueIdsSet.add(link.issueId);
           });
 
-          return {
+          // Create a new IssueEntry instance
+          return new this.issueEntryModel({
             serialNumber: specificDateHistory.issues.length + index + 1,
             issueType: issue.issueType,
             issueId: issue.issueId,
             issueSummary: issue.summary,
             issueStatus: issue.status,
             link: Array.from(linkedIssueIdsSet).join(','),
-          };
+          });
         });
 
       // Add the new done issues to the history for the specified date
