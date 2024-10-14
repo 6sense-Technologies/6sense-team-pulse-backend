@@ -8,11 +8,6 @@ import {
   Put,
 } from '@nestjs/common';
 import { JiraService } from './jira.service';
-
-import {
-  IJiraUserData,
-  IJirsUserIssues,
-} from '../../common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/schemas/user.schema';
 
 @Controller('jira')
@@ -22,19 +17,16 @@ export class JiraController {
   }
 
   @Get(':accountId')
-  async getUserDetails(
-    @Param('accountId') accountId: string,
-  ): Promise<IJiraUserData> {
-    const userDetails = await this.jiraService.getUserDetails(accountId);
-    return userDetails;
+  async getUserDetails(@Param('accountId') accountId: string) {
+    return await this.jiraService.getUserDetails(accountId);
   }
 
   @Get('users/issues/:accountId/:date')
   async getUserIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ): Promise<IJirsUserIssues[]> {
-    return this.jiraService.getUserIssues(accountId, date);
+  ) {
+    return await this.jiraService.getUserIssues(accountId, date);
   }
 
   @Post('users/create')
@@ -82,7 +74,6 @@ export class JiraController {
   ): Promise<void> {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-    // Validate date format
     if (!dateRegex.test(date)) {
       throw new BadRequestException(
         'Invalid date format. Please use YYYY-MM-DD.',
@@ -91,7 +82,7 @@ export class JiraController {
     if (!accountId || accountId.trim() === '') {
       throw new BadRequestException('Account ID cannot be empty.');
     }
-    await this.jiraService.countPlannedIssues(accountId, date);
+    return await this.jiraService.countPlannedIssues(accountId, date);
   }
 
   @Put('done-issues/:accountId/:date')
@@ -101,7 +92,6 @@ export class JiraController {
   ): Promise<void> {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-    // Validate date format
     if (!dateRegex.test(date)) {
       throw new BadRequestException(
         'Invalid date format. Please use YYYY-MM-DD.',
@@ -110,17 +100,17 @@ export class JiraController {
     if (!accountId || accountId.trim() === '') {
       throw new BadRequestException('Account ID cannot be empty.');
     }
-    await this.jiraService.countDoneIssues(accountId, date);
+    return await this.jiraService.countDoneIssues(accountId, date);
   }
 
   @Put('update-morning-issue-history')
   async updateMorningIssueHistory(): Promise<void> {
-    await this.jiraService.updateMorningIssueHistory();
+    return await this.jiraService.updateMorningIssueHistory();
   }
 
   @Put('update-evening-issue-history')
   async updateEveningIssueHistory(): Promise<void> {
-    await this.jiraService.updateEveningIssueHistory();
+    return await this.jiraService.updateEveningIssueHistory();
   }
 
   // @Put('metrics')
@@ -144,32 +134,6 @@ export class JiraController {
     if (!accountId || accountId.trim() === '') {
       throw new BadRequestException('Account ID cannot be empty.');
     }
-    const result = await this.jiraService.calculateDailyMetrics(
-      accountId,
-      date,
-    );
-    return result;
-  }
-  @Put('current/:accountId/:date')
-  async calculateCurrentPerformance(
-    @Param('accountId') accountId: string,
-    @Param('date') date: string,
-  ) {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    // Validate date format
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
-    if (!accountId || accountId.trim() === '') {
-      throw new BadRequestException('Account ID cannot be empty.');
-    }
-    const result = await this.jiraService.calculateCurrentPerformance(
-      accountId,
-      date,
-    );
-    return result;
+    return await this.jiraService.calculateDailyMetrics(accountId, date);
   }
 }
