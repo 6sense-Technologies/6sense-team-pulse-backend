@@ -510,12 +510,16 @@ export class JiraService {
         .filter((issue) => {
           return issue.issueType === 'Story';
         })
-        .map((issue) => issue.issueId);
+        .map((issue) => {
+          return issue.issueId;
+        });
       const notDoneBugIds = notDoneIssues
         .filter((issue) => {
           return issue.issueType === 'Bug';
         })
-        .map((issue) => issue.issueId);
+        .map((issue) => {
+          return issue.issueId;
+        });
 
       // Calculate matched done issue IDs
       const matchedDoneTaskIds = doneIssues
@@ -628,12 +632,13 @@ export class JiraService {
       const notDoneIssueIds = notDoneIssues.map((issue) => {
         return issue.issueId;
       });
-      const totalCompletedBugs = doneIssues.filter(
-        (issue) =>
+      const totalCompletedBugs = doneIssues.filter((issue) => {
+        return (
           issue.issueType === 'Bug' &&
           issue.status === 'Done' &&
-          !notDoneIssueIds.includes(issue.issueId),
-      ).length;
+          !notDoneIssueIds.includes(issue.issueId)
+        );
+      }).length;
 
       const countedCodeIssueIds = new Set();
       doneIssues.forEach((bug) => {

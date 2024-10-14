@@ -59,10 +59,12 @@ export class TrelloService {
       );
 
       const boards = response.data.map(
-        (board: { id: string; name: string }) => ({
-          id: board.id,
-          name: board.name,
-        }),
+        (board: { id: string; name: string }) => {
+          return {
+            id: board.id,
+            name: board.name,
+          };
+        },
       );
 
       return boards;
@@ -77,8 +79,8 @@ export class TrelloService {
       const endpoint = `/boards/{boardId}/members`;
 
       // Create an array of promises for the API calls
-      const requests = this.boardIds.map((boardId) =>
-        firstValueFrom(
+      const requests = this.boardIds.map((boardId) => {
+        return firstValueFrom(
           this.httpService.get(
             `${this.trelloBaseUrl}${endpoint.replace('{boardId}', boardId)}`,
             {
@@ -88,26 +90,30 @@ export class TrelloService {
               },
             },
           ),
-        ).then((response) => ({
-          boardId,
-          boardName: boardDetails.find((board) => {
-            return board.id === boardId;
-          })?.name,
-          users: response.data,
-        })),
-      );
+        ).then((response) => {
+          return {
+            boardId,
+            boardName: boardDetails.find((board) => {
+              return board.id === boardId;
+            })?.name,
+            users: response.data,
+          };
+        });
+      });
 
       // Wait for all requests to complete
       const responses = await Promise.all(requests);
 
       // Flatten the users array and enrich it with board information
-      const users = responses.flatMap(({ boardId, boardName, users }) =>
-        users.map((user) => ({
-          ...user,
-          boardId,
-          boardName: boardName,
-        })),
-      );
+      const users = responses.flatMap(({ boardId, boardName, users }) => {
+        return users.map((user) => {
+          return {
+            ...user,
+            boardId,
+            boardName,
+          };
+        });
+      });
 
       return users;
     } catch (error) {
@@ -191,18 +197,21 @@ export class TrelloService {
 
             // Filter cards that belong to the user and are due on the specified date
             return cardsResponse.data
-              .filter(
-                (card) =>
+              .filter((card) => {
+                return (
                   card.idMembers.includes(accountId) &&
-                  card.due?.split('T')[0] === dateString,
-              )
-              .map((card) => ({
-                cardId: card.id,
-                cardName: card.name,
-                listName: list.name,
-                boardName: boardName,
-                dueDate: card.due.split('T')[0],
-              }));
+                  card.due?.split('T')[0] === dateString
+                );
+              })
+              .map((card) => {
+                return {
+                  cardId: card.id,
+                  cardName: card.name,
+                  listName: list.name,
+                  boardName: boardName,
+                  dueDate: card.due.split('T')[0],
+                };
+              });
           }),
         );
 
@@ -430,9 +439,9 @@ export class TrelloService {
         }
       });
 
-      const existingHistory = user.issueHistory.find(
-        (history) => history.date === dateString,
-      );
+      const existingHistory = user.issueHistory.find((history) => {
+        return history.date === dateString;
+      });
       if (existingHistory) {
         existingHistory.issuesCount.done = countsByDate[dateString] || {
           Task: 0,

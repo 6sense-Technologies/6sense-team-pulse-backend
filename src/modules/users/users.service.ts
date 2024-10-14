@@ -36,33 +36,37 @@ export class UserService {
   }
 
   async getAllUsers(page = 1, limit = 10): Promise<IGetAllUsers> {
-    validatePagination(page, limit);
+    try {
+      validatePagination(page, limit);
 
-    const skip = (page - 1) * limit;
-    const totalUsers = await this.userModel.countDocuments({
-      isArchive: false,
-    });
+      const skip = (page - 1) * limit;
+      const totalUsers = await this.userModel.countDocuments({
+        isArchive: false,
+      });
 
-    const users = await this.userModel
-      .find(
-        { isArchive: false },
-        'accountId displayName emailAddress avatarUrls currentPerformance designation project',
-      )
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .exec();
+      const users = await this.userModel
+        .find(
+          { isArchive: false },
+          'accountId displayName emailAddress avatarUrls currentPerformance designation project',
+        )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec();
 
-    const totalPages = Math.ceil(totalUsers / limit);
+      const totalPages = Math.ceil(totalUsers / limit);
 
-    return {
-      message: 'Users found successfully',
-      statusCode: 200,
-      users,
-      totalPages,
-      currentPage: page,
-      totalUsers,
-    };
+      return {
+        message: 'Users found successfully',
+        statusCode: 200,
+        users,
+        totalPages,
+        currentPage: page,
+        totalUsers,
+      };
+    } catch (error) {
+      throw handleError(error);
+    }
   }
 
   async getUser(accountId: string, page = 1, limit = 30): Promise<IGetUser> {
