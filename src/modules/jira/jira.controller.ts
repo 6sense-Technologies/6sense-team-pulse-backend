@@ -11,7 +11,7 @@ import { JiraService } from './jira.service';
 
 import {
   IJiraUserData,
-  IGetUserIssuesResponse,
+  IJirsUserIssues,
 } from '../../common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/schemas/user.schema';
 
@@ -33,7 +33,7 @@ export class JiraController {
   async getUserIssues(
     @Param('accountId') accountId: string,
     @Param('date') date: string,
-  ): Promise<IGetUserIssuesResponse[]> {
+  ): Promise<IJirsUserIssues[]> {
     return this.jiraService.getUserIssues(accountId, date);
   }
 

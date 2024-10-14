@@ -1,11 +1,10 @@
-import { IUser } from '../../modules/users/schemas/user.schema';
+import { IUser, User } from '../../modules/users/schemas/user.schema';
 
 export interface IJiraUserData {
   accountId: string;
   displayName: string;
   emailAddress: string;
   avatarUrls: string;
-  currentPerformance?: number;
 }
 
 export interface IUserResponse {
@@ -23,7 +22,7 @@ export interface IGetAllUsersResponse {
   totalUsers: number;
 }
 
-export interface IJiraIssueData {
+export interface IJiraIssues {
   key: string;
   fields: {
     summary: string;
@@ -33,10 +32,10 @@ export interface IJiraIssueData {
   };
 }
 
-export interface IGetUserIssuesResponse {
+export interface IJirsUserIssues {
   message: string;
   statusCode: number;
-  issues: IJiraIssueData[];
+  issues: IJiraIssues[];
 }
 
 export interface IUserWithPagination extends IUser {
@@ -71,5 +70,25 @@ export interface IJiraErrorResponse {
   errorMessages?: string[];
   errors?: Record<string, any>;
   message?: string;
+}
+
+export interface IDailyMetrics {
+  date: string;
+  numberOfTasks: number;
+  numberOfBugs: number;
+  numberOfUserStories: number;
+  completedTasks: number;
+  completedUserStories: number;
+  taskCompletionRate: number;
+  userStoryCompletionRate: number;
+  overallScore: number;
+  comment: string;
+  codeToBugRatio: number;
+}
+
+export interface ISuccessResponse {
+  statusCode: number;
+  message: string;
+  user?: User;
 }
 

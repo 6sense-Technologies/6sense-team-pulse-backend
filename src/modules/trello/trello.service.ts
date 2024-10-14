@@ -203,7 +203,9 @@ export class TrelloService {
 
       // Step 4: Fetch cards for all boards
       const allCards = await Promise.all(
-        boards.map((board) => fetchCardsForBoard(board.id, board.name)),
+        boards.map((board) => {
+          return fetchCardsForBoard(board.id, board.name);
+        }),
       );
 
       return allCards.flat();
@@ -281,9 +283,9 @@ export class TrelloService {
       const user = await this.userModel.findOne({ accountId });
 
       if (notDoneIssues.length === 0) {
-        const existingHistory = user.issueHistory.find(
-          (history) => history.date === dateString,
-        );
+        const existingHistory = user.issueHistory.find((history) => {
+          return history.date === dateString;
+        });
         if (existingHistory) {
           existingHistory.issuesCount.notDone = { Task: 0, Bug: 0, Story: 0 };
           existingHistory.notDoneIssues = [];
@@ -334,9 +336,9 @@ export class TrelloService {
 
       // Step 3: Save the counts and issues for the specified date
       for (const date in countsByDate) {
-        const existingHistory = user.issueHistory.find(
-          (history) => history.date === date,
-        );
+        const existingHistory = user.issueHistory.find((history) => {
+          return history.date === date;
+        });
 
         if (existingHistory) {
           existingHistory.issuesCount.notDone = countsByDate[date];
@@ -368,8 +370,9 @@ export class TrelloService {
 
       // Get not done issues for the provided date from the user's issue history
       const notDoneIssues =
-        user?.issueHistory.find((entry) => entry.date === dateString)
-          ?.notDoneIssues || [];
+        user?.issueHistory.find((entry) => {
+          return entry.date === dateString;
+        })?.notDoneIssues || [];
 
       // Prepare storage for counts and issues
       const countsByDate: {

@@ -8,10 +8,20 @@ import {
 } from '@nestjs/common';
 import { IJiraErrorResponse } from '../interfaces/jira.interfaces';
 
-export const handleError = (error: any): void => {
+interface AxiosError {
+  isAxiosError: boolean;
+  response?: {
+    status: number;
+    statusText: string;
+    data: IJiraErrorResponse;
+  };
+  message: string;
+}
+
+export const handleError = (error: AxiosError | Error): void => {
   let axiosResponse;
 
-  if (error.isAxiosError) {
+  if ('isAxiosError' in error && error.isAxiosError) {
     const status = error.response?.status;
     const errorCode = error.response?.statusText;
     let message = '';

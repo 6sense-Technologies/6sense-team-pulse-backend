@@ -15,8 +15,10 @@ import {
   User,
 } from '../users/schemas/user.schema';
 import {
-  IGetUserIssuesResponse,
+  IDailyMetrics,
+  IJirsUserIssues,
   IJiraUserData,
+  ISuccessResponse,
 } from '../../common/interfaces/jira.interfaces';
 import { TrelloService } from '../trello/trello.service';
 import { UserService } from '../users/users.service';
@@ -95,7 +97,7 @@ export class JiraService {
   async getUserIssues(
     accountId: string,
     date: string,
-  ): Promise<IGetUserIssuesResponse[]> {
+  ): Promise<IJirsUserIssues[]> {
     try {
       const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
       const data = await this.fetchFromBothUrls(endpoint);
@@ -134,7 +136,7 @@ export class JiraService {
     userFrom: string,
     designation: Designation,
     project: Project,
-  ): Promise<{ statusCode: number; message: string; user?: User }> {
+  ): Promise<ISuccessResponse> {
     try {
       if (!Object.values(Designation).includes(designation)) {
         throw new BadRequestException('Invalid designation');
@@ -151,7 +153,6 @@ export class JiraService {
         displayName: userDetails.displayName,
         emailAddress: userDetails.emailAddress,
         avatarUrls: userDetails.avatarUrls['48x48'],
-        currentPerformance: userDetails.currentPerformance || 0,
         designation,
         project,
         userFrom,
@@ -175,7 +176,7 @@ export class JiraService {
 
   async fetchAndUpdateUser(
     accountId: string,
-  ): Promise<{ statusCode: number; message: string }> {
+  ): Promise<ISuccessResponse> {
     try {
       const userDetails = await this.getUserDetails(accountId);
 
@@ -232,9 +233,9 @@ export class JiraService {
 
       const user = await this.userModel.findOne({ accountId });
 
-      const existingHistory = user.issueHistory.find(
-        (history) => history.date === date,
-      );
+      const existingHistory = user.issueHistory.find((history) => {
+        return history.date === date;
+      });
 
       if (notDoneIssues.length === 0) {
         if (existingHistory) {
@@ -399,9 +400,9 @@ export class JiraService {
       const user = await this.userModel.findOne({ accountId });
 
       for (const [dueDate, counts] of Object.entries(countsByDate)) {
-        const existingHistory = user.issueHistory.find(
-          (history) => history.date === dueDate,
-        );
+        const existingHistory = user.issueHistory.find((history) => {
+          return history.date === dueDate;
+        });
 
         if (existingHistory) {
           existingHistory.issuesCount.done = counts;
@@ -473,18 +474,19 @@ export class JiraService {
     }
   }
 
-  async calculateDailyMetrics(accountId: string, date: string) {
+  async calculateDailyMetrics(accountId: string, date: string): Promise<IDailyMetrics> {
     try {
       const user = await this.userModel.findOne({ accountId });
       const issueHistory = user.issueHistory;
 
       // Filter issue history for the specific date
-      const entry = issueHistory.find((entry) => entry.date === date);
+      const entry = issueHistory.find((entry) => {
+        return entry.date === date;
+      });
       if (!entry) return null;
 
       const { issuesCount, notDoneIssues, doneIssues } = entry;
       const counts = issuesCount;
-
 
       let taskCompletionRate = 0;
       let userStoryCompletionRate = 0;
@@ -494,13 +496,21 @@ export class JiraService {
 
       // Calculate not done issue IDs
       const notDoneTaskIds = notDoneIssues
-        .filter((issue) => issue.issueType === 'Task')
-        .map((issue) => issue.issueId);
+        .filter((issue) => {
+          return issue.issueType === 'Task';
+        })
+        .map((issue) => {
+          return issue.issueId;
+        });
       const notDoneStoryIds = notDoneIssues
-        .filter((issue) => issue.issueType === 'Story')
+        .filter((issue) => {
+          return issue.issueType === 'Story';
+        })
         .map((issue) => issue.issueId);
       const notDoneBugIds = notDoneIssues
-        .filter((issue) => issue.issueType === 'Bug')
+        .filter((issue) => {
+          return issue.issueType === 'Bug';
+        })
         .map((issue) => issue.issueId);
 
       // Calculate matched done issue IDs
@@ -532,18 +542,18 @@ export class JiraService {
         .map((issue) => issue.issueId);
 
       // Calculate total done issues
-      const totalDoneTasks = doneIssues.filter(
-        (issue) => issue.issueType === 'Task' && issue.status === 'Done',
-      ).length;
+      const totalDoneTasks = doneIssues.filter((issue) => {
+        return issue.issueType === 'Task' && issue.status === 'Done';
+      }).length;
       const totalDoneStories = doneIssues.filter(
         (issue) =>
           (issue.issueType === 'Story' && issue.status === 'Done') ||
           issue.status === 'USER STORIES (Verified In Test)' ||
           issue.status === 'USER STORIES (Verified In Beta)',
       ).length;
-      const totalDoneBugs = doneIssues.filter(
-        (issue) => issue.issueType === 'Bug' && issue.status === 'Done',
-      ).length;
+      const totalDoneBugs = doneIssues.filter((issue) => {
+        return issue.issueType === 'Bug' && issue.status === 'Done';
+      }).length;
 
       // Calculate completion rates
       const totalNotDoneTasksAndBugs = counts.notDone.Task + counts.notDone.Bug;
@@ -598,12 +608,15 @@ export class JiraService {
 
       if (nonZeroCompletionRates.length > 0) {
         overallScore =
-          nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
-          nonZeroCompletionRates.length;
+          nonZeroCompletionRates.reduce((sum, rate) => {
+            return sum + rate;
+          }, 0) / nonZeroCompletionRates.length;
       }
 
       // Calculate code to bug ratio
-      const notDoneIssueIds = notDoneIssues.map((issue) => issue.issueId);
+      const notDoneIssueIds = notDoneIssues.map((issue) => {
+        return issue.issueId;
+      });
       const totalCompletedBugs = doneIssues.filter(
         (issue) =>
           issue.issueType === 'Bug' &&
@@ -639,7 +652,6 @@ export class JiraService {
       entry.comment = comment;
       entry.codeToBugRatio = codeToBugRatio;
 
-
       await user.save();
       await this.calculateCurrentPerformance(accountId, date);
 
@@ -661,53 +673,42 @@ export class JiraService {
     }
   }
 
-  async calculateCurrentPerformance(accountId: string, date: string) {
-    // Convert the provided date string to a Date object
+  async calculateCurrentPerformance(accountId: string, date: string): Promise<void> {
+    try{
     const endDate = new Date(date);
     const startDate = new Date(endDate);
-    startDate.setDate(endDate.getDate() - 30); // Subtract 30 days
+    startDate.setDate(endDate.getDate() - 30);
 
-    // Format startDate and endDate back to "YYYY-MM-DD" format
-    const formattedStartDate = startDate.toISOString().split('T')[0]; // "YYYY-MM-DD"
-    const formattedEndDate = endDate.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    const formattedStartDate = startDate.toISOString().split('T')[0];
+    const formattedEndDate = endDate.toISOString().split('T')[0];
 
-    // Find the user by accountId
     const user = await this.userModel.findOne({ accountId });
-    if (!user) {
-      throw new Error('User not found');
-    }
 
     const issueHistory = user.issueHistory;
 
     // Filter issue history for the last 30 days
     const filteredHistory = issueHistory.filter((entry) => {
-      const entryDate = entry.date; // entry.date is a "YYYY-MM-DD" string
+      const entryDate = entry.date;
       return entryDate >= formattedStartDate && entryDate <= formattedEndDate;
     });
 
-    // Initialize total score and valid days count
     let totalScore = 0;
     let validDaysCount = 0;
 
-    // Loop through the filtered issue history
     filteredHistory.forEach((entry) => {
       if (entry.comment !== 'holidays/leave') {
-        totalScore += entry.overallScore; // Sum the overallScore
-        validDaysCount++; // Count valid days (excluding holidays/leave)
+        totalScore += entry.overallScore;
+        validDaysCount++;
       }
     });
 
-    // The current performance is the total score divided by the valid days count (not 30)
     const currentPerformance =
       validDaysCount > 0 ? totalScore / validDaysCount : 0;
 
-    // Update user's current performance
     user.currentPerformance = currentPerformance;
     await user.save();
-
-    return {
-      message: 'Current performance calculated successfully',
-      currentPerformance,
-    };
+  } catch (error) {
+    handleError(error);
+  }
   }
 }

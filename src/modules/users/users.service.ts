@@ -364,7 +364,9 @@ export class UserService {
       const { issues, noOfBugs, comment, comments } = result.history[date];
 
       const sortedComments = comments
-        ? comments.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        ? comments.sort((a, b) => {
+            return b.timestamp.getTime() - a.timestamp.getTime();
+          })
         : [];
 
       return {
