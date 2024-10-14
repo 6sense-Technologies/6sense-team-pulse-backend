@@ -1,12 +1,12 @@
-import {  
-  BadRequestException,  
-  ConflictException,  
-  ForbiddenException,  
-  NotFoundException,  
-  UnauthorizedException,  
-  InternalServerErrorException  
-} from '@nestjs/common';  
-import { IiraErrorResponse } from '../interfaces/jira.interfaces';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { IJiraErrorResponse } from '../interfaces/jira.interfaces';
 
 export const handleError = (error: any): void => {
   let axiosResponse;
@@ -16,7 +16,7 @@ export const handleError = (error: any): void => {
     const errorCode = error.response?.statusText;
     let message = '';
 
-    const errorData = error.response?.data as IiraErrorResponse;
+    const errorData = error.response?.data as IJiraErrorResponse;
 
     if (errorData) {
       if (errorData.errorMessages && Array.isArray(errorData.errorMessages)) {

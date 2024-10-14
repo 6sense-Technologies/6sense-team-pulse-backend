@@ -70,6 +70,11 @@ export class JiraController {
     );
   }
 
+  @Put('user/:accountId')
+  async fetchAndUpdateUser(@Param('accountId') accountId: string) {
+    return await this.jiraService.fetchAndUpdateUser(accountId);
+  }
+
   @Put('planned-issues/:accountId/:date')
   async countNotDoneIssuesForToday(
     @Param('accountId') accountId: string,
@@ -108,7 +113,7 @@ export class JiraController {
     await this.jiraService.countDoneIssues(accountId, date);
   }
 
-  @Put('update-morning-issue-history') 
+  @Put('update-morning-issue-history')
   async updateMorningIssueHistory(): Promise<void> {
     await this.jiraService.updateMorningIssueHistory();
   }
@@ -139,7 +144,10 @@ export class JiraController {
     if (!accountId || accountId.trim() === '') {
       throw new BadRequestException('Account ID cannot be empty.');
     }
-    const result = await this.jiraService.calculateDailyMetrics(accountId, date);
+    const result = await this.jiraService.calculateDailyMetrics(
+      accountId,
+      date,
+    );
     return result;
   }
   @Put('current/:accountId/:date')
@@ -158,7 +166,10 @@ export class JiraController {
     if (!accountId || accountId.trim() === '') {
       throw new BadRequestException('Account ID cannot be empty.');
     }
-    const result = await this.jiraService.calculateCurrentPerformance(accountId, date);
+    const result = await this.jiraService.calculateCurrentPerformance(
+      accountId,
+      date,
+    );
     return result;
   }
 }

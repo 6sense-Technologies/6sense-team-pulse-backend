@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
@@ -172,11 +173,40 @@ export class JiraService {
     }
   }
 
+  async fetchAndUpdateUser(
+    accountId: string,
+  ): Promise<{ statusCode: number; message: string }> {
+    try {
+      const userDetails = await this.getUserDetails(accountId);
+
+      if (!userDetails) {
+        throw new BadRequestException('User not found in Jira');
+      }
+
+      const existingUser = await this.userModel.findOne({ accountId });
+      if (!existingUser) {
+        throw new NotFoundException('User does not exist in the database');
+      }
+
+      existingUser.displayName = userDetails.displayName;
+      existingUser.emailAddress = userDetails.emailAddress;
+      existingUser.avatarUrls = userDetails.avatarUrls['48x48'];
+
+      await existingUser.save();
+
+      return {
+        message: 'User updated successfully',
+        statusCode: 200,
+      };
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
   async countPlannedIssues(accountId: string, date: string): Promise<void> {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${date}`;
 
     try {
-      // Fetch issues from both JIRA endpoints concurrently
       const [response1, response2] = await Promise.all([
         lastValueFrom(
           this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
@@ -195,27 +225,22 @@ export class JiraService {
         ...response2.data.issues,
       ];
 
-      // Initialize structures for issue counts and issue details by date
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
-      // Fetch user data from the database
       const user = await this.userModel.findOne({ accountId });
 
-      // Check if there is already a history entry for this date
       const existingHistory = user.issueHistory.find(
         (history) => history.date === date,
       );
 
-      // If no issues are returned, clear the history for this date (if it exists) or return early
       if (notDoneIssues.length === 0) {
         if (existingHistory) {
           existingHistory.issuesCount.notDone = { Task: 0, Bug: 0, Story: 0 };
           existingHistory.notDoneIssues = [];
         } else {
-          // If there's no existing history, add a new empty entry
           user.issueHistory.push({
             date: date,
             issuesCount: { notDone: { Task: 0, Bug: 0, Story: 0 } },
@@ -226,7 +251,6 @@ export class JiraService {
         return;
       }
 
-      // Process the not-done issues and update counts/issues by date
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
@@ -242,7 +266,6 @@ export class JiraService {
 
           countsByDate[dueDate][issueType]++;
 
-          // Extract linked issues
           const linkedIssues = (issue.fields.issuelinks || [])
             .map((link) => {
               const linkedIssue = link.outwardIssue || link.inwardIssue;
@@ -268,7 +291,6 @@ export class JiraService {
         }
       });
 
-      // Update the existing history for the given date, or add a new one if none exists
       if (existingHistory) {
         existingHistory.issuesCount.notDone = countsByDate[date];
         existingHistory.notDoneIssues = issuesByDate[date];
@@ -280,10 +302,7 @@ export class JiraService {
         });
       }
 
-      // Save the user document with updated issue history
       await user.save();
-
-      // Fetch and save planned issues (if applicable)
       await this.userService.fetchAndSavePlannedIssues(accountId, date);
     } catch (error) {
       handleError(error);
@@ -294,7 +313,6 @@ export class JiraService {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
 
     try {
-      // Fetch issues from both JIRA endpoints concurrently
       const [response1, response2] = await Promise.all([
         lastValueFrom(
           this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
@@ -310,7 +328,6 @@ export class JiraService {
 
       const doneIssues = [...response1.data.issues, ...response2.data.issues];
 
-      // Initialize structures for issue counts and issue details by date
       const countsByDate: {
         [key: string]: {
           Task: number;
@@ -321,7 +338,6 @@ export class JiraService {
       } = {};
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
-      // Process the done issues and populate counts/issues by date
       for (const issue of doneIssues) {
         const dueDate = issue.fields.duedate?.split('T')[0];
         const issueType = issue.fields.issuetype.name;
@@ -340,7 +356,6 @@ export class JiraService {
             issuesByDate[dueDate] = [];
           }
 
-          // Count issue types only if status is 'Done' or relevant for Story
           if (issueType === 'Task' && status === 'Done') {
             countsByDate[dueDate].Task++;
           } else if (issueType === 'Bug' && status === 'Done') {
@@ -354,7 +369,6 @@ export class JiraService {
             countsByDate[dueDate].Story++;
           }
 
-          // Extract linked issues
           const linkedIssues = (issue.fields.issuelinks || [])
             .map((link) => {
               const linkedIssue = link.outwardIssue || link.inwardIssue;
@@ -382,21 +396,17 @@ export class JiraService {
         }
       }
 
-      // Fetch the user document from the database
       const user = await this.userModel.findOne({ accountId });
 
-      // Loop through each date and either update existing history or add new entries
       for (const [dueDate, counts] of Object.entries(countsByDate)) {
         const existingHistory = user.issueHistory.find(
           (history) => history.date === dueDate,
         );
 
         if (existingHistory) {
-          // Update existing history for this date
           existingHistory.issuesCount.done = counts;
           existingHistory.doneIssues = issuesByDate[dueDate];
         } else {
-          // Add a new history entry if none exists for this date
           user.issueHistory.push({
             date: dueDate,
             issuesCount: { done: counts },
@@ -405,10 +415,7 @@ export class JiraService {
         }
       }
 
-      // Save the user document with updated issue history
       await user.save();
-
-      // Fetch and save all issues (if applicable)
       await this.userService.fetchAndSaveAllIssues(accountId, date);
     } catch (error) {
       handleError(error);
@@ -473,12 +480,12 @@ export class JiraService {
 
       // Filter issue history for the specific date
       const entry = issueHistory.find((entry) => entry.date === date);
-      if (!entry) return null; // No entry found for the specified date
+      if (!entry) return null;
 
       const { issuesCount, notDoneIssues, doneIssues } = entry;
       const counts = issuesCount;
 
-      // Initialize metrics
+
       let taskCompletionRate = 0;
       let userStoryCompletionRate = 0;
       let overallScore = 0;
@@ -626,17 +633,15 @@ export class JiraService {
         );
       }
 
-      // Save metrics in user object
       entry.taskCompletionRate = taskCompletionRate;
       entry.userStoryCompletionRate = userStoryCompletionRate;
       entry.overallScore = overallScore;
       entry.comment = comment;
       entry.codeToBugRatio = codeToBugRatio;
 
-      // Save the user object with updated metrics
-      await user.save();
 
-      await this.calculateCurrentPerformance(user.accountId, date);
+      await user.save();
+      await this.calculateCurrentPerformance(accountId, date);
 
       return {
         date,

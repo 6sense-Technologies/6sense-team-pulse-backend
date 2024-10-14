@@ -363,13 +363,17 @@ export class UserService {
 
       const { issues, noOfBugs, comment, comments } = result.history[date];
 
+      const sortedComments = comments
+        ? comments.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        : [];
+
       return {
         userName: result.userName,
         accountId: result.accountId,
         issues,
-        noOfBugs,
-        comment,
-        comments: comments ?? [],
+        noOfBugs: noOfBugs || 0,
+        comment: comment || '',
+        comments: sortedComments,
       };
     } catch (error) {
       throw handleError(error);

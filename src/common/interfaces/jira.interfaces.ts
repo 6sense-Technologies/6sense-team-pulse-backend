@@ -67,7 +67,7 @@ export interface IGetIssuesByDateResponse {
   comments: IComment[];
 }
 
-export interface IiraErrorResponse {
+export interface IJiraErrorResponse {
   errorMessages?: string[];
   errors?: Record<string, any>;
   message?: string;
