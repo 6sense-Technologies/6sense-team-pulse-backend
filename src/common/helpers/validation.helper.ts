@@ -1,8 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
 
 export const validateAccountId = (accountId: string): void => {
-  if (!accountId || accountId.trim() === '') {
-    throw new BadRequestException('Account ID cannot be empty.');
+  const accountIdRegex = /^[a-zA-Z0-9]+$/; // Adjust regex as needed for your requirements
+  if (!accountIdRegex.test(accountId.trim())) {
+    throw new BadRequestException(
+      'Account ID must be alphanumeric and cannot be blank.',
+    );
   }
 };
 

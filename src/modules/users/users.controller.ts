@@ -9,7 +9,6 @@ import {
   Post,
 } from '@nestjs/common';
 import { UserService } from './users.service';
-import { Designation, Project } from './schemas/user.schema';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import {
   IAllUsers,
@@ -17,6 +16,7 @@ import {
   IUserIssuesByDate,
 } from './interfaces/users.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
+import { Designation, Project } from './enums/user.enum';
 
 @Controller('users')
 export class UserController {

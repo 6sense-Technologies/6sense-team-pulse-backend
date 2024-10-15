@@ -8,9 +8,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { TrelloService } from './trello.service';
-import { Designation, Project } from '../users/schemas/user.schema';
 import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
+import { Designation, Project } from '../users/enums/user.enum';
 
 @Controller('trello')
 export class TrelloController {
@@ -49,7 +49,7 @@ export class TrelloController {
       accountId: string;
       userFrom: string;
       designation: Designation;
-      project: Project;
+      project: Project[];
     },
   ): Promise<ISuccessResponse> {
     const { accountId, userFrom, designation, project } = body;

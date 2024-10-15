@@ -8,13 +8,17 @@ import {
   Put,
 } from '@nestjs/common';
 import { JiraService } from './jira.service';
-import { Designation, Project } from '../users/schemas/user.schema';
 import {
   IDailyMetrics,
   IJiraUserData,
   IJirsUserIssues,
   ISuccessResponse,
 } from 'src/common/interfaces/jira.interfaces';
+import { Designation, Project } from '../users/enums/user.enum';
+import {
+  validateAccountId,
+  validateDate,
+} from 'src/common/helpers/validation.helper';
 
 @Controller('jira')
 export class JiraController {
@@ -44,7 +48,7 @@ export class JiraController {
       accountId: string;
       userFrom: string;
       designation: Designation;
-      project: Project;
+      project: Project[];
     },
   ): Promise<ISuccessResponse> {
     const { accountId, userFrom, designation, project } = body;
@@ -82,16 +86,6 @@ export class JiraController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<void> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
-    if (!accountId || accountId.trim() === '') {
-      throw new BadRequestException('Account ID cannot be empty.');
-    }
     await this.jiraService.countPlannedIssues(accountId, date);
   }
 
@@ -100,16 +94,6 @@ export class JiraController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<void> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
-    if (!accountId || accountId.trim() === '') {
-      throw new BadRequestException('Account ID cannot be empty.');
-    }
     await this.jiraService.countDoneIssues(accountId, date);
   }
 
@@ -127,26 +111,12 @@ export class JiraController {
   async updateMorningIssueHistoryForSpecificDate(
     @Param('date') date: string,
   ): Promise<void> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
     await this.jiraService.updateMorningIssueHistoryForSpecificDate(date);
   }
   @Put('update-evening-issue-history/:date')
   async updateEveningIssueHistoryForSpecificDate(
     @Param('date') date: string,
   ): Promise<void> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
     await this.jiraService.updateEveningIssueHistoryForSpecificDate(date);
   }
 
@@ -155,16 +125,6 @@ export class JiraController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<void> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
-    if (!accountId || accountId.trim() === '') {
-      throw new BadRequestException('Account ID cannot be empty.');
-    }
     await this.jiraService.updateMorningIssueHistoryForSpecificUser(
       accountId,
       date,
@@ -176,16 +136,6 @@ export class JiraController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<void> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
-    if (!accountId || accountId.trim() === '') {
-      throw new BadRequestException('Account ID cannot be empty.');
-    }
     await this.jiraService.updateEveningIssueHistoryForSpecificUser(
       accountId,
       date,
@@ -197,16 +147,6 @@ export class JiraController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<IDailyMetrics> {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (!dateRegex.test(date)) {
-      throw new BadRequestException(
-        'Invalid date format. Please use YYYY-MM-DD.',
-      );
-    }
-    if (!accountId || accountId.trim() === '') {
-      throw new BadRequestException('Account ID cannot be empty.');
-    }
     return await this.jiraService.calculateDailyMetrics(accountId, date);
   }
 }

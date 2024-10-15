@@ -8,12 +8,7 @@ import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import {
-  Designation,
-  IIssue,
-  Project,
-  User,
-} from '../users/schemas/user.schema';
+import { IIssue, User } from '../users/schemas/user.schema';
 import {
   IDailyMetrics,
   IJiraIssue,
@@ -25,6 +20,11 @@ import { TrelloService } from '../trello/trello.service';
 import { UserService } from '../users/users.service';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { handleError } from 'src/common/helpers/error.helper';
+import { Designation, Project } from '../users/enums/user.enum';
+import {
+  validateAccountId,
+  validateDate,
+} from 'src/common/helpers/validation.helper';
 
 dotenv.config();
 
@@ -32,7 +32,7 @@ dotenv.config();
 export class JiraService {
   private readonly jiraBaseUrl1 = process.env.JIRA_BASE_URL1;
   private readonly jiraBaseUrl2 = process.env.JIRA_BASE_URL2;
-  private readonly jiraBaseUrl3 = process.env.JIRA_BASE_URL3; // Add third base URL
+  private readonly jiraBaseUrl3 = process.env.JIRA_BASE_URL3;
   private readonly headers = {
     Authorization: `Basic ${Buffer.from(
       `${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`,
@@ -53,7 +53,7 @@ export class JiraService {
     try {
       const url1 = `${this.jiraBaseUrl1}${endpoint}`;
       const url2 = `${this.jiraBaseUrl2}${endpoint}`;
-      const url3 = `${this.jiraBaseUrl3}${endpoint}`; // URL 3
+      const url3 = `${this.jiraBaseUrl3}${endpoint}`;
 
       const [response1, response2, response3] = await Promise.all([
         firstValueFrom(this.httpService.get(url1, { headers: this.headers })),
@@ -72,8 +72,8 @@ export class JiraService {
   }
 
   async getUserDetails(accountId: string): Promise<IJiraUserData> {
+    validateAccountId(accountId);
     const endpoint = `/rest/api/3/user?accountId=${accountId}`;
-
     try {
       const response1 = await firstValueFrom(
         this.httpService.get(`${this.jiraBaseUrl1}${endpoint}`, {
@@ -117,6 +117,8 @@ export class JiraService {
     date: string,
   ): Promise<IJirsUserIssues[]> {
     try {
+      validateAccountId(accountId);
+      validateDate(date);
       const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
       const data = await this.fetchFromAllUrls(endpoint);
 
@@ -156,16 +158,18 @@ export class JiraService {
     accountId: string,
     userFrom: string,
     designation: Designation,
-    project: Project,
+    project: Project[],
   ): Promise<ISuccessResponse> {
     try {
       if (!Object.values(Designation).includes(designation)) {
         throw new BadRequestException('Invalid designation');
       }
 
-      if (!Object.values(Project).includes(project)) {
-        throw new BadRequestException('Invalid project');
-      }
+      project.forEach((proj) => {
+        if (!Object.values(Project).includes(proj)) {
+          throw new BadRequestException('Invalid project');
+        }
+      });
 
       const userDetails = await this.getUserDetails(accountId);
 
@@ -197,6 +201,7 @@ export class JiraService {
 
   async fetchAndUpdateUser(accountId: string): Promise<ISuccessResponse> {
     try {
+      validateAccountId(accountId);
       const userDetails = await this.getUserDetails(accountId);
 
       if (!userDetails) {
@@ -224,9 +229,10 @@ export class JiraService {
   }
 
   async countPlannedIssues(accountId: string, date: string): Promise<void> {
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${date}`;
-
     try {
+      validateAccountId(accountId);
+      validateDate(date);
+      const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${date}`;
       const responses = await Promise.all([
         lastValueFrom(
           this.httpService.get(`${this.jiraBaseUrl1}${endpoint}`, {
@@ -334,9 +340,11 @@ export class JiraService {
   }
 
   async countDoneIssues(accountId: string, date: string): Promise<void> {
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
-
     try {
+      validateAccountId(accountId);
+      validateDate(date);
+      const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
+
       const responses = await Promise.all([
         lastValueFrom(
           this.httpService.get(`${this.jiraBaseUrl1}${endpoint}`, {
@@ -504,6 +512,7 @@ export class JiraService {
 
   async updateMorningIssueHistoryForSpecificDate(date: string): Promise<void> {
     try {
+      validateDate(date);
       const users = await this.userModel.find().exec();
 
       const userPromises = users.map(async (user) => {
@@ -523,6 +532,7 @@ export class JiraService {
 
   async updateEveningIssueHistoryForSpecificDate(date: string): Promise<void> {
     try {
+      validateDate(date);
       const users = await this.userModel.find().exec();
 
       const today = new Date(
@@ -552,6 +562,8 @@ export class JiraService {
     date: string,
   ): Promise<void> {
     try {
+      validateAccountId(accountId);
+      validateDate(date);
       const user = await this.userModel.findOne({ accountId }).exec();
 
       if (!user) {
@@ -575,6 +587,8 @@ export class JiraService {
     date: string,
   ): Promise<void> {
     try {
+      validateAccountId(accountId);
+      validateDate(date);
       const user = await this.userModel.findOne({ accountId }).exec();
 
       const today = new Date(
@@ -605,14 +619,14 @@ export class JiraService {
     date: string,
   ): Promise<IDailyMetrics> {
     try {
+      validateAccountId(accountId);
+      validateDate(date);
       const user = await this.userModel.findOne({ accountId });
       const issueHistory = user.issueHistory;
 
-      // Filter issue history for the specific date
       const entry = issueHistory.find((entry) => {
         return entry.date === date;
       });
-      if (!entry) return null;
 
       const { issuesCount, notDoneIssues, doneIssues } = entry;
       const counts = issuesCount;
@@ -833,7 +847,6 @@ export class JiraService {
 
       const issueHistory = user.issueHistory;
 
-      // Filter issue history for the last 30 days
       const filteredHistory = issueHistory.filter((entry) => {
         const entryDate = entry.date;
         return entryDate >= formattedStartDate && entryDate <= formattedEndDate;

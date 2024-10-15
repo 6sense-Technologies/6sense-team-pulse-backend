@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './users.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { Designation, Project, User } from './schemas/user.schema';
+import { User } from './schemas/user.schema';
 import { IssueHistory } from './schemas/IssueHistory.schems';
 import { IssueEntry } from './schemas/IssueEntry.schema';
 import { Model } from 'mongoose';
@@ -12,6 +12,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { Designation, Project } from './enums/user.enum';
 
 const mockUser = {
   accountId: '1',
