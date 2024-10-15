@@ -49,7 +49,7 @@ export class TrelloController {
       accountId: string;
       userFrom: string;
       designation: Designation;
-      project: Project[];
+      project: Project;
     },
   ): Promise<ISuccessResponse> {
     const { accountId, userFrom, designation, project } = body;

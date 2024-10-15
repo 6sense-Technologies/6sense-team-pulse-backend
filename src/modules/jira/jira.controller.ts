@@ -15,10 +15,6 @@ import {
   ISuccessResponse,
 } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/enums/user.enum';
-import {
-  validateAccountId,
-  validateDate,
-} from 'src/common/helpers/validation.helper';
 
 @Controller('jira')
 export class JiraController {
@@ -48,7 +44,7 @@ export class JiraController {
       accountId: string;
       userFrom: string;
       designation: Designation;
-      project: Project[];
+      project: Project;
     },
   ): Promise<ISuccessResponse> {
     const { accountId, userFrom, designation, project } = body;

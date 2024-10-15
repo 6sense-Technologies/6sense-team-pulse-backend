@@ -18,3 +18,8 @@ export interface ITrelloCard {
   boardName: string;
   dueDate: string | null;
 }
+
+export interface ITrelloCredentials {
+  key: string | undefined;
+  token: string | undefined;
+}

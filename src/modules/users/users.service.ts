@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -177,7 +176,6 @@ export class UserService {
       const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      // Check for issue history for the given date
       const notDoneIssues =
         user.issueHistory.find((history) => {
           return history.date === dateString;
@@ -233,44 +231,37 @@ export class UserService {
       const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      // Fetch the user's issue history or create a new one if it doesn't exist
-      let issueHistory = await this.issueHistoryModel
+      const issueHistory = await this.issueHistoryModel
         .findOne({ accountId: user.accountId })
         .exec();
 
-      // Get the specific date history or create a new entry if it doesn't exist
       const specificDateHistory = issueHistory.history[dateString] || {
         issues: [],
       };
 
-      // Get the done issues for the user on the specified date
       const doneIssues =
         user.issueHistory.find((history) => {
           return history.date === dateString;
         })?.doneIssues || [];
 
-      // Create a set of done issue IDs for quick lookup
       const doneIssueIds = new Set(
         doneIssues.map((issue) => {
           return issue.issueId;
         }),
       );
 
-      // Create a set of not done issue IDs for comparison
       const notDoneIssueIds = new Set(
         specificDateHistory.issues.map((issue) => {
           return issue.issueId;
         }),
       );
 
-      // Update the status of "not done" issues that are now done
       specificDateHistory.issues = specificDateHistory.issues.map((issue) => {
         if (doneIssueIds.has(issue.issueId)) {
           const matchedDoneIssue = doneIssues.find((done) => {
             return done.issueId === issue.issueId;
           });
 
-          // Update the issue status and linked issue IDs
           const linkedIssueIdsSet = new Set<string>();
           matchedDoneIssue?.issueLinks?.forEach((link) => {
             linkedIssueIdsSet.add(link.issueId);
@@ -285,7 +276,6 @@ export class UserService {
         return issue;
       });
 
-      // Prepare new done issues that are not already in today's not done issues
       const newDoneIssueEntries: IssueEntry[] = doneIssues
         .filter((issue) => {
           return !notDoneIssueIds.has(issue.issueId);
@@ -296,7 +286,6 @@ export class UserService {
             linkedIssueIdsSet.add(link.issueId);
           });
 
-          // Create a new IssueEntry instance
           return new this.issueEntryModel({
             serialNumber: specificDateHistory.issues.length + index + 1,
             issueType: issue.issueType,
@@ -307,7 +296,6 @@ export class UserService {
           });
         });
 
-      // Add the new done issues to the history for the specified date
       specificDateHistory.issues.push(...newDoneIssueEntries);
       await this.issueHistoryModel.findOneAndUpdate(
         { userName: user.displayName, accountId: user.accountId },

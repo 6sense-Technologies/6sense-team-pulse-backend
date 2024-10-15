@@ -165,9 +165,9 @@ const mockIssueEntryModel = jest.fn().mockImplementation((data) => {
 
 describe('UserService', () => {
   let userService: UserService;
-  let userModel: Model<User>;
-  let issueHistoryModel: Model<IssueHistory>;
-  let issueEntryModel: Model<IssueEntry>;
+  // let userModel: Model<User>;
+  // let issueHistoryModel: Model<IssueHistory>;
+  // let issueEntryModel: Model<IssueEntry>;
   let configService: ConfigService;
 
   beforeEach(async () => {
@@ -192,13 +192,13 @@ describe('UserService', () => {
 
     userService = module.get<UserService>(UserService);
     configService = module.get<ConfigService>(ConfigService);
-    userModel = module.get<Model<User>>(getModelToken(User.name));
-    issueHistoryModel = module.get<Model<IssueHistory>>(
-      getModelToken(IssueHistory.name),
-    );
-    issueEntryModel = module.get<Model<IssueEntry>>(
-      getModelToken(IssueEntry.name),
-    );
+    // userModel = module.get<Model<User>>(getModelToken(User.name));
+    // issueHistoryModel = module.get<Model<IssueHistory>>(
+    //   getModelToken(IssueHistory.name),
+    // );
+    // issueEntryModel = module.get<Model<IssueEntry>>(
+    //   getModelToken(IssueEntry.name),
+    // );
   });
 
   afterEach(() => {

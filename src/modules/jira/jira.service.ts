@@ -158,18 +158,16 @@ export class JiraService {
     accountId: string,
     userFrom: string,
     designation: Designation,
-    project: Project[],
+    project: Project,
   ): Promise<ISuccessResponse> {
     try {
       if (!Object.values(Designation).includes(designation)) {
         throw new BadRequestException('Invalid designation');
       }
 
-      project.forEach((proj) => {
-        if (!Object.values(Project).includes(proj)) {
-          throw new BadRequestException('Invalid project');
-        }
-      });
+      if (!Object.values(Project).includes(project)) {
+        throw new BadRequestException('Invalid project');
+      }
 
       const userDetails = await this.getUserDetails(accountId);
 

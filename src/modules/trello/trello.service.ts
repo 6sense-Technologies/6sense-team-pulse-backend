@@ -11,6 +11,7 @@ import { Model } from 'mongoose';
 import {
   ITrelloBoard,
   ITrelloCard,
+  ITrelloCredentials,
   ITrelloUsers,
 } from './interfaces/trello.interfaces';
 import { firstValueFrom } from 'rxjs';
@@ -42,16 +43,14 @@ export class TrelloService {
     // Constructor for injecting userModel
   }
 
-  // First, try the credentials of workspace 1
-  private getWorkspace1Credentials() {
+  private getWorkspace1Credentials(): ITrelloCredentials {
     return {
       key: process.env.TRELLO_API_KEY,
       token: process.env.TRELLO_SECRET_KEY,
     };
   }
 
-  // Fallback: try the credentials of workspace 2
-  private getWorkspace2Credentials() {
+  private getWorkspace2Credentials(): ITrelloCredentials {
     return {
       key: process.env.TRELLO_API_KEY2,
       token: process.env.TRELLO_SECRET_KEY2,
@@ -102,9 +101,7 @@ export class TrelloService {
       const boardDetails = await this.getBoards();
       const endpoint = `/boards/{boardId}/members`;
 
-      // Create an array of promises for the API calls
       const requests = this.boardIds.map((boardId) => {
-        // Determine which workspace the board belongs to
         const isWorkspace1Board =
           boardId === process.env.TRELLO_BOARD_ID_1 ||
           boardId === process.env.TRELLO_BOARD_ID_2;
@@ -131,10 +128,8 @@ export class TrelloService {
         });
       });
 
-      // Wait for all requests to complete
       const responses = await Promise.all(requests);
 
-      // Flatten the users array and enrich it with board information
       const users = responses.flatMap(({ boardId, boardName, users }) => {
         return users.map((user) => {
           return {
@@ -177,7 +172,6 @@ export class TrelloService {
         ),
       ]);
 
-      // Check if any response was successful
       const fulfilledResult = results.find(
         (result) => result.status === 'fulfilled',
       );
@@ -228,14 +222,12 @@ export class TrelloService {
 
       const allBoards = [...boards1, ...boards2];
 
-      // Function to fetch cards for a specific board
       const fetchCardsForBoard = async (
         boardId: string,
         boardName: string,
         key: string,
         token: string,
       ): Promise<ITrelloCard[]> => {
-        // Fetch lists for the board
         const listsResponse = await firstValueFrom(
           this.httpService.get(
             `${this.trelloBaseUrl}/boards/${boardId}/lists`,
@@ -250,10 +242,8 @@ export class TrelloService {
 
         const lists = listsResponse.data;
 
-        // Step 3: Fetch cards for each list in the board
         const cards = await Promise.all(
           lists.map(async (list) => {
-            // Fetch cards for the current list
             const cardsResponse = await firstValueFrom(
               this.httpService.get(
                 `${this.trelloBaseUrl}/lists/${list.id}/cards`,
@@ -266,7 +256,6 @@ export class TrelloService {
               ),
             );
 
-            // Filter cards that belong to the user and are due on the specified date
             return cardsResponse.data
               .filter((card) => {
                 return (
@@ -289,7 +278,6 @@ export class TrelloService {
         return cards.flat();
       };
 
-      // Step 4: Fetch cards for all boards
       const allCards = await Promise.all(
         allBoards.map((board) => {
           const key =
@@ -315,18 +303,16 @@ export class TrelloService {
     accountId: string,
     userFrom: string,
     designation: Designation,
-    project: Project[],
+    project: Project,
   ): Promise<ISuccessResponse> {
     try {
       if (!Object.values(Designation).includes(designation)) {
         throw new BadRequestException('Invalid designation');
       }
 
-      project.forEach((proj) => {
-        if (!Object.values(Project).includes(proj)) {
-          throw new BadRequestException('Invalid project');
-        }
-      });
+      if (!Object.values(Project).includes(project)) {
+        throw new BadRequestException('Invalid project');
+      }
 
       const memberDetails = await this.getUserDetails(accountId);
 
@@ -362,23 +348,19 @@ export class TrelloService {
       validateDate(date);
       const dateString = new Date(date).toISOString().split('T')[0];
 
-      // Fetch user cards
       const userCards = await this.getUserIssues(accountId, date);
 
-      // Prepare storage for counts and issues
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
-      // Step 1: Filter out not done issues that are due on the specified date
       const notDoneIssues = userCards.filter((card) => {
         return (
           card.listName !== 'Done' && card.dueDate?.split('T')[0] === dateString
         );
       });
 
-      // If no issues are found, save zero counts and exit
       const user = await this.userModel.findOne({ accountId });
 
       if (notDoneIssues.length === 0) {
@@ -399,14 +381,12 @@ export class TrelloService {
         return;
       }
 
-      // Step 2: Process each not done issue
       notDoneIssues.forEach((card) => {
         const dueDate = card.dueDate.split('T')[0];
         const issueId = card.cardId;
         const summary = card.cardName;
         const status = card.listName;
 
-        // Determine the issue type based on the list name
         let issueType: 'Task' | 'Bug' | 'Story' = 'Task';
         if (card.listName === 'Bug') {
           issueType = 'Bug';
@@ -414,16 +394,13 @@ export class TrelloService {
           issueType = 'Story';
         }
 
-        // Initialize counts if the date entry does not exist
         if (!countsByDate[dueDate]) {
           countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
           issuesByDate[dueDate] = [];
         }
 
-        // Increment the count for the issue type
         countsByDate[dueDate][issueType]++;
 
-        // Add the issue to the issuesByDate array
         issuesByDate[dueDate].push({
           issueId,
           summary,
@@ -433,7 +410,6 @@ export class TrelloService {
         });
       });
 
-      // Step 3: Save the counts and issues for the specified date
       for (const date in countsByDate) {
         const existingHistory = user.issueHistory.find((history) => {
           return history.date === date;
@@ -467,32 +443,27 @@ export class TrelloService {
       const user = await this.userModel.findOne({ accountId }).exec();
       const dateString = new Date(date).toISOString().split('T')[0];
 
-      // Get not done issues for the provided date from the user's issue history
       const notDoneIssues =
         user?.issueHistory.find((entry) => {
           return entry.date === dateString;
         })?.notDoneIssues || [];
 
-      // Prepare storage for counts and issues
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
-      // Step 2: Loop through all user cards to count done issues
       userCards.forEach((card) => {
         const dueDate = card.dueDate.split('T')[0];
         const issueId = card.cardId;
         const summary = card.name;
         const status = card.listName;
 
-        // Initialize the date entry if it doesn't exist
         if (!countsByDate[dueDate]) {
           countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
           issuesByDate[dueDate] = [];
         }
 
-        // Store the issue in the issuesByDate array
         issuesByDate[dueDate].push({
           issueId,
           summary,
@@ -500,9 +471,7 @@ export class TrelloService {
           dueDate,
         });
 
-        // Step 3: Only process cards in the "Done" list for counting
         if (card.listName === 'Done') {
-          // Try to find the matching not done issue by issueId
           const matchingNotDoneIssue = notDoneIssues.find((notDoneIssue) => {
             return notDoneIssue.issueId === card.cardId;
           });
