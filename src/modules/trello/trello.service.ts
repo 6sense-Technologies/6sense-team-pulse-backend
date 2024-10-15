@@ -72,10 +72,12 @@ export class TrelloService {
       }),
     );
 
-    return response.data.map((board: { id: string; name: string }) => ({
-      id: board.id,
-      name: board.name,
-    }));
+    return response.data.map((board: { id: string; name: string }) => {
+      return {
+        id: board.id,
+        name: board.name,
+      };
+    });
   }
 
   async getBoards(): Promise<ITrelloBoard[]> {
@@ -91,9 +93,9 @@ export class TrelloService {
       .filter((result) => {
         return result.status === 'fulfilled';
       })
-      .flatMap(
-        (result) => (result as PromiseFulfilledResult<ITrelloBoard[]>).value,
-      );
+      .flatMap((result) => {
+        return (result as PromiseFulfilledResult<ITrelloBoard[]>).value;
+      });
 
     return boards;
   }
@@ -214,11 +216,12 @@ export class TrelloService {
         ),
       );
 
-      const boards1 = boardsResponse1.data.filter((board) =>
-        [process.env.TRELLO_BOARD_ID_1, process.env.TRELLO_BOARD_ID_2].includes(
-          board.id,
-        ),
-      );
+      const boards1 = boardsResponse1.data.filter((board) => {
+        return [
+          process.env.TRELLO_BOARD_ID_1,
+          process.env.TRELLO_BOARD_ID_2,
+        ].includes(board.id);
+      });
 
       const boards2 = boardsResponse2.data.filter((board) => {
         return [process.env.TRELLO_BOARD_ID_3].includes(board.id);
