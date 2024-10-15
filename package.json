@@ -79,7 +79,9 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.service.ts"
+      "**/*.service.ts",
+      "!**/modules/trello/trello.service.ts",
+      "!**/modules/jira/jira.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

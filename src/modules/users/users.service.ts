@@ -235,16 +235,8 @@ export class UserService {
 
       // Fetch the user's issue history or create a new one if it doesn't exist
       let issueHistory = await this.issueHistoryModel
-        .findOne({ userName: user.displayName })
+        .findOne({ accountId: user.accountId })
         .exec();
-
-      if (!issueHistory) {
-        issueHistory = new this.issueHistoryModel({
-          userName: user.displayName,
-          accountId: user.accountId,
-          history: {},
-        });
-      }
 
       // Get the specific date history or create a new entry if it doesn't exist
       const specificDateHistory = issueHistory.history[dateString] || {
@@ -397,10 +389,6 @@ export class UserService {
         throw new ForbiddenException('Invalid or missing token');
       }
 
-      if (noOfBugs === undefined || noOfBugs === null) {
-        throw new BadRequestException('Number of bugs is required');
-      }
-
       const user = await this.userModel.findOne({ accountId });
       if (!user) {
         throw new NotFoundException('User not found');
@@ -462,7 +450,6 @@ export class UserService {
         );
       }
 
-      // Create a new comment
       const newComment = {
         comment,
         timestamp: new Date(),

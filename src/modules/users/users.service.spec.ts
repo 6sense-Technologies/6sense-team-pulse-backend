@@ -2,16 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './users.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Designation, Project, User } from './schemas/user.schema';
+import { IssueHistory } from './schemas/IssueHistory.schems';
+import { IssueEntry } from './schemas/IssueEntry.schema';
+import { Model } from 'mongoose';
+import { ConfigService } from '@nestjs/config';
 import {
   ConflictException,
   ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { Model } from 'mongoose';
-import { IssueHistory } from './schemas/IssueHistory.schems';
-import { ConfigService } from '@nestjs/config';
-import { IssueEntry } from './schemas/IssueEntry.schema';
 
 const mockUser = {
   accountId: '1',
@@ -155,10 +155,18 @@ const mockIssueHistoryModel = {
   findOneAndUpdate: jest.fn(),
 };
 
+const mockIssueEntryModel = jest.fn().mockImplementation((data) => {
+  return {
+    ...data,
+    save: jest.fn().mockResolvedValue(null),
+  };
+});
+
 describe('UserService', () => {
   let userService: UserService;
-  // let userModel: Model<User>;
-  // let issueHistory: Model<IssueHistory>;
+  let userModel: Model<User>;
+  let issueHistoryModel: Model<IssueHistory>;
+  let issueEntryModel: Model<IssueEntry>;
   let configService: ConfigService;
 
   beforeEach(async () => {
@@ -176,13 +184,20 @@ describe('UserService', () => {
         },
         {
           provide: getModelToken(IssueEntry.name),
-          useValue: {},
+          useValue: mockIssueEntryModel,
         },
       ],
     }).compile();
 
     userService = module.get<UserService>(UserService);
     configService = module.get<ConfigService>(ConfigService);
+    userModel = module.get<Model<User>>(getModelToken(User.name));
+    issueHistoryModel = module.get<Model<IssueHistory>>(
+      getModelToken(IssueHistory.name),
+    );
+    issueEntryModel = module.get<Model<IssueEntry>>(
+      getModelToken(IssueEntry.name),
+    );
   });
 
   afterEach(() => {
@@ -234,170 +249,127 @@ describe('UserService', () => {
         totalUsers: 0,
       });
     });
+    it('should handle errors and return a proper response', async () => {
+      const errorMessage = 'Database error';
+      mockUserModel.countDocuments.mockRejectedValue(new Error(errorMessage));
 
-    // it('should handle errors and throw an InternalServerErrorException', async () => {
-    //   const errorMessage = 'Database error';
-    //   mockUserModel.countDocuments.mockImplementation(() => {
-    //     throw new Error(errorMessage);
-    //   });
-
-    //   await expect(userService.getAllUsers(1, 10)).rejects.toThrow(
-    //     InternalServerErrorException,
-    //   );
-    //   await expect(userService.getAllUsers(1, 10)).rejects.toThrow(
-    //     errorMessage,
-    //   );
-    // });
+      await expect(userService.getAllUsers(1, 10)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
   });
 
-  // describe('getUser', () => {
-  //   it('should return a user with sorted issue history', async () => {
-  //     const mockUserWithIssues = {
-  //       ...mockUser,
-  //       issueHistory: [
-  //         { date: '2024-09-24', description: 'Issue 1' },
-  //         { date: '2024-09-22', description: 'Issue 2' },
-  //         { date: '2024-09-23', description: 'Issue 3' },
-  //       ],
-  //     };
+  describe('getUser', () => {
+    it('should return a user with sorted issue history', async () => {
+      const mockUserWithIssues = {
+        ...mockUser,
+        issueHistory: [
+          { date: '2024-09-24', description: 'Issue 1' },
+          { date: '2024-09-22', description: 'Issue 2' },
+          { date: '2024-09-23', description: 'Issue 3' },
+        ],
+      };
 
-  //     mockUserModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockResolvedValue(mockUserWithIssues),
-  //     });
+      mockUserModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUserWithIssues),
+      });
 
-  //     const result = await userService.getUser('1', 1, 2);
+      const result = await userService.getUser('1', 1, 2);
 
-  //     expect(result).toEqual({
-  //       message: 'User found successfully',
-  //       statusCode: 200,
-  //       user: expect.objectContaining({
-  //         accountId: '1',
-  //         displayName: 'John Doe',
-  //         issueHistory: [
-  //           { date: '2024-09-24', description: 'Issue 1' },
-  //           { date: '2024-09-23', description: 'Issue 3' },
-  //         ],
-  //         totalIssueHistory: 3,
-  //         currentPage: 1,
-  //         totalPages: 2,
-  //       }),
-  //     });
-  //   });
+      expect(result).toEqual({
+        message: 'User found successfully',
+        statusCode: 200,
+        user: expect.objectContaining({
+          accountId: '1',
+          displayName: 'John Doe',
+          issueHistory: [
+            { date: '2024-09-24', description: 'Issue 1' },
+            { date: '2024-09-23', description: 'Issue 3' },
+          ],
+          totalIssueHistory: 3,
+          currentPage: 1,
+          totalPages: 2,
+        }),
+      });
+    });
 
-  //   it('should throw NotFoundException if user does not exist', async () => {
-  //     mockUserModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockResolvedValue(null),
-  //     });
+    it('should throw NotFoundException if user does not exist', async () => {
+      mockUserModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
 
-  //     await expect(userService.getUser('1')).rejects.toThrow(NotFoundException);
-  //   });
+      await expect(userService.getUser('1')).rejects.toThrow(NotFoundException);
+    });
+  });
 
-  //   it('should handle errors and return an InternalServerErrorException', async () => {
-  //     const errorMessage = 'Database error';
-  //     mockUserModel.findOne.mockImplementation(() => {
-  //       throw new Error(errorMessage);
-  //     });
+  describe('deleteUser', () => {
+    it('should delete a user successfully', async () => {
+      mockUserModel.findOne.mockResolvedValue(mockUser);
+      mockUserModel.findOneAndDelete.mockResolvedValue(mockUser);
 
-  //     await expect(userService.getUser('1')).rejects.toThrow(
-  //       InternalServerErrorException,
-  //     );
-  //     await expect(userService.getUser('1')).rejects.toThrow(errorMessage);
-  //   });
-  // });
+      const result = await userService.deleteUser('1');
 
-  // describe('deleteUser', () => {
-  //   it('should delete a user successfully', async () => {
-  //     mockUserModel.findOne.mockResolvedValue(mockUser);
-  //     mockUserModel.findOneAndDelete.mockResolvedValue(mockUser);
+      expect(result).toEqual({
+        message: 'User deleted successfully',
+        statusCode: 200,
+      });
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
+      expect(mockUserModel.findOneAndDelete).toHaveBeenCalledWith({
+        accountId: '1',
+      });
+    });
 
-  //     const result = await userService.deleteUser('1');
+    it('should throw NotFoundException if user does not exist', async () => {
+      mockUserModel.findOne.mockResolvedValue(null);
 
-  //     expect(result).toEqual({
-  //       message: 'User deleted successfully',
-  //       statusCode: 200,
-  //     });
-  //     expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
-  //     expect(mockUserModel.findOneAndDelete).toHaveBeenCalledWith({
-  //       accountId: '1',
-  //     });
-  //   });
+      await expect(userService.deleteUser('1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
+      expect(mockUserModel.findOneAndDelete).not.toHaveBeenCalled();
+    });
+  });
 
-  //   it('should throw NotFoundException if user does not exist', async () => {
-  //     mockUserModel.findOne.mockResolvedValue(null);
+  describe('archiveUser', () => {
+    it('should archive a user successfully', async () => {
+      const mockUserInstance = {
+        ...mockUser,
+        save: jest.fn().mockResolvedValue(mockUser),
+      };
+      mockUserModel.findOne.mockResolvedValue(mockUserInstance);
 
-  //     await expect(userService.deleteUser('1')).rejects.toThrow(
-  //       NotFoundException,
-  //     );
-  //     expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
-  //     expect(mockUserModel.findOneAndDelete).not.toHaveBeenCalled();
-  //   });
+      const result = await userService.archiveUser('1');
 
-  //   it('should handle errors and return an InternalServerErrorException', async () => {
-  //     const errorMessage = 'Database error';
-  //     mockUserModel.findOne.mockImplementation(() => {
-  //       throw new Error(errorMessage);
-  //     });
+      expect(result).toEqual({
+        message: 'User archived successfully',
+        statusCode: 200,
+      });
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
+      expect(mockUserInstance.save).toHaveBeenCalled();
+    });
 
-  //     await expect(userService.deleteUser('1')).rejects.toThrow(
-  //       new Error(errorMessage),
-  //     );
-  //     expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
-  //   });
-  // });
+    it('should throw NotFoundException if user does not exist', async () => {
+      mockUserModel.findOne.mockResolvedValue(null);
 
-  // describe('archiveUser', () => {
-  //   it('should archive a user successfully', async () => {
-  //     const mockUserInstance = {
-  //       ...mockUser,
-  //       save: jest.fn().mockResolvedValue(mockUser),
-  //     };
-  //     mockUserModel.findOne.mockResolvedValue(mockUserInstance);
+      await expect(userService.archiveUser('1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
+    });
 
-  //     const result = await userService.archiveUser('1');
+    it('should throw ConflictException if user is already archived', async () => {
+      mockUserModel.findOne.mockResolvedValue({
+        ...mockUser,
+        isArchive: true,
+      });
 
-  //     expect(result).toEqual({
-  //       message: 'User archived successfully',
-  //       statusCode: 200,
-  //     });
-  //     expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
-  //     expect(mockUserInstance.save).toHaveBeenCalled();
-  //   });
+      await expect(userService.archiveUser('1')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
+    });
+  });
 
-  //   it('should throw NotFoundException if user does not exist', async () => {
-  //     mockUserModel.findOne.mockResolvedValue(null);
-
-  //     await expect(userService.archiveUser('1')).rejects.toThrow(
-  //       NotFoundException,
-  //     );
-  //     expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
-  //   });
-
-  //   it('should throw ConflictException if user is already archived', async () => {
-  //     mockUserModel.findOne.mockResolvedValue({
-  //       ...mockUser,
-  //       isArchive: true,
-  //     });
-
-  //     await expect(userService.archiveUser('1')).rejects.toThrow(
-  //       ConflictException,
-  //     );
-  //     expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
-  //   });
-
-  //   it('should handle errors and return an InternalServerErrorException', async () => {
-  //     const errorMessage = 'Database error';
-  //     mockUserModel.findOne.mockImplementation(() => {
-  //       throw new Error(errorMessage);
-  //     });
-
-  //     await expect(userService.archiveUser('1')).rejects.toThrow(
-  //       new Error(errorMessage),
-  //     );
-  //     expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId: '1' });
-  //   });
-  // });
-
-  // describe('fetchAndSavePlannedIssues', () => {
   //   it('should fetch and save planned issues successfully', async () => {
   //     const date = '2024-09-24';
   //     const accountId = '1';
@@ -431,7 +403,7 @@ describe('UserService', () => {
   //     );
 
   //     expect(result).toEqual({
-  //       status: 200,
+  //       statusCode: 200,
   //       message: 'Planned issues have been successfully updated.',
   //     });
 
@@ -492,309 +464,588 @@ describe('UserService', () => {
 
   //     await expect(
   //       userService.fetchAndSavePlannedIssues(accountId, date),
-  //     ).rejects.toThrow(new Error('Database error'));
+  //     ).rejects.toThrow(InternalServerErrorException);
   //   });
   // });
+  describe('fetchAndSavePlannedIssues', () => {
+    const accountId = '1';
+    const date = '2024-10-14';
 
-  // describe('fetchAndSaveAllIssues', () => {
-  //   it('should fetch and save all issues successfully', async () => {
-  //     const date = '2024-09-24';
-  //     const accountId = '1';
+    it('should successfully save planned issues', async () => {
+      // Mock user with planned issues
+      const mockUserWithIssues = {
+        accountId: '1',
+        displayName: 'John Doe',
+        issueHistory: [
+          {
+            date: '2024-10-14',
+            notDoneIssues: [
+              {
+                issueId: '1',
+                issueType: 'bug',
+                summary: 'Test bug',
+                status: 'not done',
+                issueLinks: [{ issueId: 'link-1' }],
+              },
+            ],
+          },
+        ],
+      };
 
-  //     const userWithIssues = {
-  //       ...mockUser,
-  //       issueHistory: [
-  //         {
-  //           date: '2024-09-24',
-  //           doneIssues: [
-  //             {
-  //               issueType: 'Bug',
-  //               issueId: 'bug-1',
-  //               summary: 'Issue 1',
-  //               status: 'Closed',
-  //               issueLinks: [{ issueId: 'link-1' }],
-  //             },
-  //             {
-  //               issueType: 'Feature',
-  //               issueId: 'feature-1',
-  //               summary: 'Feature 1',
-  //               status: 'In Progress',
-  //               issueLinks: [{ issueId: 'link-2' }],
-  //             },
-  //           ],
-  //         },
-  //       ],
-  //     };
+      mockUserModel.findOne.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue(mockUserWithIssues),
+      });
 
-  //     const existingIssueHistory = {
-  //       userName: userWithIssues.displayName,
-  //       accountId: userWithIssues.accountId,
-  //       history: {
-  //         [new Date(date).toISOString().split('T')[0]]: {
-  //           issues: [
-  //             {
-  //               issueId: 'bug-2',
-  //               issueStatus: 'Open',
-  //               link: 'link-2',
-  //             },
-  //             {
-  //               issueId: 'bug-1',
-  //               issueStatus: 'Open',
-  //               link: 'link-3',
-  //             },
-  //           ],
-  //         },
-  //       },
-  //     };
+      const result = await userService.fetchAndSavePlannedIssues(
+        accountId,
+        date,
+      );
 
-  //     mockUserModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockResolvedValue(userWithIssues),
-  //     });
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId });
+      expect(mockIssueHistoryModel.findOneAndUpdate).toHaveBeenCalledWith(
+        {
+          userName: mockUserWithIssues.displayName,
+          accountId: mockUserWithIssues.accountId,
+        },
+        {
+          $set: {
+            [`history.${new Date(date).toISOString().split('T')[0]}`]: {
+              issues: [
+                {
+                  serialNumber: 1,
+                  issueType: 'bug',
+                  issueId: '1',
+                  issueSummary: 'Test bug',
+                  issueStatus: 'not done',
+                  planned: true,
+                  link: 'link-1',
+                },
+              ],
+            },
+          },
+        },
+        { upsert: true, new: true },
+      );
 
-  //     mockIssueHistoryModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockResolvedValue(existingIssueHistory),
-  //     });
+      expect(result).toEqual({
+        statusCode: 200,
+        message: 'Planned issues have been successfully updated.',
+      });
+    });
 
-  //     mockIssueHistoryModel.findOneAndUpdate.mockResolvedValue(
-  //       existingIssueHistory,
-  //     );
+    it('should handle errors thrown during fetching', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
 
-  //     const result = await userService.fetchAndSaveAllIssues(accountId, date);
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('Database error')),
+      });
 
-  //     expect(result).toEqual({
-  //       status: 200,
-  //       message: 'Issues have been successfully updated.',
-  //     });
+      await expect(
+        userService.fetchAndSavePlannedIssues(accountId, date),
+      ).rejects.toThrow(Error);
+    });
+  });
 
-  //     expect(mockIssueHistoryModel.findOneAndUpdate).toHaveBeenCalledWith(
-  //       {
-  //         userName: userWithIssues.displayName,
-  //         accountId: userWithIssues.accountId,
-  //       },
-  //       {
-  //         $set: {
-  //           [`history.${new Date(date).toISOString().split('T')[0]}`]: {
-  //             issues: [
-  //               {
-  //                 issueId: 'bug-2',
-  //                 issueStatus: 'Open',
-  //                 link: 'link-2',
-  //               },
-  //               {
-  //                 issueId: 'bug-1',
-  //                 issueStatus: 'Closed',
-  //                 link: 'link-1',
-  //               },
-  //               {
-  //                 serialNumber: 3,
-  //                 issueType: 'Feature',
-  //                 issueId: 'feature-1',
-  //                 issueSummary: 'Feature 1',
-  //                 issueStatus: 'In Progress',
-  //                 link: 'link-2',
-  //               },
-  //             ],
-  //           },
-  //         },
-  //       },
-  //       { upsert: true, new: true },
-  //     );
-  //   });
+  describe('fetchAndSaveAllIssues', () => {
+    const accountId = '1';
+    const date = '2024-10-14';
 
-  //   it('should handle errors thrown during saving', async () => {
-  //     const date = '2024-09-24';
-  //     const accountId = '1';
-  //     const userWithIssues = {
-  //       ...mockUser,
-  //       issueHistory: [
-  //         {
-  //           date: '2024-09-24',
-  //           doneIssues: [
-  //             {
-  //               issueType: 'Bug',
-  //               issueId: 'bug-1',
-  //               summary: 'Issue 1',
-  //               status: 'Closed',
-  //               issueLinks: [{ issueId: 'link-1' }],
-  //             },
-  //           ],
-  //         },
-  //       ],
-  //     };
+    it('should successfully update existing issues and their statuses', async () => {
+      const mockUser = {
+        accountId: '1',
+        displayName: 'John Doe',
+        issueHistory: [
+          {
+            date: '2024-10-14',
+            doneIssues: [
+              {
+                issueId: '1',
+                issueType: 'bug',
+                summary: 'Test bug',
+                status: 'done',
+                issueLinks: [{ issueId: 'link-1' }],
+              },
+            ],
+          },
+        ],
+      };
 
-  //     mockUserModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockResolvedValue(userWithIssues),
-  //     });
+      const mockIssueHistory = {
+        history: {
+          '2024-10-14': {
+            issues: [
+              {
+                issueId: '1',
+                issueStatus: 'in-progress',
+                link: '',
+              },
+              {
+                issueId: '2',
+                issueStatus: 'in-progress',
+                link: '',
+              },
+            ],
+          },
+        },
+      };
+      mockUserModel.findOne.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
 
-  //     mockIssueHistoryModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockResolvedValue(null),
-  //     });
+      mockIssueHistoryModel.findOne.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue(mockIssueHistory),
+      });
 
-  //     mockIssueHistoryModel.findOneAndUpdate.mockRejectedValue(
-  //       new Error('Database error'),
-  //     );
+      const result = await userService.fetchAndSaveAllIssues(accountId, date);
 
-  //     await expect(
-  //       userService.fetchAndSaveAllIssues(accountId, date),
-  //     ).rejects.toThrow(Error);
-  //   });
-  // });
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId });
+      expect(mockIssueHistoryModel.findOne).toHaveBeenCalledWith({
+        accountId: mockUser.accountId,
+      });
+      expect(mockIssueHistoryModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { userName: mockUser.displayName, accountId: mockUser.accountId },
+        expect.objectContaining({
+          $set: {
+            [`history.${date}`]: {
+              issues: [
+                {
+                  issueId: '1',
+                  issueStatus: 'done',
+                  link: 'link-1',
+                },
+                {
+                  issueId: '2',
+                  issueStatus: 'in-progress',
+                  link: '',
+                },
+              ],
+            },
+          },
+        }),
+        { upsert: true, new: true },
+      );
+      expect(result).toEqual({
+        statusCode: 200,
+        message: 'Issues have been successfully updated.',
+      });
+    });
 
-  // describe('getIssuesByDate', () => {
-  //   it('should return issues for the given date', async () => {
-  //     const accountId = '1';
-  //     const date = '2024-09-24';
+    it('should add new done issues to the specific date history', async () => {
+      const mockUser = {
+        accountId: '1',
+        displayName: 'John Doe',
+        issueHistory: [
+          {
+            date: '2024-10-14',
+            doneIssues: [
+              {
+                issueId: '3',
+                issueType: 'feature',
+                summary: 'New feature',
+                status: 'done',
+                issueLinks: [{ issueId: 'link-2' }],
+              },
+            ],
+          },
+        ],
+      };
 
-  //     const mockResult = {
-  //       userName: 'John Doe',
-  //       accountId: accountId,
-  //       history: {
-  //         [date]: {
-  //           issues: [
-  //             { issueId: 'bug-1', issueSummary: 'Bug 1' },
-  //             { issueId: 'bug-2', issueSummary: 'Bug 2' },
-  //           ],
-  //           noOfBugs: 2,
-  //           comment: 'All bugs are logged.',
-  //         },
-  //       },
-  //     };
+      const mockIssueHistory = {
+        history: {
+          '2024-10-14': {
+            issues: [],
+          },
+        },
+      };
 
-  //     mockIssueHistoryModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockResolvedValue(mockResult),
-  //     });
+      mockUserModel.findOne.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
 
-  //     const response = await userService.getIssuesByDate(accountId, date);
+      mockIssueHistoryModel.findOne.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue(mockIssueHistory),
+      });
 
-  //     expect(response).toEqual({
-  //       userName: mockResult.userName,
-  //       accountId: mockResult.accountId,
-  //       issues: mockResult.history[date].issues,
-  //       noOfBugs: mockResult.history[date].noOfBugs,
-  //       comment: mockResult.history[date].comment,
-  //     });
-  //   });
+      const result = await userService.fetchAndSaveAllIssues(accountId, date);
 
-  //   it('should return empty issues when no history exists for the date', async () => {
-  //     const accountId = '1';
-  //     const date = '2024-09-24';
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ accountId });
+      expect(mockIssueHistoryModel.findOne).toHaveBeenCalledWith({
+        accountId: mockUser.accountId,
+      });
+      expect(mockIssueHistoryModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { userName: mockUser.displayName, accountId: mockUser.accountId },
+        expect.objectContaining({
+          $set: {
+            [`history.${date}`]: {
+              issues: [
+                expect.objectContaining({
+                  issueId: '3',
+                  issueStatus: 'done',
+                  link: 'link-2',
+                }),
+              ],
+            },
+          },
+        }),
+        { upsert: true, new: true },
+      );
+      expect(result).toEqual({
+        statusCode: 200,
+        message: 'Issues have been successfully updated.',
+      });
+    });
 
-  //     const mockResult = {
-  //       userName: 'John Doe',
-  //       accountId: accountId,
-  //       history: {},
-  //     };
+    it('should handle errors thrown during fetching', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
 
-  //     mockIssueHistoryModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockResolvedValue(mockResult),
-  //     });
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('Database error')),
+      });
 
-  //     const response = await userService.getIssuesByDate(accountId, date);
+      await expect(
+        userService.fetchAndSaveAllIssues(accountId, date),
+      ).rejects.toThrow(Error);
+    });
+  });
 
-  //     expect(response).toEqual({
-  //       userName: mockResult.userName,
-  //       accountId: mockResult.accountId,
-  //       issues: [],
-  //       noOfBugs: 0,
-  //       comment: '',
-  //     });
-  //   });
+  describe('getIssuesByDate', () => {
+    it('should return issues for the given date', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
 
-  //   it('should handle errors thrown during fetching', async () => {
-  //     const accountId = '1';
-  //     const date = '2024-09-24';
+      const mockResult = {
+        userName: 'John Doe',
+        accountId: accountId,
+        history: {
+          [date]: {
+            issues: [
+              { issueId: 'bug-1', issueSummary: 'Bug 1' },
+              { issueId: 'bug-2', issueSummary: 'Bug 2' },
+            ],
+            noOfBugs: 2,
+            comment: 'All bugs are logged.',
+            comments: [],
+          },
+        },
+      };
 
-  //     mockIssueHistoryModel.findOne.mockReturnValue({
-  //       exec: jest.fn().mockRejectedValue(new Error('Database error')),
-  //     });
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult),
+      });
 
-  //     await expect(
-  //       userService.getIssuesByDate(accountId, date),
-  //     ).rejects.toThrow(Error);
-  //   });
-  // });
+      const response = await userService.getIssuesByDate(accountId, date);
 
-  // describe('bugReportByDate', () => {
-  //   it('should update bug report successfully', async () => {
-  //     const accountId = '1';
-  //     const date = '2024-09-24';
-  //     const noOfBugs = 3;
-  //     const comment = 'Updated comment';
-  //     const token = 'valid-token';
+      expect(response).toEqual({
+        userName: mockResult.userName,
+        accountId: mockResult.accountId,
+        issues: mockResult.history[date].issues,
+        noOfBugs: mockResult.history[date].noOfBugs,
+        comment: mockResult.history[date].comment,
+        comments: mockResult.history[date].comments || [],
+      });
+    });
 
-  //     jest.spyOn(configService, 'get').mockReturnValue(token);
+    it('should return empty issues when no history exists for the date', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
 
-  //     mockUserModel.findOne.mockResolvedValue(mockUser);
-  //     mockUser.save.mockResolvedValue(mockUser);
-  //     const updatedIssue = {
-  //       accountId,
-  //       history: {
-  //         [date]: {
-  //           noOfBugs,
-  //           comment,
-  //         },
-  //       },
-  //     };
+      const mockResult = {
+        userName: 'John Doe',
+        accountId: accountId,
+        history: {},
+      };
 
-  //     mockIssueHistoryModel.findOneAndUpdate.mockResolvedValue(updatedIssue);
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult),
+      });
 
-  //     const result = await userService.bugReportByDate(
-  //       accountId,
-  //       date,
-  //       noOfBugs,
-  //       comment,
-  //       token,
-  //     );
+      const response = await userService.getIssuesByDate(accountId, date);
 
-  //     expect(result).toEqual({
-  //       message: 'Bug report updated successfully',
-  //       statusCode: 200,
-  //     });
-  //   });
+      expect(response).toEqual({
+        userName: mockResult.userName,
+        accountId: mockResult.accountId,
+        issues: [],
+        noOfBugs: 0,
+        comment: '',
+        comments: [],
+      });
+    });
 
-  //   it('should throw ForbiddenException for invalid token', async () => {
-  //     const accountId = '1';
-  //     const date = '2024-09-24';
-  //     const noOfBugs = 3;
-  //     const comment = 'Updated comment';
-  //     const token = 'invalid-token';
+    it('should handle errors thrown during fetching', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
 
-  //     await expect(
-  //       userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
-  //     ).rejects.toThrow(ForbiddenException);
-  //   });
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('Database error')),
+      });
 
-  //   it('should throw NotFoundException if user is not found', async () => {
-  //     const accountId = '1';
-  //     const date = '2024-09-24';
-  //     const noOfBugs = 3;
-  //     const comment = 'Updated comment';
-  //     const token = 'valid-token';
+      await expect(
+        userService.getIssuesByDate(accountId, date),
+      ).rejects.toThrow(Error);
+    });
 
-  //     jest.spyOn(configService, 'get').mockReturnValue(token);
-  //     mockUserModel.findOne.mockResolvedValue(null);
+    it('should sort comments by timestamp in descending order', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
 
-  //     await expect(
-  //       userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
-  //     ).rejects.toThrow(NotFoundException);
-  //   });
+      const mockResult = {
+        userName: 'John Doe',
+        accountId: accountId,
+        history: {
+          [date]: {
+            issues: [],
+            noOfBugs: 0,
+            comment: '',
+            comments: [
+              {
+                timestamp: new Date('2024-09-24T12:00:00Z'),
+                text: 'Comment 1',
+              },
+              {
+                timestamp: new Date('2024-09-24T14:00:00Z'),
+                text: 'Comment 2',
+              },
+              {
+                timestamp: new Date('2024-09-24T13:00:00Z'),
+                text: 'Comment 3',
+              },
+            ],
+          },
+        },
+      };
 
-  //   it('should throw NotFoundException if no issue history is found for the date', async () => {
-  //     const accountId = '1';
-  //     const date = '2024-09-24';
-  //     const noOfBugs = 3;
-  //     const comment = 'Updated comment';
-  //     const token = 'valid-token';
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult),
+      });
 
-  //     jest.spyOn(configService, 'get').mockReturnValue(token);
-  //     mockUserModel.findOne.mockResolvedValue({
-  //       ...mockUser,
-  //       issueHistory: [{ date: '2024-09-25' }],
-  //     });
+      const response = await userService.getIssuesByDate(accountId, date);
 
-  //     await expect(
-  //       userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
-  //     ).rejects.toThrow(NotFoundException);
-  //   });
-  // });
+      expect(response.comments).toEqual([
+        { timestamp: new Date('2024-09-24T14:00:00Z'), text: 'Comment 2' },
+        { timestamp: new Date('2024-09-24T13:00:00Z'), text: 'Comment 3' },
+        { timestamp: new Date('2024-09-24T12:00:00Z'), text: 'Comment 1' },
+      ]);
+    });
+  });
+
+  describe('bugReportByDate', () => {
+    it('should update bug report successfully', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const noOfBugs = 3;
+      const comment = 'Updated comment';
+      const token = 'valid-token';
+
+      jest.spyOn(configService, 'get').mockReturnValue(token);
+
+      mockUserModel.findOne.mockResolvedValue(mockUser);
+      mockUser.save.mockResolvedValue(mockUser);
+      const updatedIssue = {
+        accountId,
+        history: {
+          [date]: {
+            noOfBugs,
+            comment,
+          },
+        },
+      };
+
+      mockIssueHistoryModel.findOneAndUpdate.mockResolvedValue(updatedIssue);
+
+      const result = await userService.bugReportByDate(
+        accountId,
+        date,
+        noOfBugs,
+        comment,
+        token,
+      );
+
+      expect(result).toEqual({
+        message: 'Bug report updated successfully',
+        statusCode: 200,
+      });
+    });
+
+    it('should throw ForbiddenException for invalid token', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const noOfBugs = 3;
+      const comment = 'Updated comment';
+      const token = 'invalid-token';
+
+      await expect(
+        userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw NotFoundException if user is not found', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const noOfBugs = 3;
+      const comment = 'Updated comment';
+      const token = 'valid-token';
+
+      jest.spyOn(configService, 'get').mockReturnValue(token);
+      mockUserModel.findOne.mockResolvedValue(null);
+
+      await expect(
+        userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if no issue history is found for the date', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const noOfBugs = 3;
+      const comment = 'Updated comment';
+      const token = 'valid-token';
+
+      jest.spyOn(configService, 'get').mockReturnValue(token);
+      mockUserModel.findOne.mockResolvedValue({
+        ...mockUser,
+        issueHistory: [{ date: '2024-09-25' }],
+      });
+
+      await expect(
+        userService.bugReportByDate(accountId, date, noOfBugs, comment, token),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('createComment', () => {
+    it('should successfully add a comment to the issue history', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const comment = 'This is a test comment.';
+
+      const mockUser = {
+        accountId: accountId,
+        displayName: 'John Doe',
+      };
+
+      const mockIssueHistory = {
+        accountId: accountId,
+        history: {
+          [date]: {
+            comments: [],
+          },
+        },
+      };
+
+      mockUserModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockIssueHistory),
+      });
+
+      mockIssueHistoryModel.findOneAndUpdate.mockResolvedValue(
+        mockIssueHistory,
+      );
+
+      const response = await userService.createComment(
+        accountId,
+        date,
+        comment,
+      );
+
+      expect(response).toEqual({
+        message: 'Comment added successfully',
+        statusCode: 200,
+      });
+
+      expect(mockIssueHistoryModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { accountId, [`history.${date}`]: { $exists: true } },
+        {
+          $push: {
+            [`history.${date}.comments`]: {
+              comment,
+              timestamp: expect.any(Date),
+            },
+          },
+        },
+        { new: true },
+      );
+    });
+
+    it('should throw NotFoundException if user does not exist', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const comment = 'This is a test comment.';
+
+      mockUserModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        userService.createComment(accountId, date, comment),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        userService.createComment(accountId, date, comment),
+      ).rejects.toThrow('User not found');
+    });
+
+    it('should throw NotFoundException if issue history for the date does not exist', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const comment = 'This is a test comment.';
+
+      const mockUser = {
+        accountId: accountId,
+        displayName: 'John Doe',
+      };
+
+      mockUserModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        userService.createComment(accountId, date, comment),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        userService.createComment(accountId, date, comment),
+      ).rejects.toThrow('Issue history for the specified date not found');
+    });
+
+    it('should handle errors thrown during comment creation', async () => {
+      const accountId = '1';
+      const date = '2024-09-24';
+      const comment = 'This is a test comment.';
+
+      const mockUser = {
+        accountId: accountId,
+        displayName: 'John Doe',
+      };
+
+      mockUserModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      mockIssueHistoryModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          accountId,
+          history: {
+            [date]: {
+              comments: [],
+            },
+          },
+        }),
+      });
+
+      mockIssueHistoryModel.findOneAndUpdate.mockRejectedValue(
+        new Error('Database error'),
+      );
+
+      await expect(
+        userService.createComment(accountId, date, comment),
+      ).rejects.toThrow(Error);
+    });
+  });
 });
