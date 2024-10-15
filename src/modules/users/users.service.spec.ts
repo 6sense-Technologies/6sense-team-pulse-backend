@@ -4,7 +4,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { User } from './schemas/user.schema';
 import { IssueHistory } from './schemas/IssueHistory.schems';
 import { IssueEntry } from './schemas/IssueEntry.schema';
-import { Model } from 'mongoose';
+// import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import {
   ConflictException,

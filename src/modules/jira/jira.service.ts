@@ -249,9 +249,9 @@ export class JiraService {
         ),
       ]);
 
-      const notDoneIssues = responses.flatMap(
-        (response) => response.data.issues,
-      );
+      const notDoneIssues = responses.flatMap((response) => {
+        return response.data.issues;
+      });
 
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
@@ -260,9 +260,9 @@ export class JiraService {
 
       const user = await this.userModel.findOne({ accountId });
 
-      const existingHistory = user.issueHistory.find(
-        (history) => history.date === date,
-      );
+      const existingHistory = user.issueHistory.find((history) => {
+        return history.date === date;
+      });
 
       if (notDoneIssues.length === 0) {
         if (existingHistory) {
@@ -361,7 +361,9 @@ export class JiraService {
         ),
       ]);
 
-      const doneIssues = responses.flatMap((response) => response.data.issues);
+      const doneIssues = responses.flatMap((response) => {
+        return response.data.issues;
+      });
 
       const countsByDate: {
         [key: string]: {
@@ -434,9 +436,9 @@ export class JiraService {
       const user = await this.userModel.findOne({ accountId });
 
       for (const [dueDate, counts] of Object.entries(countsByDate)) {
-        const existingHistory = user.issueHistory.find(
-          (history) => history.date === dueDate,
-        );
+        const existingHistory = user.issueHistory.find((history) => {
+          return history.date === dueDate;
+        });
 
         if (existingHistory) {
           existingHistory.issuesCount.done = counts;

@@ -88,7 +88,9 @@ export class TrelloService {
     ]);
 
     const boards = results
-      .filter((result) => result.status === 'fulfilled')
+      .filter((result) => {
+        return result.status === 'fulfilled';
+      })
       .flatMap(
         (result) => (result as PromiseFulfilledResult<ITrelloBoard[]>).value,
       );
@@ -122,7 +124,9 @@ export class TrelloService {
         ).then((response) => {
           return {
             boardId,
-            boardName: boardDetails.find((board) => board.id === boardId)?.name,
+            boardName: boardDetails.find((board) => {
+              return board.id === boardId;
+            })?.name,
             users: response.data,
           };
         });
@@ -172,9 +176,9 @@ export class TrelloService {
         ),
       ]);
 
-      const fulfilledResult = results.find(
-        (result) => result.status === 'fulfilled',
-      );
+      const fulfilledResult = results.find((result) => {
+        return result.status === 'fulfilled';
+      });
 
       if (fulfilledResult) {
         return (fulfilledResult as PromiseFulfilledResult<any>).value.data;
@@ -216,9 +220,9 @@ export class TrelloService {
         ),
       );
 
-      const boards2 = boardsResponse2.data.filter((board) =>
-        [process.env.TRELLO_BOARD_ID_3].includes(board.id),
-      );
+      const boards2 = boardsResponse2.data.filter((board) => {
+        return [process.env.TRELLO_BOARD_ID_3].includes(board.id);
+      });
 
       const allBoards = [...boards1, ...boards2];
 
