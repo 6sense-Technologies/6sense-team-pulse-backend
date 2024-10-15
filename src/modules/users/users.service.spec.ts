@@ -20,7 +20,7 @@ const mockUser = {
   emailAddress: 'john@example.com',
   avatarUrls: 'http://example.com/avatar.png',
   currentPerformance: 75,
-  designation: Designation.FrontendDeveloper,
+  designation: Designation.JrSQAEngineer,
   project: Project.Pattern50,
   isArchive: false,
   issueHistory: [
@@ -76,7 +76,7 @@ const mockUser = {
     emailAddress: 'john@example.com',
     avatarUrls: 'http://example.com/avatar.png',
     currentPerformance: 75,
-    designation: Designation.FrontendDeveloper,
+    designation: Designation.JrSQAEngineer,
     project: Project.Pattern50,
     isArchive: false,
     issueHistory: [

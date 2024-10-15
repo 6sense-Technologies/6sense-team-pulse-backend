@@ -35,6 +35,7 @@ export class TrelloService {
   private readonly boardIds: string[] = [
     process.env.TRELLO_BOARD_ID_1,
     process.env.TRELLO_BOARD_ID_2,
+    process.env.TRELLO_BOARD_ID_3,
   ];
 
   constructor(
@@ -45,32 +46,59 @@ export class TrelloService {
     // Constructor for injecting userModel
   }
 
-  async getBoards(): Promise<ITrelloBoard[]> {
-    try {
-      const endpoint = `/members/me/boards`;
+  // First, try the credentials of workspace 1
+  private getWorkspace1Credentials() {
+    return {
+      key: process.env.TRELLO_API_KEY,
+      token: process.env.TRELLO_SECRET_KEY,
+    };
+  }
 
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
-          params: {
-            key: process.env.TRELLO_API_KEY,
-            token: process.env.TRELLO_SECRET_KEY,
-          },
-        }),
-      );
+  // Fallback: try the credentials of workspace 2
+  private getWorkspace2Credentials() {
+    return {
+      key: process.env.TRELLO_API_KEY2,
+      token: process.env.TRELLO_SECRET_KEY2,
+    };
+  }
 
-      const boards = response.data.map(
-        (board: { id: string; name: string }) => {
-          return {
-            id: board.id,
-            name: board.name,
-          };
+  private async fetchBoards(credentials: {
+    key: string;
+    token: string;
+  }): Promise<ITrelloBoard[]> {
+    const endpoint = `/members/me/boards`;
+
+    const response = await firstValueFrom(
+      this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
+        params: {
+          key: credentials.key,
+          token: credentials.token,
         },
+      }),
+    );
+
+    return response.data.map((board: { id: string; name: string }) => ({
+      id: board.id,
+      name: board.name,
+    }));
+  }
+
+  async getBoards(): Promise<ITrelloBoard[]> {
+    const credentials1 = this.getWorkspace1Credentials();
+    const credentials2 = this.getWorkspace2Credentials();
+
+    const results = await Promise.allSettled([
+      this.fetchBoards(credentials1),
+      this.fetchBoards(credentials2),
+    ]);
+
+    const boards = results
+      .filter((result) => result.status === 'fulfilled')
+      .flatMap(
+        (result) => (result as PromiseFulfilledResult<ITrelloBoard[]>).value,
       );
 
-      return boards;
-    } catch (error) {
-      handleError(error);
-    }
+    return boards;
   }
 
   async getUsers(): Promise<ITrelloUsers[]> {
@@ -80,22 +108,28 @@ export class TrelloService {
 
       // Create an array of promises for the API calls
       const requests = this.boardIds.map((boardId) => {
+        // Determine which workspace the board belongs to
+        const isWorkspace1Board =
+          boardId === process.env.TRELLO_BOARD_ID_1 ||
+          boardId === process.env.TRELLO_BOARD_ID_2;
+        const credentials = isWorkspace1Board
+          ? this.getWorkspace1Credentials()
+          : this.getWorkspace2Credentials();
+
         return firstValueFrom(
           this.httpService.get(
             `${this.trelloBaseUrl}${endpoint.replace('{boardId}', boardId)}`,
             {
               params: {
-                key: process.env.TRELLO_API_KEY,
-                token: process.env.TRELLO_SECRET_KEY,
+                key: credentials.key,
+                token: credentials.token,
               },
             },
           ),
         ).then((response) => {
           return {
             boardId,
-            boardName: boardDetails.find((board) => {
-              return board.id === boardId;
-            })?.name,
+            boardName: boardDetails.find((board) => board.id === boardId)?.name,
             users: response.data,
           };
         });
@@ -125,16 +159,36 @@ export class TrelloService {
     try {
       const endpoint = `/members/${accountId}`;
 
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
-          params: {
-            key: process.env.TRELLO_API_KEY,
-            token: process.env.TRELLO_SECRET_KEY,
-          },
-        }),
+      const credentials1 = this.getWorkspace1Credentials();
+      const credentials2 = this.getWorkspace2Credentials();
+
+      const results = await Promise.allSettled([
+        firstValueFrom(
+          this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
+            params: {
+              key: credentials1.key,
+              token: credentials1.token,
+            },
+          }),
+        ),
+        firstValueFrom(
+          this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
+            params: {
+              key: credentials2.key,
+              token: credentials2.token,
+            },
+          }),
+        ),
+      ]);
+
+      // Check if any response was successful
+      const fulfilledResult = results.find(
+        (result) => result.status === 'fulfilled',
       );
 
-      return response.data;
+      if (fulfilledResult) {
+        return (fulfilledResult as PromiseFulfilledResult<any>).value.data;
+      }
     } catch (error) {
       handleError(error);
     }
@@ -142,27 +196,48 @@ export class TrelloService {
 
   async getUserIssues(accountId: string, date: string): Promise<any[]> {
     try {
-      const boardsEndpoint = `/members/${accountId}/boards`;
-
-      // Step 1: Fetch boards for the user
-      const boardsResponse = await firstValueFrom(
-        this.httpService.get(`${this.trelloBaseUrl}${boardsEndpoint}`, {
-          params: {
-            key: process.env.TRELLO_API_KEY,
-            token: process.env.TRELLO_SECRET_KEY,
+      const boardsResponse1 = await firstValueFrom(
+        this.httpService.get(
+          `${this.trelloBaseUrl}/members/${accountId}/boards`,
+          {
+            params: {
+              key: process.env.TRELLO_API_KEY,
+              token: process.env.TRELLO_SECRET_KEY,
+            },
           },
-        }),
+        ),
       );
 
-      const boards = boardsResponse.data;
+      const boardsResponse2 = await firstValueFrom(
+        this.httpService.get(
+          `${this.trelloBaseUrl}/members/${accountId}/boards`,
+          {
+            params: {
+              key: process.env.TRELLO_API_KEY2,
+              token: process.env.TRELLO_SECRET_KEY2,
+            },
+          },
+        ),
+      );
 
-      // Step 2: Format the date to check for cards
-      const dateString = new Date(date).toISOString().split('T')[0];
+      const boards1 = boardsResponse1.data.filter((board) =>
+        [process.env.TRELLO_BOARD_ID_1, process.env.TRELLO_BOARD_ID_2].includes(
+          board.id,
+        ),
+      );
+
+      const boards2 = boardsResponse2.data.filter((board) =>
+        [process.env.TRELLO_BOARD_ID_3].includes(board.id),
+      );
+
+      const allBoards = [...boards1, ...boards2];
 
       // Function to fetch cards for a specific board
       const fetchCardsForBoard = async (
         boardId: string,
         boardName: string,
+        key: string,
+        token: string,
       ): Promise<ITrelloCard[]> => {
         // Fetch lists for the board
         const listsResponse = await firstValueFrom(
@@ -170,8 +245,8 @@ export class TrelloService {
             `${this.trelloBaseUrl}/boards/${boardId}/lists`,
             {
               params: {
-                key: process.env.TRELLO_API_KEY,
-                token: process.env.TRELLO_SECRET_KEY,
+                key: key,
+                token: token,
               },
             },
           ),
@@ -188,8 +263,8 @@ export class TrelloService {
                 `${this.trelloBaseUrl}/lists/${list.id}/cards`,
                 {
                   params: {
-                    key: process.env.TRELLO_API_KEY,
-                    token: process.env.TRELLO_SECRET_KEY,
+                    key: key,
+                    token: token,
                   },
                 },
               ),
@@ -200,7 +275,7 @@ export class TrelloService {
               .filter((card) => {
                 return (
                   card.idMembers.includes(accountId) &&
-                  card.due?.split('T')[0] === dateString
+                  card.due?.split('T')[0] === date
                 );
               })
               .map((card) => {
@@ -220,8 +295,17 @@ export class TrelloService {
 
       // Step 4: Fetch cards for all boards
       const allCards = await Promise.all(
-        boards.map((board) => {
-          return fetchCardsForBoard(board.id, board.name);
+        allBoards.map((board) => {
+          const key =
+            board.id === process.env.TRELLO_BOARD_ID_3
+              ? process.env.TRELLO_API_KEY2
+              : process.env.TRELLO_API_KEY;
+          const token =
+            board.id === process.env.TRELLO_BOARD_ID_3
+              ? process.env.TRELLO_SECRET_KEY2
+              : process.env.TRELLO_SECRET_KEY;
+
+          return fetchCardsForBoard(board.id, board.name, key, token);
         }),
       );
 

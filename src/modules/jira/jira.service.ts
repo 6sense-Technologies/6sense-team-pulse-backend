@@ -30,8 +30,9 @@ dotenv.config();
 
 @Injectable()
 export class JiraService {
-  private readonly jiraBaseUrl = process.env.JIRA_BASE_URL1;
+  private readonly jiraBaseUrl1 = process.env.JIRA_BASE_URL1;
   private readonly jiraBaseUrl2 = process.env.JIRA_BASE_URL2;
+  private readonly jiraBaseUrl3 = process.env.JIRA_BASE_URL3; // Add third base URL
   private readonly headers = {
     Authorization: `Basic ${Buffer.from(
       `${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`,
@@ -48,19 +49,22 @@ export class JiraService {
     // Constructor for injecting userModel
   }
 
-  private async fetchFromBothUrls(endpoint: string): Promise<any> {
+  private async fetchFromAllUrls(endpoint: string): Promise<any> {
     try {
-      const url1 = `${this.jiraBaseUrl}${endpoint}`;
+      const url1 = `${this.jiraBaseUrl1}${endpoint}`;
       const url2 = `${this.jiraBaseUrl2}${endpoint}`;
+      const url3 = `${this.jiraBaseUrl3}${endpoint}`; // URL 3
 
-      const [response1, response2] = await Promise.all([
+      const [response1, response2, response3] = await Promise.all([
         firstValueFrom(this.httpService.get(url1, { headers: this.headers })),
         firstValueFrom(this.httpService.get(url2, { headers: this.headers })),
+        firstValueFrom(this.httpService.get(url3, { headers: this.headers })),
       ]);
 
       return {
         fromUrl1: response1.data,
         fromUrl2: response2.data,
+        fromUrl3: response3.data,
       };
     } catch (error) {
       handleError(error);
@@ -72,7 +76,7 @@ export class JiraService {
 
     try {
       const response1 = await firstValueFrom(
-        this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
+        this.httpService.get(`${this.jiraBaseUrl1}${endpoint}`, {
           headers: this.headers,
         }),
       );
@@ -87,7 +91,20 @@ export class JiraService {
           );
           return response2.data;
         } catch (error2) {
-          handleError(error2);
+          if (error2.response && error2.response.status === 404) {
+            try {
+              const response3 = await firstValueFrom(
+                this.httpService.get(`${this.jiraBaseUrl3}${endpoint}`, {
+                  headers: this.headers,
+                }),
+              );
+              return response3.data;
+            } catch (error3) {
+              handleError(error3);
+            }
+          } else {
+            handleError(error2);
+          }
         }
       } else {
         handleError(error);
@@ -101,7 +118,7 @@ export class JiraService {
   ): Promise<IJirsUserIssues[]> {
     try {
       const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
-      const data = await this.fetchFromBothUrls(endpoint);
+      const data = await this.fetchFromAllUrls(endpoint);
 
       const transformIssues = (issues): IJiraIssue[] => {
         return issues.map((issue) => {
@@ -210,9 +227,9 @@ export class JiraService {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate=${date}`;
 
     try {
-      const [response1, response2] = await Promise.all([
+      const responses = await Promise.all([
         lastValueFrom(
-          this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
+          this.httpService.get(`${this.jiraBaseUrl1}${endpoint}`, {
             headers: this.headers,
           }),
         ),
@@ -221,12 +238,16 @@ export class JiraService {
             headers: this.headers,
           }),
         ),
+        lastValueFrom(
+          this.httpService.get(`${this.jiraBaseUrl3}${endpoint}`, {
+            headers: this.headers,
+          }),
+        ),
       ]);
 
-      const notDoneIssues = [
-        ...response1.data.issues,
-        ...response2.data.issues,
-      ];
+      const notDoneIssues = responses.flatMap(
+        (response) => response.data.issues,
+      );
 
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
@@ -235,9 +256,9 @@ export class JiraService {
 
       const user = await this.userModel.findOne({ accountId });
 
-      const existingHistory = user.issueHistory.find((history) => {
-        return history.date === date;
-      });
+      const existingHistory = user.issueHistory.find(
+        (history) => history.date === date,
+      );
 
       if (notDoneIssues.length === 0) {
         if (existingHistory) {
@@ -316,9 +337,9 @@ export class JiraService {
     const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND duedate=${date}`;
 
     try {
-      const [response1, response2] = await Promise.all([
+      const responses = await Promise.all([
         lastValueFrom(
-          this.httpService.get(`${this.jiraBaseUrl}${endpoint}`, {
+          this.httpService.get(`${this.jiraBaseUrl1}${endpoint}`, {
             headers: this.headers,
           }),
         ),
@@ -327,9 +348,14 @@ export class JiraService {
             headers: this.headers,
           }),
         ),
+        lastValueFrom(
+          this.httpService.get(`${this.jiraBaseUrl3}${endpoint}`, {
+            headers: this.headers,
+          }),
+        ),
       ]);
 
-      const doneIssues = [...response1.data.issues, ...response2.data.issues];
+      const doneIssues = responses.flatMap((response) => response.data.issues);
 
       const countsByDate: {
         [key: string]: {
@@ -402,9 +428,9 @@ export class JiraService {
       const user = await this.userModel.findOne({ accountId });
 
       for (const [dueDate, counts] of Object.entries(countsByDate)) {
-        const existingHistory = user.issueHistory.find((history) => {
-          return history.date === dueDate;
-        });
+        const existingHistory = user.issueHistory.find(
+          (history) => history.date === dueDate,
+        );
 
         if (existingHistory) {
           existingHistory.issuesCount.done = counts;
@@ -455,7 +481,7 @@ export class JiraService {
       const users = await this.userModel.find().exec();
 
       const today = new Date(
-        new Date().setDate(new Date().getDate() - 4),
+        new Date().setDate(new Date().getDate()),
       ).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
@@ -471,6 +497,104 @@ export class JiraService {
       });
 
       await Promise.all(userPromises);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async updateMorningIssueHistoryForSpecificDate(date: string): Promise<void> {
+    try {
+      const users = await this.userModel.find().exec();
+
+      const userPromises = users.map(async (user) => {
+        if (user.userFrom === 'jira') {
+          await this.countPlannedIssues(user.accountId, date);
+        }
+        if (user.userFrom === 'trello') {
+          await this.trelloService.countPlannedIssues(user.accountId, date);
+        }
+      });
+
+      await Promise.all(userPromises);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async updateEveningIssueHistoryForSpecificDate(date: string): Promise<void> {
+    try {
+      const users = await this.userModel.find().exec();
+
+      const today = new Date(
+        new Date().setDate(new Date().getDate()),
+      ).toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Dhaka',
+      });
+
+      const userPromises = users.map(async (user) => {
+        if (user.userFrom === 'jira') {
+          await this.countDoneIssues(user.accountId, date);
+        }
+        if (user.userFrom === 'trello') {
+          await this.trelloService.countDoneIssues(user.accountId, date);
+        }
+        await this.calculateDailyMetrics(user.accountId, today);
+      });
+
+      await Promise.all(userPromises);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async updateMorningIssueHistoryForSpecificUser(
+    accountId: string,
+    date: string,
+  ): Promise<void> {
+    try {
+      const user = await this.userModel.findOne({ accountId }).exec();
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (user.userFrom === 'jira') {
+        await this.countPlannedIssues(user.accountId, date);
+      }
+
+      if (user.userFrom === 'trello') {
+        await this.trelloService.countPlannedIssues(user.accountId, date);
+      }
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async updateEveningIssueHistoryForSpecificUser(
+    accountId: string,
+    date: string,
+  ): Promise<void> {
+    try {
+      const user = await this.userModel.findOne({ accountId }).exec();
+
+      const today = new Date(
+        new Date().setDate(new Date().getDate()),
+      ).toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Dhaka',
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (user.userFrom === 'jira') {
+        await this.countDoneIssues(user.accountId, date);
+      }
+
+      if (user.userFrom === 'trello') {
+        await this.trelloService.countDoneIssues(user.accountId, date);
+      }
+      await this.calculateDailyMetrics(user.accountId, today);
     } catch (error) {
       handleError(error);
     }
@@ -600,10 +724,7 @@ export class JiraService {
         totalDoneTasks + totalDoneStories + totalDoneBugs;
       const totalNotDoneIssues = totalNotDoneTasksAndBugs + totalNotDoneStories;
 
-      if (
-        totalNotDoneTasksAndBugs === 0 &&
-        totalMatchedDoneTasksAndBugs === 0
-      ) {
+      if (totalNotDoneIssues === 0 && totalAllDoneIssues === 0) {
         comment = 'holidays/leave';
       } else if (totalAllDoneIssues > totalNotDoneIssues) {
         comment = `Your target was ${totalNotDoneIssues}, but you completed ${totalAllDoneIssues}.`;
