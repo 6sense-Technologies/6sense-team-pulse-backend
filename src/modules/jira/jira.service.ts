@@ -512,7 +512,6 @@ export class JiraService {
 
   async updateMorningIssueHistoryForSpecificDate(date: string): Promise<void> {
     try {
-      validateDate(date);
       const users = await this.userModel.find().exec();
 
       const userPromises = users.map(async (user) => {
@@ -532,14 +531,8 @@ export class JiraService {
 
   async updateEveningIssueHistoryForSpecificDate(date: string): Promise<void> {
     try {
-      validateDate(date);
-      const users = await this.userModel.find().exec();
 
-      const today = new Date(
-        new Date().setDate(new Date().getDate()),
-      ).toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Dhaka',
-      });
+      const users = await this.userModel.find().exec();
 
       const userPromises = users.map(async (user) => {
         if (user.userFrom === 'jira') {
@@ -548,7 +541,7 @@ export class JiraService {
         if (user.userFrom === 'trello') {
           await this.trelloService.countDoneIssues(user.accountId, date);
         }
-        await this.calculateDailyMetrics(user.accountId, today);
+        await this.calculateDailyMetrics(user.accountId, date);
       });
 
       await Promise.all(userPromises);
@@ -562,8 +555,6 @@ export class JiraService {
     date: string,
   ): Promise<void> {
     try {
-      validateAccountId(accountId);
-      validateDate(date);
       const user = await this.userModel.findOne({ accountId }).exec();
 
       if (!user) {
@@ -587,8 +578,6 @@ export class JiraService {
     date: string,
   ): Promise<void> {
     try {
-      validateAccountId(accountId);
-      validateDate(date);
       const user = await this.userModel.findOne({ accountId }).exec();
 
       const today = new Date(
@@ -619,8 +608,6 @@ export class JiraService {
     date: string,
   ): Promise<IDailyMetrics> {
     try {
-      validateAccountId(accountId);
-      validateDate(date);
       const user = await this.userModel.findOne({ accountId });
       const issueHistory = user.issueHistory;
 
@@ -665,7 +652,7 @@ export class JiraService {
         .filter((issue) => {
           return (
             issue.issueType === 'Task' &&
-            issue.status === 'Done' &&
+            issue.status === 'Done' || issue.status === 'In Review'&&
             notDoneTaskIds.includes(issue.issueId)
           );
         })
@@ -700,7 +687,7 @@ export class JiraService {
 
       // Calculate total done issues
       const totalDoneTasks = doneIssues.filter((issue) => {
-        return issue.issueType === 'Task' && issue.status === 'Done';
+        return issue.issueType === 'Task' && issue.status === 'Done' || issue.status === 'In Review';
       }).length;
 
       const totalDoneStories = doneIssues.filter((issue) => {

@@ -478,7 +478,7 @@ export class TrelloService {
           dueDate,
         });
 
-        if (card.listName === 'Done') {
+        if (card.listName === 'Done'|| card.listName === 'In Review') {
           const matchingNotDoneIssue = notDoneIssues.find((notDoneIssue) => {
             return notDoneIssue.issueId === card.cardId;
           });
