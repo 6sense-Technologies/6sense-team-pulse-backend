@@ -531,7 +531,6 @@ export class JiraService {
 
   async updateEveningIssueHistoryForSpecificDate(date: string): Promise<void> {
     try {
-
       const users = await this.userModel.find().exec();
 
       const userPromises = users.map(async (user) => {
@@ -651,9 +650,9 @@ export class JiraService {
       const matchedDoneTaskIds = doneIssues
         .filter((issue) => {
           return (
-            issue.issueType === 'Task' &&
-            issue.status === 'Done' || issue.status === 'In Review'&&
-            notDoneTaskIds.includes(issue.issueId)
+            (issue.issueType === 'Task' && issue.status === 'Done') ||
+            (issue.status === 'In Review' &&
+              notDoneTaskIds.includes(issue.issueId))
           );
         })
         .map((issue) => {
@@ -687,7 +686,10 @@ export class JiraService {
 
       // Calculate total done issues
       const totalDoneTasks = doneIssues.filter((issue) => {
-        return issue.issueType === 'Task' && issue.status === 'Done' || issue.status === 'In Review';
+        return (
+          (issue.issueType === 'Task' && issue.status === 'Done') ||
+          issue.status === 'In Review'
+        );
       }).length;
 
       const totalDoneStories = doneIssues.filter((issue) => {
