@@ -443,13 +443,13 @@ export class TrelloService {
     try {
       validateAccountId(accountId);
       validateDate(date);
+
       const userCards = await this.getUserIssues(accountId, date);
       const user = await this.userModel.findOne({ accountId }).exec();
 
       const notDoneIssues =
-        user?.issueHistory.find((entry) => {
-          return entry.date === date;
-        })?.notDoneIssues || [];
+        user?.issueHistory.find((entry) => entry.date === date)
+          ?.notDoneIssues || [];
 
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
@@ -462,6 +462,13 @@ export class TrelloService {
         const summary = card.name;
         const status = card.listName;
 
+        let issueType: 'Task' | 'Bug' | 'Story' = 'Task';
+        if (card.listName === 'Bug') {
+          issueType = 'Bug';
+        } else if (card.listName === 'User Stories') {
+          issueType = 'Story';
+        }
+
         if (!countsByDate[dueDate]) {
           countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
           issuesByDate[dueDate] = [];
@@ -471,6 +478,7 @@ export class TrelloService {
           issueId,
           summary,
           status,
+          issueType,
           dueDate,
         });
 
@@ -496,6 +504,7 @@ export class TrelloService {
       const existingHistory = user.issueHistory.find((history) => {
         return history.date === date;
       });
+
       if (existingHistory) {
         existingHistory.issuesCount.done = countsByDate[date] || {
           Task: 0,
@@ -514,7 +523,6 @@ export class TrelloService {
       }
 
       await user.save();
-
       await this.userService.fetchAndSaveAllIssues(accountId, date);
     } catch (error) {
       handleError(error);

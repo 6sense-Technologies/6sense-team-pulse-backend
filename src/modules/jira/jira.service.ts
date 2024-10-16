@@ -650,9 +650,9 @@ export class JiraService {
       const matchedDoneTaskIds = doneIssues
         .filter((issue) => {
           return (
-            (issue.issueType === 'Task' && issue.status === 'Done') ||
-            (issue.status === 'In Review' &&
-              notDoneTaskIds.includes(issue.issueId))
+            issue.issueType === 'Task' &&
+            (issue.status === 'Done' || issue.status === 'In Review') &&
+            notDoneTaskIds.includes(issue.issueId)
           );
         })
         .map((issue) => {
@@ -687,8 +687,8 @@ export class JiraService {
       // Calculate total done issues
       const totalDoneTasks = doneIssues.filter((issue) => {
         return (
-          (issue.issueType === 'Task' && issue.status === 'Done') ||
-          issue.status === 'In Review'
+          issue.issueType === 'Task' &&
+          (issue.status === 'Done' || issue.status === 'In Review')
         );
       }).length;
 
