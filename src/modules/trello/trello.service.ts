@@ -353,7 +353,6 @@ export class TrelloService {
     try {
       validateAccountId(accountId);
       validateDate(date);
-      const dateString = new Date(date).toISOString().split('T')[0];
 
       const userCards = await this.getUserIssues(accountId, date);
 
@@ -363,23 +362,21 @@ export class TrelloService {
       const issuesByDate: { [key: string]: IIssue[] } = {};
 
       const notDoneIssues = userCards.filter((card) => {
-        return (
-          card.listName !== 'Done' && card.dueDate?.split('T')[0] === dateString
-        );
+        return card.listName !== 'Done' && card.dueDate?.split('T')[0] === date;
       });
 
       const user = await this.userModel.findOne({ accountId });
 
       if (notDoneIssues.length === 0) {
         const existingHistory = user.issueHistory.find((history) => {
-          return history.date === dateString;
+          return history.date === date;
         });
         if (existingHistory) {
           existingHistory.issuesCount.notDone = { Task: 0, Bug: 0, Story: 0 };
           existingHistory.notDoneIssues = [];
         } else {
           user.issueHistory.push({
-            date: dateString,
+            date: date,
             issuesCount: { notDone: { Task: 0, Bug: 0, Story: 0 } },
             notDoneIssues: [],
           });
@@ -448,11 +445,10 @@ export class TrelloService {
       validateDate(date);
       const userCards = await this.getUserIssues(accountId, date);
       const user = await this.userModel.findOne({ accountId }).exec();
-      const dateString = new Date(date).toISOString().split('T')[0];
 
       const notDoneIssues =
         user?.issueHistory.find((entry) => {
-          return entry.date === dateString;
+          return entry.date === date;
         })?.notDoneIssues || [];
 
       const countsByDate: {
@@ -498,22 +494,22 @@ export class TrelloService {
       });
 
       const existingHistory = user.issueHistory.find((history) => {
-        return history.date === dateString;
+        return history.date === date;
       });
       if (existingHistory) {
-        existingHistory.issuesCount.done = countsByDate[dateString] || {
+        existingHistory.issuesCount.done = countsByDate[date] || {
           Task: 0,
           Bug: 0,
           Story: 0,
         };
-        existingHistory.doneIssues = issuesByDate[dateString] || [];
+        existingHistory.doneIssues = issuesByDate[date] || [];
       } else {
         user.issueHistory.push({
-          date: dateString,
+          date: date,
           issuesCount: {
-            done: countsByDate[dateString] || { Task: 0, Bug: 0, Story: 0 },
+            done: countsByDate[date] || { Task: 0, Bug: 0, Story: 0 },
           },
-          doneIssues: issuesByDate[dateString] || [],
+          doneIssues: issuesByDate[date] || [],
         });
       }
 

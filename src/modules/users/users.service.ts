@@ -173,12 +173,11 @@ export class UserService {
       validateAccountId(accountId);
       validateDate(date);
 
-      const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
 
       const notDoneIssues =
         user.issueHistory.find((history) => {
-          return history.date === dateString;
+          return history.date === date;
         })?.notDoneIssues || [];
 
       const issueHistoryEntries = notDoneIssues.map((issue, index) => {
@@ -203,7 +202,7 @@ export class UserService {
         { userName: user.displayName, accountId: user.accountId },
         {
           $set: {
-            [`history.${dateString}`]: {
+            [`history.${date}`]: {
               issues: issueHistoryEntries,
             },
           },
@@ -228,20 +227,19 @@ export class UserService {
       validateAccountId(accountId);
       validateDate(date);
 
-      const dateString = new Date(date).toISOString().split('T')[0];
       const user = await this.userModel.findOne({ accountId }).exec();
 
       const issueHistory = await this.issueHistoryModel
         .findOne({ accountId: user.accountId })
         .exec();
 
-      const specificDateHistory = issueHistory.history[dateString] || {
+      const specificDateHistory = issueHistory.history[date] || {
         issues: [],
       };
 
       const doneIssues =
         user.issueHistory.find((history) => {
-          return history.date === dateString;
+          return history.date === date;
         })?.doneIssues || [];
 
       const doneIssueIds = new Set(
@@ -299,7 +297,7 @@ export class UserService {
       specificDateHistory.issues.push(...newDoneIssueEntries);
       await this.issueHistoryModel.findOneAndUpdate(
         { userName: user.displayName, accountId: user.accountId },
-        { $set: { [`history.${dateString}`]: specificDateHistory } },
+        { $set: { [`history.${date}`]: specificDateHistory } },
         { upsert: true, new: true },
       );
 
