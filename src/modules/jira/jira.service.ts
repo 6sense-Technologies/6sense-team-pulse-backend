@@ -579,12 +579,6 @@ export class JiraService {
     try {
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      const today = new Date(
-        new Date().setDate(new Date().getDate()),
-      ).toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Dhaka',
-      });
-
       if (!user) {
         throw new Error('User not found');
       }
@@ -596,7 +590,7 @@ export class JiraService {
       if (user.userFrom === 'trello') {
         await this.trelloService.countDoneIssues(user.accountId, date);
       }
-      await this.calculateDailyMetrics(user.accountId, today);
+      await this.calculateDailyMetrics(user.accountId, date);
     } catch (error) {
       handleError(error);
     }
