@@ -10,6 +10,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import * as dotenv from 'dotenv';
 import { TrelloModule } from './modules/trello/trello.module';
+import { GithubModule } from './modules/github/github.module';
+import { GitRepoModule } from './modules/git-repo/git-repo.module';
+import { BullModule } from '@nestjs/bullmq';
+import { QueueHandlerModule } from './modules/queue-handler/queue-handler.module';
 
 dotenv.config();
 
@@ -20,7 +24,17 @@ dotenv.config();
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          url: configService.get<string>('REDIS_URL'),
+          // host: configService.get<string>('REDIS_HOST'),
+          // port: configService.get<number>('REDIS_PORT'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -33,6 +47,9 @@ dotenv.config();
     UserModule,
     JiraModule,
     TrelloModule,
+    GithubModule,
+    GitRepoModule,
+    QueueHandlerModule,
   ],
   providers: [
     {
