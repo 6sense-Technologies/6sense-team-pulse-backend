@@ -188,7 +188,7 @@ export class GithubService {
       ) {
         const res = await this.gitContributionModel.findOneAndUpdate(
           {
-            dateString: todayISOString,
+            dateString: yesterdayISOString,
             gitRepo: gitRepo._id,
             branch: branch.name,
           },
