@@ -193,8 +193,8 @@ export class GithubService {
             branch: branch.name,
           },
           {
-            date: today,
-            dateString: todayISOString,
+            date: yesterday,
+            dateString: yesterdayISOString,
             gitRepo: gitRepo._id,
             user: gitRepo.user,
             branch: branch.name,
