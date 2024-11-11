@@ -19,6 +19,7 @@ export class GitRepoService {
       user: new mongoose.Types.ObjectId(createGitRepoDto['user']),
       organization: createGitRepoDto['organization'],
       repo: createGitRepoDto['repo'],
+      gitUsername: createGitRepoDto['gitUsername'],
     });
   }
 
