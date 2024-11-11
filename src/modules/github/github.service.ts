@@ -12,6 +12,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
 import { GitContribution } from '../users/schemas/GitContribution.schema';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class GithubService {
@@ -69,7 +70,7 @@ export class GithubService {
     let commitHomeUrl = '';
 
     const token = this.configService.get('GITHUB_TOKEN');
-    this.logger.log("commit size: ", commits.length);
+    this.logger.log('commit size: ', commits.length);
     for (const commit of commits) {
       const sha = commit.sha;
       const commitUrl = `${url}/${sha}`;
@@ -132,28 +133,30 @@ export class GithubService {
       _id: new mongoose.Types.ObjectId(repoId),
     });
     const branches = await this.getBranches(gitRepo);
-    this.logger.log("branches", branches);
-    
+    this.logger.log('branches', branches);
+
     if (!branches || branches.length == 0) {
       return;
     }
 
     const token = this.configService.get('GITHUB_TOKEN');
     const url = `${this.configService.get('GITHUB_API_URL')}${gitRepo.organization}/${gitRepo.repo}/commits`;
-    const today = new Date();
-    today.setUTCDate(today.getUTCDate() - 1); // Move back one day
-    today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
-    const todayISOString = today.toISOString();
+    
+    const today = DateTime.now().setZone('Asia/Dhaka').startOf('day').minus({ days: 1 });
+    // const today = new Date();
+    // today.setUTCDate(today.getUTCDate() - 1); // Move back one day
+    // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
+    const todayISOString = today.toISO();
 
     branches.forEach(async (branch) => {
-      this.logger.log("Getting Branch Data");
+      this.logger.log('Getting Branch Data');
       const params = {
         author: gitRepo.gitUsername,
         since: todayISOString,
         per_page: 100, // Adjust as needed for more results
         sha: branch.name,
       };
-      this.logger.log("params", params);
+      this.logger.log('params', params);
       const response = await firstValueFrom(
         this.httpService.get(`${url}`, {
           headers: {
@@ -165,7 +168,7 @@ export class GithubService {
       );
 
       const data = await this.getLinesChanged(response.data, url);
-      this.logger.log("data", data);
+      this.logger.log('data', data);
       if (
         data.totalAdditions != 0 ||
         data.totalDeletions != 0 ||
@@ -210,7 +213,7 @@ export class GithubService {
         },
       });
     });
-    this.logger.log(jobs.length)
+    this.logger.log(jobs.length);
     if (jobs.length > 0) await this.gitQueue.addBulk(jobs);
     return gitRepos;
   }
