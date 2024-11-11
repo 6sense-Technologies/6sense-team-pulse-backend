@@ -9,6 +9,8 @@ export enum Designation {
   BackendIntern = 'Backend Intern',
   FrontendIntern = 'Frontend Intern',
   UIUXIntern = 'UI/UX Intern',
+  PMIntern = 'PM Intern',
+  ProjectSpecialist = 'Project Specialist',
 }
 
 export enum Project {
