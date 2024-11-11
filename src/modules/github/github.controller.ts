@@ -27,7 +27,10 @@ export class GithubController {
   }
 
   @Get('get-contributions')
-  getContributions(@Query('userId') userId: string, @Query('date') date: string) {
+  getContributions(
+    @Query('userId') userId: string,
+    @Query('date') date: string,
+  ) {
     return this.githubService.getContributions(userId, date);
   }
 
@@ -49,5 +52,10 @@ export class GithubController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.githubService.remove(+id);
+  }
+
+  @Post('run-cron-now')
+  runCronNow() {
+    return this.githubService.cronGitContribution();
   }
 }

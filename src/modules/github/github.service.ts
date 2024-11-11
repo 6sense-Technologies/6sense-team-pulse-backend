@@ -211,7 +211,7 @@ export class GithubService {
   async addToQueueForCommits(gitRepos: any[]) {
     const jobs = [];
     gitRepos.forEach(async (gitRepo) => {
-      // this.logger.log(gitRepo);
+      // this.logger.log(gitRepo.gitUsername);
       // await this.getCommitReport(gitRepo._id.toString());
       jobs.push({
         name: 'get-commit-report',
