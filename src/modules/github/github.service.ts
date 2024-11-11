@@ -224,7 +224,7 @@ export class GithubService {
       });
     });
     this.logger.log(jobs.length);
-    // if (jobs.length > 0) await this.gitQueue.addBulk(jobs);
+    if (jobs.length > 0) await this.gitQueue.addBulk(jobs);
     return gitRepos;
   }
 
