@@ -38,8 +38,13 @@ export class GithubService {
   }
 
   async getContributions(userId: string, date: string) {
-    const today = new Date(date);
-    today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
+    const inputDate = new Date(date); // Replace `date` with your input date
+    const today = DateTime.fromJSDate(inputDate, {
+      zone: 'Asia/Dhaka',
+    }).startOf('day');
+
+    // const today = new Date(date);
+    // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
 
     const user = await this.userModel.findOne({ accountId: userId });
 
@@ -141,8 +146,11 @@ export class GithubService {
 
     const token = this.configService.get('GITHUB_TOKEN');
     const url = `${this.configService.get('GITHUB_API_URL')}${gitRepo.organization}/${gitRepo.repo}/commits`;
-    
-    const today = DateTime.now().setZone('Asia/Dhaka').startOf('day').minus({ days: 1 });
+
+    const today = DateTime.now()
+      .setZone('Asia/Dhaka')
+      .startOf('day')
+      .minus({ days: 1 });
     // const today = new Date();
     // today.setUTCDate(today.getUTCDate() - 1); // Move back one day
     // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
@@ -202,7 +210,9 @@ export class GithubService {
 
   async addToQueueForCommits(gitRepos: any[]) {
     const jobs = [];
-    gitRepos.forEach((gitRepo) => {
+    gitRepos.forEach(async (gitRepo) => {
+      // this.logger.log(gitRepo);
+      await this.getCommitReport(gitRepo._id.toString());
       jobs.push({
         name: 'get-commit-report',
         data: gitRepo._id.toString(),
@@ -214,7 +224,7 @@ export class GithubService {
       });
     });
     this.logger.log(jobs.length);
-    if (jobs.length > 0) await this.gitQueue.addBulk(jobs);
+    // if (jobs.length > 0) await this.gitQueue.addBulk(jobs);
     return gitRepos;
   }
 
