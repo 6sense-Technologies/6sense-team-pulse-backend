@@ -36,12 +36,14 @@ export class GithubService {
     return `This action returns all github`;
   }
 
-  getContributions(userId: string, date: string) {
+  async getContributions(userId: string, date: string) {
     const today = new Date(date);
     today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
 
+    const user = await this.userModel.findOne({accountId: userId})
+
     return this.gitContributionModel.find({
-      user: new mongoose.Types.ObjectId(userId),
+      user: user._id,
       date: today,
     });
   }
