@@ -147,7 +147,9 @@ export class GithubService {
     const token = this.configService.get('GITHUB_TOKEN');
     const url = `${this.configService.get('GITHUB_API_URL')}${gitRepo.organization}/${gitRepo.repo}/commits`;
 
-    const today = DateTime.now()
+    const today = DateTime.now().setZone('Asia/Dhaka').startOf('day');
+
+    const yesterday = DateTime.now()
       .setZone('Asia/Dhaka')
       .startOf('day')
       .minus({ days: 1 });
@@ -155,12 +157,14 @@ export class GithubService {
     // today.setUTCDate(today.getUTCDate() - 1); // Move back one day
     // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
     const todayISOString = today.toISO();
+    const yesterdayISOString = yesterday.toISO();
 
     branches.forEach(async (branch) => {
       this.logger.log('Getting Branch Data');
       const params = {
         author: gitRepo.gitUsername,
-        since: todayISOString,
+        since: yesterdayISOString,
+        until: todayISOString,
         per_page: 100, // Adjust as needed for more results
         sha: branch.name,
       };
