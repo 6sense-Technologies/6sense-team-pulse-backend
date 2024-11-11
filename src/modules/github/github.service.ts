@@ -191,6 +191,7 @@ export class GithubService {
             dateString: yesterdayISOString,
             gitRepo: gitRepo._id,
             branch: branch.name,
+            commitHomeUrl: data.commitHomeUrl,
           },
           {
             date: yesterday,
