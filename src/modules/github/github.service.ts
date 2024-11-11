@@ -212,7 +212,7 @@ export class GithubService {
     const jobs = [];
     gitRepos.forEach(async (gitRepo) => {
       // this.logger.log(gitRepo);
-      await this.getCommitReport(gitRepo._id.toString());
+      // await this.getCommitReport(gitRepo._id.toString());
       jobs.push({
         name: 'get-commit-report',
         data: gitRepo._id.toString(),
