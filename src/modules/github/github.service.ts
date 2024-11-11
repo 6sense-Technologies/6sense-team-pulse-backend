@@ -40,12 +40,14 @@ export class GithubService {
     const today = new Date(date);
     today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
 
-    const user = await this.userModel.findOne({accountId: userId})
+    const user = await this.userModel.findOne({ accountId: userId });
 
-    return this.gitContributionModel.find({
-      user: user._id,
-      date: today,
-    }).populate('gitRepo');
+    return this.gitContributionModel
+      .find({
+        user: user._id,
+        date: today,
+      })
+      .populate('gitRepo');
   }
 
   findOne(id: number) {
@@ -67,7 +69,7 @@ export class GithubService {
     let commitHomeUrl = '';
 
     const token = this.configService.get('GITHUB_TOKEN');
-
+    this.logger.log("commit size: ", commits.length);
     for (const commit of commits) {
       const sha = commit.sha;
       const commitUrl = `${url}/${sha}`;
@@ -130,6 +132,8 @@ export class GithubService {
       _id: new mongoose.Types.ObjectId(repoId),
     });
     const branches = await this.getBranches(gitRepo);
+    this.logger.log("branches", branches);
+    
     if (!branches || branches.length == 0) {
       return;
     }
@@ -142,13 +146,14 @@ export class GithubService {
     const todayISOString = today.toISOString();
 
     branches.forEach(async (branch) => {
+      this.logger.log("Getting Branch Data");
       const params = {
         author: gitRepo.gitUsername,
         since: todayISOString,
         per_page: 100, // Adjust as needed for more results
         sha: branch.name,
       };
-
+      this.logger.log("params", params);
       const response = await firstValueFrom(
         this.httpService.get(`${url}`, {
           headers: {
@@ -160,8 +165,7 @@ export class GithubService {
       );
 
       const data = await this.getLinesChanged(response.data, url);
-      // this.logger.log(branch.name);
-      // this.logger.log(data);
+      this.logger.log("data", data);
       if (
         data.totalAdditions != 0 ||
         data.totalDeletions != 0 ||
@@ -206,13 +210,14 @@ export class GithubService {
         },
       });
     });
+    this.logger.log(jobs.length)
     if (jobs.length > 0) await this.gitQueue.addBulk(jobs);
     return gitRepos;
   }
 
   async getCommits(userId: string) {
     const gitRepos = await this.gitRepoModel.find({ user: userId });
-    this.addToQueueForCommits(gitRepos);
+    return await this.addToQueueForCommits(gitRepos);
   }
 
   @Cron('5 1 * * *', {
