@@ -45,7 +45,7 @@ export class GithubService {
     return this.gitContributionModel.find({
       user: user._id,
       date: today,
-    });
+    }).populate('gitRepo');
   }
 
   findOne(id: number) {
