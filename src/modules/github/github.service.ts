@@ -194,14 +194,14 @@ export class GithubService {
             this.logger.log('data', data);
             const res = await this.gitContributionModel.findOneAndUpdate(
               {
-                dateString: yesterdayISOString,
+                dateString: data.commitDate,
                 gitRepo: gitRepo._id,
                 branch: branch.name,
                 commitHomeUrl: data.commitHomeUrl,
               },
               {
-                date: yesterday,
-                dateString: yesterdayISOString,
+                date: new Date(data.commitDate),
+                dateString: data.commitDate,
                 gitRepo: gitRepo._id,
                 user: gitRepo.user,
                 branch: branch.name,
