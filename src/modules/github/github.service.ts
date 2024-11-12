@@ -94,7 +94,7 @@ export class GithubService {
       totalAdditions = commitResponse.data.stats.additions;
       totalDeletions = commitResponse.data.stats.deletions;
       totalChanges = commitResponse.data.stats.total;
-      commitDate = commitResponse.data.committer.date;
+      commitDate = commitResponse.data.commit.author.date;
       this.logger.log("commitResponse.data")
       this.logger.log(commitResponse.data)
       // const files = commitResponse.data.files || [];
@@ -160,7 +160,8 @@ export class GithubService {
       sha: sha,
     };
 
-    this.logger.log('params', params);
+    this.logger.log('params');
+    this.logger.log(params);
     const response = await firstValueFrom(
       this.httpService.get(`${url}`, {
         headers: {
@@ -182,7 +183,8 @@ export class GithubService {
           data.totalDeletions != 0 ||
           data.totalChanges != 0
         ) {
-          this.logger.log(`data: ${data}`);
+          this.logger.log(`data:`);
+          this.logger.log(data);
           const res = await this.gitContributionModel.findOneAndUpdate(
             {
               dateString: data.commitDate,
@@ -214,7 +216,8 @@ export class GithubService {
       _id: new mongoose.Types.ObjectId(repoId),
     });
     const branches = await this.getBranches(gitRepo);
-    this.logger.log('branches', branches);
+    this.logger.log('branches');
+    this.logger.log(branches);
 
     if (!branches || branches.length == 0) {
       return;
