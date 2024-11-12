@@ -136,6 +136,77 @@ export class GithubService {
     return branchesResponse.data;
   }
 
+  async getCommitsByBranch(
+    author: string,
+    since: string,
+    until: string,
+    per_page: number,
+    sha: string,
+    repoId: string,
+  ) {
+    const gitRepo = await this.gitRepoModel.findOne({
+      _id: new mongoose.Types.ObjectId(repoId),
+    });
+    const token = this.configService.get('GITHUB_TOKEN');
+    const url = `${this.configService.get('GITHUB_API_URL')}${gitRepo.organization}/${gitRepo.repo}/commits`;
+
+    const params = {
+      author: author,
+      since: since,
+      until: until,
+      per_page: 100, // Adjust as needed for more results
+      sha: sha,
+    };
+
+    this.logger.log('params', params);
+    const response = await firstValueFrom(
+      this.httpService.get(`${url}`, {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+        params: params,
+      }),
+    );
+
+    if (response.data) {
+      this.logger.log(`branch response data: ${response.data}`);
+
+      response.data.forEach(async (commit) => {
+        const data = await this.getLinesChanged(commit, url);
+
+        if (
+          data.totalAdditions != 0 ||
+          data.totalDeletions != 0 ||
+          data.totalChanges != 0
+        ) {
+          this.logger.log('data', data);
+          const res = await this.gitContributionModel.findOneAndUpdate(
+            {
+              dateString: data.commitDate,
+              gitRepo: gitRepo._id,
+              branch: sha,
+              commitHomeUrl: data.commitHomeUrl,
+            },
+            {
+              date: new Date(data.commitDate),
+              dateString: data.commitDate,
+              gitRepo: gitRepo._id,
+              user: gitRepo.user,
+              branch: sha,
+              totalAdditions: data.totalAdditions,
+              totalDeletions: data.totalDeletions,
+              totalChanges: data.totalChanges,
+              totalWritten: data.diff,
+              commitHomeUrl: data.commitHomeUrl,
+            },
+            { upsert: true, new: true },
+          );
+        }
+      });
+    }
+  }
+
   async getCommitReport(repoId: string) {
     const gitRepo = await this.gitRepoModel.findOne({
       _id: new mongoose.Types.ObjectId(repoId),
@@ -147,78 +218,98 @@ export class GithubService {
       return;
     }
 
-    const token = this.configService.get('GITHUB_TOKEN');
-    const url = `${this.configService.get('GITHUB_API_URL')}${gitRepo.organization}/${gitRepo.repo}/commits`;
-
+    const jobs = [];
     const today = DateTime.now().setZone('Asia/Dhaka').startOf('day');
-
     const yesterday = DateTime.now()
       .setZone('Asia/Dhaka')
       .startOf('day')
       .minus({ days: 1 });
-    // const today = new Date();
-    // today.setUTCDate(today.getUTCDate() - 1); // Move back one day
-    // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
-    const todayISOString = today.toISO();
-    const yesterdayISOString = yesterday.toISO();
-
     branches.forEach(async (branch) => {
-      this.logger.log('Getting Branch Data');
-      const params = {
-        author: gitRepo.gitUsername,
-        since: yesterdayISOString,
-        until: todayISOString,
-        per_page: 100, // Adjust as needed for more results
-        sha: branch.name,
-      };
-      this.logger.log('params', params);
-      const response = await firstValueFrom(
-        this.httpService.get(`${url}`, {
-          headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github.v3+json',
-          },
-          params: params,
-        }),
-      );
-
-      if (response.data) {
-        response.data.forEach(async (commit) => {
-          const data = await this.getLinesChanged(commit, url);
-
-          if (
-            data.totalAdditions != 0 ||
-            data.totalDeletions != 0 ||
-            data.totalChanges != 0
-          ) {
-            this.logger.log('data', data);
-            const res = await this.gitContributionModel.findOneAndUpdate(
-              {
-                dateString: data.commitDate,
-                gitRepo: gitRepo._id,
-                branch: branch.name,
-                commitHomeUrl: data.commitHomeUrl,
-              },
-              {
-                date: new Date(data.commitDate),
-                dateString: data.commitDate,
-                gitRepo: gitRepo._id,
-                user: gitRepo.user,
-                branch: branch.name,
-                totalAdditions: data.totalAdditions,
-                totalDeletions: data.totalDeletions,
-                totalChanges: data.totalChanges,
-                totalWritten: data.diff,
-                commitHomeUrl: data.commitHomeUrl,
-              },
-              { upsert: true, new: true },
-            );
-          }
-        });
-      }
-
-      // const data = await this.getLinesChanged(response.data, url);
+      // this.logger.log(gitRepo.gitUsername);
+      // await this.getCommitReport(gitRepo._id.toString());
+      jobs.push({
+        name: 'get-commits-by-branch',
+        data: {
+          author: gitRepo.gitUsername,
+          since: yesterday.toISO(),
+          until: today.toISO(),
+          per_page: 100, // Adjust as needed for more results
+          sha: branch.name,
+          repoId: repoId,
+        },
+        opts: {
+          delay: 1000,
+          attempts: 2,
+          removeOnComplete: true,
+        },
+      });
     });
+    this.logger.log(jobs.length);
+    if (jobs.length > 0) await this.gitQueue.addBulk(jobs);
+
+    // // const today = new Date();
+    // // today.setUTCDate(today.getUTCDate() - 1); // Move back one day
+    // // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
+    // const todayISOString = today.toISO();
+    // const yesterdayISOString = yesterday.toISO();
+
+    // branches.forEach(async (branch) => {
+    //   this.logger.log('Getting Branch Data');
+    // const params = {
+    //   author: gitRepo.gitUsername,
+    //   since: yesterdayISOString,
+    //   until: todayISOString,
+    //   per_page: 100, // Adjust as needed for more results
+    //   sha: branch.name,
+    // };
+    // this.logger.log('params', params);
+    // const response = await firstValueFrom(
+    //   this.httpService.get(`${url}`, {
+    //     headers: {
+    //       Authorization: `token ${token}`,
+    //       Accept: 'application/vnd.github.v3+json',
+    //     },
+    //     params: params,
+    //   }),
+    // );
+
+    //   if (response.data) {
+    // response.data.forEach(async (commit) => {
+    //   const data = await this.getLinesChanged(commit, url);
+
+    //   if (
+    //     data.totalAdditions != 0 ||
+    //     data.totalDeletions != 0 ||
+    //     data.totalChanges != 0
+    //   ) {
+    //     this.logger.log('data', data);
+    //     const res = await this.gitContributionModel.findOneAndUpdate(
+    //       {
+    //         dateString: data.commitDate,
+    //         gitRepo: gitRepo._id,
+    //         branch: branch.name,
+    //         commitHomeUrl: data.commitHomeUrl,
+    //       },
+    //       {
+    //         date: new Date(data.commitDate),
+    //         dateString: data.commitDate,
+    //         gitRepo: gitRepo._id,
+    //         user: gitRepo.user,
+    //         branch: branch.name,
+    //         totalAdditions: data.totalAdditions,
+    //         totalDeletions: data.totalDeletions,
+    //         totalChanges: data.totalChanges,
+    //         totalWritten: data.diff,
+    //         commitHomeUrl: data.commitHomeUrl,
+    //       },
+    //       { upsert: true, new: true },
+    //     );
+    //   }
+    // });
+    //   }
+
+    //   // const data = await this.getLinesChanged(response.data, url);
+    // });
 
     return { success: true };
   }

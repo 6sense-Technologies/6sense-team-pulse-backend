@@ -49,6 +49,9 @@ export class GitConsumer extends WorkerHost {
       case 'get-commit-report':
         this.getCommitReport(job.data);
         break;
+      case 'get-commits-by-branch':
+        await this.getCommitsByBranch(job.data);
+        break;
       default:
         break;
     }
@@ -57,5 +60,23 @@ export class GitConsumer extends WorkerHost {
 
   async getCommitReport(repoId: string) {
     await this.githubService.getCommitReport(repoId);
+  }
+
+  async getCommitsByBranch(data: {
+    author: string;
+    since: string;
+    until: string;
+    per_page: number;
+    sha: string;
+    repoId: string;
+  }) {
+    return this.githubService.getCommitsByBranch(
+      data.author,
+      data.since,
+      data.until,
+      data.per_page,
+      data.sha,
+      data.repoId,
+    );
   }
 }
