@@ -68,53 +68,56 @@ export class GithubService {
     return `This action removes a #${id} github`;
   }
 
-  async getLinesChanged(commits, url: string) {
+  async getLinesChanged(commit, url: string) {
     let totalAdditions = 0;
     let totalDeletions = 0;
     let totalChanges = 0;
     let commitHomeUrl = '';
+    let commitDate = '';
 
     const token = this.configService.get('GITHUB_TOKEN');
-    this.logger.log('commit size: ', commits.length);
-    for (const commit of commits) {
-      const sha = commit.sha;
-      const commitUrl = `${url}/${sha}`;
+    // this.logger.log('commit size: ', commits.length);
+    // for (const commit of commits) {
+    const sha = commit.sha;
+    const commitUrl = `${url}/${sha}`;
 
-      try {
-        const commitResponse = await firstValueFrom(
-          this.httpService.get(`${commitUrl}`, {
-            headers: {
-              Authorization: `token ${token}`,
-              Accept: 'application/vnd.github.v3+json',
-            },
-          }),
-        );
-        commitHomeUrl = commitResponse.data.html_url;
-        totalAdditions = commitResponse.data.stats.additions;
-        totalDeletions = commitResponse.data.stats.deletions;
-        totalChanges = commitResponse.data.stats.total;
+    try {
+      const commitResponse = await firstValueFrom(
+        this.httpService.get(`${commitUrl}`, {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+          },
+        }),
+      );
+      commitHomeUrl = commitResponse.data.html_url;
+      totalAdditions = commitResponse.data.stats.additions;
+      totalDeletions = commitResponse.data.stats.deletions;
+      totalChanges = commitResponse.data.stats.total;
+      commitDate = commitResponse.data.committer.date;
+      // const files = commitResponse.data.files || [];
 
-        // const files = commitResponse.data.files || [];
-
-        // files.forEach((file) => {
-        //   totalAdditions += file.additions;
-        //   totalDeletions += file.deletions;
-        //   totalChanges += file.changes;
-        // });
-      } catch (error) {
-        this.logger.error(
-          `Error fetching details for commit ${sha}:`,
-          error.response ? error.response.data : error.message,
-        );
-      }
+      // files.forEach((file) => {
+      //   totalAdditions += file.additions;
+      //   totalDeletions += file.deletions;
+      //   totalChanges += file.changes;
+      // });
+    } catch (error) {
+      this.logger.error(
+        `Error fetching details for commit ${sha}:`,
+        error.response ? error.response.data : error.message,
+      );
     }
+    // }
     const diff = totalAdditions - totalDeletions;
+
     return {
       totalAdditions,
       totalDeletions,
       totalChanges,
       diff,
       commitHomeUrl,
+      commitDate,
     };
   }
 
@@ -179,35 +182,42 @@ export class GithubService {
         }),
       );
 
-      const data = await this.getLinesChanged(response.data, url);
-      this.logger.log('data', data);
-      if (
-        data.totalAdditions != 0 ||
-        data.totalDeletions != 0 ||
-        data.totalChanges != 0
-      ) {
-        const res = await this.gitContributionModel.findOneAndUpdate(
-          {
-            dateString: yesterdayISOString,
-            gitRepo: gitRepo._id,
-            branch: branch.name,
-            commitHomeUrl: data.commitHomeUrl,
-          },
-          {
-            date: yesterday,
-            dateString: yesterdayISOString,
-            gitRepo: gitRepo._id,
-            user: gitRepo.user,
-            branch: branch.name,
-            totalAdditions: data.totalAdditions,
-            totalDeletions: data.totalDeletions,
-            totalChanges: data.totalChanges,
-            totalWritten: data.diff,
-            commitHomeUrl: data.commitHomeUrl,
-          },
-          { upsert: true, new: true },
-        );
+      if (response.data) {
+        response.data.forEach(async (commit) => {
+          const data = await this.getLinesChanged(commit, url);
+
+          if (
+            data.totalAdditions != 0 ||
+            data.totalDeletions != 0 ||
+            data.totalChanges != 0
+          ) {
+            this.logger.log('data', data);
+            const res = await this.gitContributionModel.findOneAndUpdate(
+              {
+                dateString: data.commitDate,
+                gitRepo: gitRepo._id,
+                branch: branch.name,
+                commitHomeUrl: data.commitHomeUrl,
+              },
+              {
+                date: new Date(data.commitDate),
+                dateString: data.commitDate,
+                gitRepo: gitRepo._id,
+                user: gitRepo.user,
+                branch: branch.name,
+                totalAdditions: data.totalAdditions,
+                totalDeletions: data.totalDeletions,
+                totalChanges: data.totalChanges,
+                totalWritten: data.diff,
+                commitHomeUrl: data.commitHomeUrl,
+              },
+              { upsert: true, new: true },
+            );
+          }
+        });
       }
+
+      // const data = await this.getLinesChanged(response.data, url);
     });
 
     return { success: true };
