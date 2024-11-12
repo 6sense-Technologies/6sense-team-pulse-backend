@@ -95,6 +95,8 @@ export class GithubService {
       totalDeletions = commitResponse.data.stats.deletions;
       totalChanges = commitResponse.data.stats.total;
       commitDate = commitResponse.data.committer.date;
+      this.logger.log("commitResponse.data")
+      this.logger.log(commitResponse.data)
       // const files = commitResponse.data.files || [];
 
       // files.forEach((file) => {
@@ -154,7 +156,7 @@ export class GithubService {
       author: author,
       since: since,
       until: until,
-      per_page: 100, // Adjust as needed for more results
+      per_page: per_page, // Adjust as needed for more results
       sha: sha,
     };
 
@@ -180,7 +182,7 @@ export class GithubService {
           data.totalDeletions != 0 ||
           data.totalChanges != 0
         ) {
-          this.logger.log('data', data);
+          this.logger.log(`data: ${data}`);
           const res = await this.gitContributionModel.findOneAndUpdate(
             {
               dateString: data.commitDate,
