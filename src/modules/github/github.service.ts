@@ -39,9 +39,13 @@ export class GithubService {
 
   async getContributions(userId: string, date: string) {
     const inputDate = new Date(date); // Replace `date` with your input date
-    const today = DateTime.fromJSDate(inputDate, {
+    const dateStart = DateTime.fromJSDate(inputDate, {
       zone: 'Asia/Dhaka',
     }).startOf('day');
+
+    const dateEnd = DateTime.fromJSDate(inputDate, {
+      zone: 'Asia/Dhaka',
+    }).endOf('day');
 
     // const today = new Date(date);
     // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
@@ -51,7 +55,7 @@ export class GithubService {
     return this.gitContributionModel
       .find({
         user: user._id,
-        date: today,
+        date: { $gte: dateStart, $lte: dateEnd },
       })
       .populate('gitRepo');
   }
@@ -95,8 +99,8 @@ export class GithubService {
       totalDeletions = commitResponse.data.stats.deletions;
       totalChanges = commitResponse.data.stats.total;
       commitDate = commitResponse.data.commit.author.date;
-      this.logger.log("commitResponse.data")
-      this.logger.log(commitResponse.data)
+      this.logger.log('commitResponse.data');
+      this.logger.log(commitResponse.data);
       // const files = commitResponse.data.files || [];
 
       // files.forEach((file) => {
