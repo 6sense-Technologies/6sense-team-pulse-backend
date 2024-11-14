@@ -14,6 +14,7 @@ import { GithubModule } from './modules/github/github.module';
 import { GitRepoModule } from './modules/git-repo/git-repo.module';
 import { BullModule } from '@nestjs/bullmq';
 import { QueueHandlerModule } from './modules/queue-handler/queue-handler.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ dotenv.config();
     GithubModule,
     GitRepoModule,
     QueueHandlerModule,
+    ProjectsModule,
   ],
   providers: [
     {
