@@ -17,6 +17,7 @@ import {
 } from './interfaces/users.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from './enums/user.enum';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Controller('users')
 export class UserController {
@@ -30,6 +31,11 @@ export class UserController {
     @Query('limit') limit?: number,
   ): Promise<IAllUsers> {
     return this.userService.getAllUsers(page, limit);
+  }
+
+  @Post('create')
+  async createUser(@Body() createUserDto: CreateUserDto): Promise<any> {
+    return this.userService.createUser(createUserDto);
   }
 
   @Get(':accountId')
@@ -55,9 +61,8 @@ export class UserController {
   }
 
   @Get('projects/list')
-  getProjects(): { projects: string[] } {
-    const projects = Object.values(Project);
-    return { projects };
+  async getProjects() {
+    return this.userService.getProjects();
   }
 
   @Put(':accountId/archive')

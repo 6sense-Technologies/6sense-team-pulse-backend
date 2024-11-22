@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
@@ -23,6 +25,7 @@ import {
 import { UserService } from '../users/users.service';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/enums/user.enum';
+import { ConfigService } from '@nestjs/config';
 
 dotenv.config();
 
@@ -37,8 +40,11 @@ export class TrelloService {
 
   constructor(
     private readonly httpService: HttpService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+
+    private readonly configService: ConfigService,
   ) {
     // Constructor for injecting userModel
   }
@@ -176,6 +182,44 @@ export class TrelloService {
             },
           }),
         ),
+      ]);
+
+      const fulfilledResult = results.find((result) => {
+        return result.status === 'fulfilled';
+      });
+
+      if (fulfilledResult) {
+        return (fulfilledResult as PromiseFulfilledResult<any>).value.data;
+      }
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async getUserDetailsFromTrello(
+    boardId: string,
+    accountId: string,
+  ): Promise<any> {
+    try {
+      const endpoint = `/members/${accountId}`;
+
+      const results = await Promise.allSettled([
+        firstValueFrom(
+          this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
+            params: {
+              key: this.configService.get('TRELLO_API_KEY'),
+              token: this.configService.get('TRELLO_SECRET_KEY'),
+            },
+          }),
+        ),
+        // firstValueFrom(
+        //   this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
+        //     params: {
+        //       key: credentials2.key,
+        //       token: credentials2.token,
+        //     },
+        //   }),
+        // ),
       ]);
 
       const fulfilledResult = results.find((result) => {

@@ -1,7 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -23,21 +27,139 @@ import {
   IUserIssuesByDate,
   IUserWithPagination,
 } from './interfaces/users.interfaces';
+import { Project } from './schemas/Project.schema';
+import { CreateUserDto } from './dto/create-user.dto';
+import { JiraService } from '../jira/jira.service';
+import { TrelloService } from '../trello/trello.service';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
   constructor(
+    @Inject(forwardRef(() => JiraService))
+    private readonly jiraService: JiraService,
+    @Inject(forwardRef(() => TrelloService))
+    private readonly trelloService: TrelloService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(IssueHistory.name)
     private readonly issueHistoryModel: Model<IssueHistory>,
     @InjectModel(IssueEntry.name)
     private readonly issueEntryModel: Model<IssueEntry>,
-    // @InjectModel(Comment.name)
-    // private readonly commentModel: Model<Comment>,
+    @InjectModel(Project.name)
+    private readonly projectModel: Model<Project>,
     private readonly configService: ConfigService,
   ) {
     //Nothing
+  }
+
+  async createUser(createUserDto: CreateUserDto) {
+    if (!createUserDto.jiraId && !createUserDto.trelloId) {
+      throw new BadRequestException('Jira/Trello id is required');
+    }
+    let userToSave = {
+      jiraAccountId: '',
+      trelloAccountId: '',
+      displayName: '',
+      emailAddress: '',
+      avatarUrls: '',
+      designation: createUserDto.designation,
+      // project,
+      // userFrom,
+    };
+    const projects = await this.projectModel.find({
+      _id: { $in: createUserDto.projects },
+    });
+    this.logger.log(projects);
+    // return;
+    if (createUserDto.jiraId) {
+      const project = projects.find((project) => {
+        return project.tool == 'jira';
+      });
+      if (project) {
+        this.logger.log(project);
+        try {
+          const jiraUser = await this.jiraService.getUserDetailsFromJira(
+            project.toolURL,
+            createUserDto.jiraId,
+          );
+          if (jiraUser) {
+            userToSave = {
+              ...userToSave,
+              jiraAccountId: jiraUser.accountId,
+              displayName: jiraUser.displayName,
+              emailAddress: jiraUser.emailAddress,
+              avatarUrls: jiraUser.avatarUrls['48x48'],
+            };
+            this.logger.log(jiraUser);
+          } else {
+            throw new BadRequestException({
+              error: `The user doesn\'t have access to any Jira Workspace`,
+            });
+          }
+        } catch (error) {
+          this.logger.error(error);
+          throw new BadRequestException({
+            error: `The user doesn\'t have access to the Jira Workspace named ${project.name}`,
+          });
+        }
+      } else {
+        throw new BadRequestException({
+          error: `The user doesn\'t have access to any Jira Workspace`,
+        });
+      }
+    }
+
+    if (createUserDto.trelloId) {
+      const project = projects.find((project) => {
+        return project.tool == 'trello';
+      });
+      if (project) {
+        this.logger.log(project);
+        try {
+          const trelloUser = await this.trelloService.getUserDetailsFromTrello(
+            project.toolURL,
+            createUserDto.trelloId,
+          );
+          if (trelloUser) {
+            if (!userToSave.displayName && trelloUser.fullName) {
+              userToSave.displayName = trelloUser.fullName;
+            }
+            if (!userToSave.emailAddress && trelloUser.email) {
+              userToSave.emailAddress = trelloUser.email;
+            }
+            userToSave.trelloAccountId = trelloUser.id;
+            this.logger.log(trelloUser);
+          } else {
+            throw new BadRequestException({
+              error: 'invalid_trello',
+              message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
+            });
+          }
+        } catch (error) {
+          this.logger.error(error);
+          throw new BadRequestException({
+            error: 'invalid_trello',
+            message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
+          });
+        }
+      } else {
+        throw new BadRequestException({
+          error: 'invalid_trello',
+          message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
+        });
+      }
+    }
+    let orQuery = [];
+    if (userToSave.jiraAccountId)
+      orQuery.push({ jiraAccountId: userToSave.jiraAccountId });
+    if (userToSave.trelloAccountId)
+      orQuery.push({ trelloAccountId: userToSave.trelloAccountId });
+    const existingUser = await this.userModel.findOne({ $or: orQuery });
+    if (existingUser) {
+      throw new ConflictException('User already exists');
+    }
+    return this.userModel.create(userToSave);
   }
 
   async getAllUsers(page = 1, limit = 10): Promise<IAllUsers> {
@@ -454,5 +576,11 @@ export class UserService {
     } catch (error) {
       handleError(error);
     }
+  }
+
+  async getProjects() {
+    // const projects = Object.values(Project);
+    // return { projects };
+    return this.projectModel.find();
   }
 }

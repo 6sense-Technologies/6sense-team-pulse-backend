@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -43,6 +45,7 @@ export class JiraService {
   constructor(
     private readonly httpService: HttpService,
     private readonly trelloService: TrelloService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
   ) {
@@ -109,6 +112,20 @@ export class JiraService {
       } else {
         handleError(error);
       }
+    }
+  }
+
+  async getUserDetailsFromJira(jiraWorkspaceUrl: string, accountId: string): Promise<IJiraUserData> {
+    const endpoint = `/rest/api/3/user?accountId=${accountId}`;
+    try {
+      const response1 = await firstValueFrom(
+        this.httpService.get(`${jiraWorkspaceUrl}${endpoint}`, {
+          headers: this.headers,
+        }),
+      );
+      return response1.data;
+    } catch (error) {
+      handleError(error);
     }
   }
 
