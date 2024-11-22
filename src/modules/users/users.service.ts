@@ -9,7 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
 import { IssueHistory } from './schemas/IssueHistory.schems';
@@ -31,6 +31,7 @@ import { Project } from './schemas/Project.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { JiraService } from '../jira/jira.service';
 import { TrelloService } from '../trello/trello.service';
+import { UserProject } from './schemas/UserProject.schema';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -48,6 +49,8 @@ export class UserService {
     private readonly issueEntryModel: Model<IssueEntry>,
     @InjectModel(Project.name)
     private readonly projectModel: Model<Project>,
+    @InjectModel(UserProject.name)
+    private readonly userProjectModel: Model<UserProject>,
     private readonly configService: ConfigService,
   ) {
     //Nothing
@@ -159,7 +162,16 @@ export class UserService {
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
-    return this.userModel.create(userToSave);
+    const user = await this.userModel.create(userToSave);
+    let userProjects = [];
+    projects.forEach((project) => {
+      userProjects.push({
+        user: user._id,
+        project: project._id,
+      });
+    });
+    await this.userProjectModel.insertMany(userProjects);
+    return user;
   }
 
   async getAllUsers(page = 1, limit = 10): Promise<IAllUsers> {
@@ -201,43 +213,87 @@ export class UserService {
     page = 1,
     limit = 30,
   ): Promise<IUserResponse> {
-    try {
-      validateAccountId(accountId);
-      validatePagination(page, limit);
+    // try {
+    validateAccountId(accountId);
+    validatePagination(page, limit);
 
-      const user = await this.userModel.findOne({ accountId }).exec();
+    // const user = await this.userModel.findOne({ _id: accountId }).exec();
+    const aggregate = [];
+    aggregate.push({ $match: { _id: new mongoose.Types.ObjectId(accountId) } });
+    aggregate.push({
+      $lookup: {
+        from: 'userprojects',
+        localField: '_id',
+        foreignField: 'user',
+        as: 'projects',
+      },
+    });
+    aggregate.push({
+      $unwind: { path: '$projects', preserveNullAndEmptyArrays: true },
+    });
+    aggregate.push({
+      $lookup: {
+        from: 'projects', // The collection where project details are stored
+        localField: 'projects.project',
+        foreignField: '_id',
+        as: 'projects.projectDetails',
+      },
+    });
 
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-
-      const skip = (page - 1) * limit;
-
-      const totalIssueHistory = user.issueHistory.length;
-      const sortedIssueHistory = user.issueHistory
-        .sort((a, b) => {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        })
-        .slice(skip, skip + limit);
-
-      const totalPages = Math.ceil(totalIssueHistory / limit);
-
-      const userWithPagination: IUserWithPagination = {
-        ...user.toObject(),
-        issueHistory: sortedIssueHistory,
-        totalIssueHistory,
-        currentPage: page,
-        totalPages,
-      };
-
-      return {
-        message: 'User found successfully',
-        statusCode: 200,
-        user: userWithPagination,
-      };
-    } catch (error) {
-      handleError(error);
+    aggregate.push({
+      $group: {
+        _id: '$_id',
+        jiraAccountId: { $first: '$jiraAccountId' },
+        trelloAccountId: { $first: '$trelloAccountId' },
+        accountId: { $first: '$accountId' },
+        displayName: { $first: '$displayName' },
+        emailAddress: { $first: '$emailAddress' },
+        avatarUrls: { $first: '$avatarUrls' },
+        designation: { $first: '$designation' },
+        project: { $first: '$project' },
+        isArchive: { $first: '$isArchive' },
+        createdAt: { $first: '$createdAt' },
+        updatedAt: { $first: '$updatedAt' },
+        projects: { $push: '$projects' },
+      },
+    });
+    const userResult = await this.userModel.aggregate(aggregate);
+    if (!userResult) {
+      throw new NotFoundException('User not found');
     }
+    return {
+      message: 'User found successfully',
+      statusCode: 200,
+      user: userResult[0],
+    };
+    const user = userResult[0];
+    const skip = (page - 1) * limit;
+
+    const totalIssueHistory = user.issueHistory?.length;
+    const sortedIssueHistory = user.issueHistory
+      ?.sort((a, b) => {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      })
+      .slice(skip, skip + limit);
+
+    const totalPages = Math.ceil(totalIssueHistory / limit);
+
+    const userWithPagination: IUserWithPagination = {
+      ...user.toObject(),
+      issueHistory: sortedIssueHistory,
+      totalIssueHistory,
+      currentPage: page,
+      totalPages,
+    };
+
+    return {
+      message: 'User found successfully',
+      statusCode: 200,
+      user: userWithPagination,
+    };
+    // } catch (error) {
+    //   handleError(error);
+    // }
   }
 
   async deleteUser(accountId: string): Promise<ISuccessResponse> {
