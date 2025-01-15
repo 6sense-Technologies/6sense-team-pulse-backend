@@ -56,6 +56,169 @@ export class UserService {
     //Nothing
   }
 
+  /// EXPERIMENTAL MODIFICATION
+  async calculateIndividualStats(userId: string) {
+    const result = await this.issueEntryModel.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(userId),
+          issueType: { $in: ['Task', 'Story', 'Bug'] }, // Match relevant issue types
+        },
+      },
+      {
+        $group: {
+          _id: '$date', // Group by the 'date' field
+          doneTaskCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    { $eq: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneTaskCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    { $ne: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          doneStoryCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Story'] },
+                    { $eq: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneStoryCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Story'] },
+                    { $ne: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          doneBugCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Bug'] },
+                    { $eq: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneBugCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Bug'] },
+                    { $ne: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          firstComment: { $first: '$comments' }, // Assuming comments is an array and you want the first one
+        },
+      },
+      {
+        $project: {
+          date: '$_id', // Rename _id to date
+          doneTaskCount: 1,
+          notDoneTaskCount: 1,
+          doneStoryCount: 1,
+          notDoneStoryCount: 1,
+          doneBugCount: 1,
+          notDoneBugCount: 1,
+          firstComment: 1, // Include the first comment
+          // Calculate ratios
+          taskRatio: {
+            $cond: {
+              if: {
+                $eq: [{ $add: ['$doneTaskCount', '$notDoneTaskCount'] }, 0],
+              }, // If the total count is 0, set ratio to null
+              then: 0,
+              else: {
+                $divide: [
+                  '$doneTaskCount',
+                  { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                ],
+              }, // done / (done + not done)
+            },
+          },
+          storyRatio: {
+            $cond: {
+              if: {
+                $eq: [{ $add: ['$doneStoryCount', '$notDoneStoryCount'] }, 0],
+              },
+              then: 0,
+              else: {
+                $divide: [
+                  '$doneStoryCount',
+                  { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                ],
+              },
+            },
+          },
+          bugRatio: {
+            $cond: {
+              if: { $eq: [{ $add: ['$doneBugCount', '$notDoneBugCount'] }, 0] },
+              then: 0,
+              else: {
+                $divide: [
+                  '$doneBugCount',
+                  { $add: ['$doneBugCount', '$notDoneBugCount'] },
+                ],
+              },
+            },
+          },
+          _id: 0, // Remove the _id field
+        },
+      },
+      {
+        $sort: { date: 1 }, // Sort by date in ascending order
+      },
+    ]);
+
+    return result;
+  }
+
+  // ----------------------------------------------------------------------------//
+
   async createUser(createUserDto: CreateUserDto) {
     if (!createUserDto.jiraId && !createUserDto.trelloId) {
       throw new BadRequestException('Jira/Trello id is required');
@@ -173,7 +336,7 @@ export class UserService {
     await this.userProjectModel.insertMany(userProjects);
     return user;
   }
-
+  // TODO: NEED TO FIX THIS
   async getAllUsers(page = 1, limit = 10): Promise<IAllUsers> {
     try {
       validatePagination(page, limit);
@@ -207,7 +370,7 @@ export class UserService {
       handleError(error);
     }
   }
-
+  //TODO: NEED TO FIX THIS
   async getUser(
     accountId: string,
     page = 1,

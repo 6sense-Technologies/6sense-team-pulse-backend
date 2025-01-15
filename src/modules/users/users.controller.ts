@@ -24,7 +24,12 @@ export class UserController {
   constructor(private readonly userService: UserService) {
     // Constructor for injecting UserService
   }
-
+  // Experimental Modification
+  @Get('v2')
+  async calculateIndividualStats(@Query('userId') userId: string) {
+    return this.userService.calculateIndividualStats(userId);
+  }
+  //------------------------///
   @Get()
   async getAllUsers(
     @Query('page') page?: number,
