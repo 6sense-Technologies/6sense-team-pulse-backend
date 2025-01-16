@@ -29,6 +29,11 @@ export class UserController {
   async calculateIndividualStats(@Query('userId') userId: string) {
     return this.userService.calculateIndividualStats(userId);
   }
+  @Get('v2/all')
+  async calculateOverview() {
+    return this.userService.calculateOverview();
+  }
+
   //------------------------///
   @Get()
   async getAllUsers(

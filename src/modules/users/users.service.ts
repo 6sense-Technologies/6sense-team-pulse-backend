@@ -174,7 +174,7 @@ export class UserService {
               ],
             },
           },
-          comment: { $first: '$comment' }, // Assuming comments is an array and you want the first one
+          comment: { $first: '$comment' }, //getting the first one from each group
         },
       },
       {
@@ -229,45 +229,48 @@ export class UserService {
             },
           },
           score: {
-            $cond: {
-              if: {
-                $eq: [
+            // $divide: [{ $add: ['$taskRatio', '$storyRatio'] },],
+            $divide: [
+              {
+                $add: [
                   {
-                    $add: [
-                      '$doneBugCount',
-                      '$doneStoryCount',
-                      '$doneTaskCount',
-                      '$notDoneBugCount',
-                      '$notDoneStoryCount',
-                      '$notDoneTaskCount',
-                    ],
+                    $cond: {
+                      if: {
+                        $eq: [
+                          { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                          0,
+                        ],
+                      },
+                      then: 0,
+                      else: {
+                        $divide: [
+                          '$doneTaskCount',
+                          { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                        ],
+                      },
+                    },
                   },
-                  0,
+                  {
+                    $cond: {
+                      if: {
+                        $eq: [
+                          { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                          0,
+                        ],
+                      },
+                      then: 0,
+                      else: {
+                        $divide: [
+                          '$doneStoryCount',
+                          { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                        ],
+                      },
+                    },
+                  },
                 ],
               },
-              then: 0,
-              else: {
-                $divide: [
-                  {
-                    $add: [
-                      '$doneTaskCount',
-                      '$doneStoryCount',
-                      '$doneBugCount',
-                    ],
-                  },
-                  {
-                    $add: [
-                      '$doneBugCount',
-                      '$doneStoryCount',
-                      '$doneTaskCount',
-                      '$notDoneBugCount',
-                      '$notDoneStoryCount',
-                      '$notDoneTaskCount',
-                    ],
-                  },
-                ],
-              },
-            },
+              2,
+            ],
           },
           _id: 0, // Remove the _id field
         },
@@ -279,7 +282,201 @@ export class UserService {
 
     return result;
   }
+  async calculateOverview() {
+    const result = await this.issueEntryModel.aggregate([
+      {
+        $match: {
+          comment: { $ne: 'holidays/leave' },
+        },
+      },
+      {
+        $group: {
+          _id: '$user',
+          doneTaskCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    {
+                      $in: ['$issueStatus', ['Done', 'In Review']],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneTaskCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          doneStoryCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Story'] },
+                    {
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'USER STORIES (Verified In Test)',
+                          'USER STORIES (Verified In Beta)',
+                        ],
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneStoryCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Story'] },
+                    {
+                      $not: {
+                        $in: [
+                          '$issueStatus',
+                          [
+                            'Done',
+                            'USER STORIES (Verified In Test)',
+                            'USER STORIES (Verified In Beta)',
+                          ],
+                        ],
+                      },
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          doneBugCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Bug'] },
+                    { $eq: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneBugCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Bug'] },
+                    { $ne: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          comment: { $first: '$comment' }, //getting the first one from each group
+        },
+      },
+      {
+        $project: {
+          score: {
+            // $divide: [{ $add: ['$taskRatio', '$storyRatio'] },],
+            $divide: [
+              {
+                $add: [
+                  {
+                    $cond: {
+                      if: {
+                        $eq: [
+                          { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                          0,
+                        ],
+                      },
+                      then: 0,
+                      else: {
+                        $divide: [
+                          '$doneTaskCount',
+                          { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                        ],
+                      },
+                    },
+                  },
+                  {
+                    $cond: {
+                      if: {
+                        $eq: [
+                          { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                          0,
+                        ],
+                      },
+                      then: 0,
+                      else: {
+                        $divide: [
+                          '$doneStoryCount',
+                          { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+              2,
+            ],
+          },
+          _id: 1,
+        },
+      },
+      {
+        $sort: { date: 1 }, // Sort by date in ascending order
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'userData',
+        },
+      },
+      {
+        $unwind: '$userData',
+      },
+      {
+        $project: {
+          'userData.displayName': 1,
+          'userData.emailAddress': 1,
+          'userData.designation': 1,
+          'userData.avatarUrls': 1,
+          score: 1,
+        },
+      },
+    ]);
 
+    return result;
+  }
   // ----------------------------------------------------------------------------//
 
   async createUser(createUserDto: CreateUserDto) {
