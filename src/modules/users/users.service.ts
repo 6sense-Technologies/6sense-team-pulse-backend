@@ -62,7 +62,7 @@ export class UserService {
       {
         $match: {
           user: new mongoose.Types.ObjectId(userId),
-          issueType: { $in: ['Task', 'Story', 'Bug'] }, // Match relevant issue types
+          issueType: { $in: ['Task', 'Story', 'Bug'] },
         },
       },
       {
@@ -74,7 +74,9 @@ export class UserService {
                 {
                   $and: [
                     { $eq: ['$issueType', 'Task'] },
-                    { $eq: ['$issueStatus', 'Done'] },
+                    {
+                      $in: ['$issueStatus', ['Done', 'In Review']],
+                    },
                   ],
                 },
                 1,
@@ -88,7 +90,7 @@ export class UserService {
                 {
                   $and: [
                     { $eq: ['$issueType', 'Task'] },
-                    { $ne: ['$issueStatus', 'Done'] },
+                    { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
                   ],
                 },
                 1,
@@ -102,7 +104,16 @@ export class UserService {
                 {
                   $and: [
                     { $eq: ['$issueType', 'Story'] },
-                    { $eq: ['$issueStatus', 'Done'] },
+                    {
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'USER STORIES (Verified In Test)',
+                          'USER STORIES (Verified In Beta)',
+                        ],
+                      ],
+                    },
                   ],
                 },
                 1,
@@ -116,7 +127,18 @@ export class UserService {
                 {
                   $and: [
                     { $eq: ['$issueType', 'Story'] },
-                    { $ne: ['$issueStatus', 'Done'] },
+                    {
+                      $not: {
+                        $in: [
+                          '$issueStatus',
+                          [
+                            'Done',
+                            'USER STORIES (Verified In Test)',
+                            'USER STORIES (Verified In Beta)',
+                          ],
+                        ],
+                      },
+                    },
                   ],
                 },
                 1,
@@ -152,7 +174,7 @@ export class UserService {
               ],
             },
           },
-          firstComment: { $first: '$comments' }, // Assuming comments is an array and you want the first one
+          comment: { $first: '$comment' }, // Assuming comments is an array and you want the first one
         },
       },
       {
@@ -164,7 +186,7 @@ export class UserService {
           notDoneStoryCount: 1,
           doneBugCount: 1,
           notDoneBugCount: 1,
-          firstComment: 1, // Include the first comment
+          comment: 1, // Include the first comment
           // Calculate ratios
           taskRatio: {
             $cond: {
@@ -202,6 +224,47 @@ export class UserService {
                 $divide: [
                   '$doneBugCount',
                   { $add: ['$doneBugCount', '$notDoneBugCount'] },
+                ],
+              },
+            },
+          },
+          score: {
+            $cond: {
+              if: {
+                $eq: [
+                  {
+                    $add: [
+                      '$doneBugCount',
+                      '$doneStoryCount',
+                      '$doneTaskCount',
+                      '$notDoneBugCount',
+                      '$notDoneStoryCount',
+                      '$notDoneTaskCount',
+                    ],
+                  },
+                  0,
+                ],
+              },
+              then: 0,
+              else: {
+                $divide: [
+                  {
+                    $add: [
+                      '$doneTaskCount',
+                      '$doneStoryCount',
+                      '$doneBugCount',
+                    ],
+                  },
+                  {
+                    $add: [
+                      '$doneBugCount',
+                      '$doneStoryCount',
+                      '$doneTaskCount',
+                      '$notDoneBugCount',
+                      '$notDoneStoryCount',
+                      '$notDoneTaskCount',
+                    ],
+                  },
                 ],
               },
             },
