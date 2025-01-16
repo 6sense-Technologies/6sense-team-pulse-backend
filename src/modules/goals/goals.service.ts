@@ -22,9 +22,9 @@ export class GoalsService {
     });
   }
 
-  findAll(page: number = 1, limit: number = 10) {
+  findAll(userId: string, page: number = 1, limit: number = 10) {
     return this.goalModel
-      .find()
+      .find({ user: userId })
       .skip((page - 1) * limit)
       .limit(limit);
   }
