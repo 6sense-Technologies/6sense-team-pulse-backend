@@ -26,12 +26,19 @@ export class UserController {
   }
   // Experimental Modification
   @Get('v2')
-  async calculateIndividualStats(@Query('userId') userId: string) {
-    return this.userService.calculateIndividualStats(userId);
+  async calculateIndividualStats(
+    @Query('userId') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.userService.calculateIndividualStats(userId, page, limit);
   }
   @Get('v2/all')
-  async calculateOverview() {
-    return this.userService.calculateOverview();
+  async calculateOverview(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.userService.calculateOverview(page, limit);
   }
 
   //------------------------///
