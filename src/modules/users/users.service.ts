@@ -58,56 +58,79 @@ export class UserService {
 
   /// EXPERIMENTAL MODIFICATION
   async calculateIndividualStats(userId: string, page: number, limit: number) {
-    const result = await this.issueEntryModel
-      .aggregate([
-        {
-          $match: {
-            user: new mongoose.Types.ObjectId(userId),
-            issueType: { $in: ['Task', 'Story', 'Bug'] },
-          },
+    const result = await this.issueEntryModel.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(userId),
+          issueType: { $in: ['Task', 'Story', 'Bug'] },
         },
-        {
-          $group: {
-            _id: '$date', // Group by the 'date' field
-            doneTaskCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Task'] },
-                      {
-                        $in: ['$issueStatus', ['Done', 'In Review']],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
+      },
+      {
+        $group: {
+          _id: '$date', // Group by the 'date' field
+          doneTaskCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    {
+                      $in: ['$issueStatus', ['Done', 'In Review']],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
             },
-            notDoneTaskCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Task'] },
-                      {
-                        $not: { $in: ['$issueStatus', ['Done', 'In Review']] },
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
+          },
+          notDoneTaskCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    {
+                      $not: { $in: ['$issueStatus', ['Done', 'In Review']] },
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
             },
-            doneStoryCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Story'] },
-                      {
+          },
+          doneStoryCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Story'] },
+                    {
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'USER STORIES (Verified In Test)',
+                          'USER STORIES (Verified In Beta)',
+                        ],
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneStoryCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Story'] },
+                    {
+                      $not: {
                         $in: [
                           '$issueStatus',
                           [
@@ -117,234 +140,251 @@ export class UserService {
                           ],
                         ],
                       },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            notDoneStoryCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Story'] },
-                      {
-                        $not: {
-                          $in: [
-                            '$issueStatus',
-                            [
-                              'Done',
-                              'USER STORIES (Verified In Test)',
-                              'USER STORIES (Verified In Beta)',
-                            ],
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            doneBugCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Bug'] },
-                      { $eq: ['$issueStatus', 'Done'] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            notDoneBugCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Bug'] },
-                      { $ne: ['$issueStatus', 'Done'] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            comment: { $first: '$comment' }, //getting the first one from each group
-          },
-        },
-        {
-          $project: {
-            date: '$_id', // Rename _id to date
-            doneTaskCount: 1,
-            notDoneTaskCount: 1,
-            doneStoryCount: 1,
-            notDoneStoryCount: 1,
-            doneBugCount: 1,
-            notDoneBugCount: 1,
-            comment: 1, // Include the first comment
-            user: 1,
-            // Calculate ratios
-            taskRatio: {
-              $cond: {
-                if: {
-                  $eq: [{ $add: ['$doneTaskCount', '$notDoneTaskCount'] }, 0],
-                }, // If the total count is 0, set ratio to null
-                then: 0,
-                else: {
-                  $divide: [
-                    '$doneTaskCount',
-                    { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
-                  ],
-                }, // done / (done + not done)
-              },
-            },
-            storyRatio: {
-              $cond: {
-                if: {
-                  $eq: [{ $add: ['$doneStoryCount', '$notDoneStoryCount'] }, 0],
-                },
-                then: 0,
-                else: {
-                  $divide: [
-                    '$doneStoryCount',
-                    { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
-                  ],
-                },
-              },
-            },
-            bugRatio: {
-              $cond: {
-                if: {
-                  $eq: [{ $add: ['$doneBugCount', '$notDoneBugCount'] }, 0],
-                },
-                then: 0,
-                else: {
-                  $divide: [
-                    '$doneBugCount',
-                    { $add: ['$doneBugCount', '$notDoneBugCount'] },
-                  ],
-                },
-              },
-            },
-            score: {
-              // $divide: [{ $add: ['$taskRatio', '$storyRatio'] },],
-              $divide: [
-                {
-                  $add: [
-                    {
-                      $cond: {
-                        if: {
-                          $eq: [
-                            { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
-                            0,
-                          ],
-                        },
-                        then: 0,
-                        else: {
-                          $divide: [
-                            '$doneTaskCount',
-                            { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
-                          ],
-                        },
-                      },
-                    },
-                    {
-                      $cond: {
-                        if: {
-                          $eq: [
-                            { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
-                            0,
-                          ],
-                        },
-                        then: 0,
-                        else: {
-                          $divide: [
-                            '$doneStoryCount',
-                            { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
-                          ],
-                        },
-                      },
                     },
                   ],
                 },
-                2,
+                1,
+                0,
               ],
             },
-            _id: 0, // Remove the _id field
           },
+          doneBugCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Bug'] },
+                    { $eq: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneBugCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Bug'] },
+                    { $ne: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          comment: { $first: '$comment' }, //getting the first one from each group
         },
-        {
-          $sort: { date: 1 }, // Sort by date in ascending order
+      },
+      {
+        $project: {
+          date: '$_id', // Rename _id to date
+          doneTaskCount: 1,
+          notDoneTaskCount: 1,
+          doneStoryCount: 1,
+          notDoneStoryCount: 1,
+          doneBugCount: 1,
+          notDoneBugCount: 1,
+          comment: 1, // Include the first comment
+          user: 1,
+          // Calculate ratios
+          taskRatio: {
+            $cond: {
+              if: {
+                $eq: [{ $add: ['$doneTaskCount', '$notDoneTaskCount'] }, 0],
+              }, // If the total count is 0, set ratio to null
+              then: 0,
+              else: {
+                $divide: [
+                  '$doneTaskCount',
+                  { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                ],
+              }, // done / (done + not done)
+            },
+          },
+          storyRatio: {
+            $cond: {
+              if: {
+                $eq: [{ $add: ['$doneStoryCount', '$notDoneStoryCount'] }, 0],
+              },
+              then: 0,
+              else: {
+                $divide: [
+                  '$doneStoryCount',
+                  { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                ],
+              },
+            },
+          },
+          bugRatio: {
+            $cond: {
+              if: {
+                $eq: [{ $add: ['$doneBugCount', '$notDoneBugCount'] }, 0],
+              },
+              then: 0,
+              else: {
+                $divide: [
+                  '$doneBugCount',
+                  { $add: ['$doneBugCount', '$notDoneBugCount'] },
+                ],
+              },
+            },
+          },
+          score: {
+            // $divide: [{ $add: ['$taskRatio', '$storyRatio'] },],
+            $divide: [
+              {
+                $add: [
+                  {
+                    $cond: {
+                      if: {
+                        $eq: [
+                          { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                          0,
+                        ],
+                      },
+                      then: 0,
+                      else: {
+                        $divide: [
+                          '$doneTaskCount',
+                          { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                        ],
+                      },
+                    },
+                  },
+                  {
+                    $cond: {
+                      if: {
+                        $eq: [
+                          { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                          0,
+                        ],
+                      },
+                      then: 0,
+                      else: {
+                        $divide: [
+                          '$doneStoryCount',
+                          { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+              2,
+            ],
+          },
+          _id: 0, // Remove the _id field
         },
-      ])
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
+      },
+      {
+        $sort: { date: 1 }, // Sort by date in ascending order
+      },
+      {
+        $facet: {
+          total: [{ $count: 'total' }],
+          data: [
+            { $skip: (Number(page) - 1) * Number(limit) },
+            { $limit: Number(limit) },
+          ],
+        },
+      },
+      {
+        $unwind: '$total',
+      },
+      {
+        $project: {
+          count: '$total.total',
+          data: 1,
+        },
+      },
+    ]);
+
     const userData = await this.userModel
       .findById(userId)
-      .select('displayName emailAddress designation');
+      .select('displayName emailAddress designation avatarUrls');
     return {
       userData: userData,
-      history: result,
+      history: result[0],
     };
   }
   async calculateOverview(page: Number, limit: Number) {
-    const result = await this.issueEntryModel
-      .aggregate([
-        {
-          $match: {
-            comment: { $ne: 'holidays/leave' },
-          },
+    // const count = await this.userModel.countDocuments();
+    const result = await this.issueEntryModel.aggregate([
+      {
+        $match: {
+          comment: { $ne: 'holidays/leave' },
         },
-        {
-          $group: {
-            _id: '$user',
-            doneTaskCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Task'] },
-                      {
-                        $in: ['$issueStatus', ['Done', 'In Review']],
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
+      },
+      {
+        $group: {
+          _id: '$user',
+          doneTaskCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    {
+                      $in: ['$issueStatus', ['Done', 'In Review']],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
             },
-            notDoneTaskCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Task'] },
-                      {
-                        $not: { $in: ['$issueStatus', ['Done', 'In Review']] },
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
+          },
+          notDoneTaskCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    {
+                      $not: { $in: ['$issueStatus', ['Done', 'In Review']] },
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
             },
-            doneStoryCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Story'] },
-                      {
+          },
+          doneStoryCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Story'] },
+                    {
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'USER STORIES (Verified In Test)',
+                          'USER STORIES (Verified In Beta)',
+                        ],
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          notDoneStoryCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Story'] },
+                    {
+                      $not: {
                         $in: [
                           '$issueStatus',
                           [
@@ -354,146 +394,147 @@ export class UserService {
                           ],
                         ],
                       },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            notDoneStoryCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Story'] },
-                      {
-                        $not: {
-                          $in: [
-                            '$issueStatus',
-                            [
-                              'Done',
-                              'USER STORIES (Verified In Test)',
-                              'USER STORIES (Verified In Beta)',
-                            ],
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            doneBugCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Bug'] },
-                      { $eq: ['$issueStatus', 'Done'] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            notDoneBugCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $eq: ['$issueType', 'Bug'] },
-                      { $ne: ['$issueStatus', 'Done'] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-            comment: { $first: '$comment' }, //getting the first one from each group
-          },
-        },
-        {
-          $project: {
-            score: {
-              // $divide: [{ $add: ['$taskRatio', '$storyRatio'] },],
-              $divide: [
-                {
-                  $add: [
-                    {
-                      $cond: {
-                        if: {
-                          $eq: [
-                            { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
-                            0,
-                          ],
-                        },
-                        then: 0,
-                        else: {
-                          $divide: [
-                            '$doneTaskCount',
-                            { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
-                          ],
-                        },
-                      },
-                    },
-                    {
-                      $cond: {
-                        if: {
-                          $eq: [
-                            { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
-                            0,
-                          ],
-                        },
-                        then: 0,
-                        else: {
-                          $divide: [
-                            '$doneStoryCount',
-                            { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
-                          ],
-                        },
-                      },
                     },
                   ],
                 },
-                2,
+                1,
+                0,
               ],
             },
-            _id: 1,
           },
-        },
-        {
-          $sort: { date: 1 }, // Sort by date in ascending order
-        },
-        {
-          $lookup: {
-            from: 'users',
-            localField: '_id',
-            foreignField: '_id',
-            as: 'userData',
+          doneBugCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Bug'] },
+                    { $eq: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
-        },
-        {
-          $unwind: '$userData',
-        },
-        {
-          $project: {
-            'userData.displayName': 1,
-            'userData.emailAddress': 1,
-            'userData.designation': 1,
-            'userData.avatarUrls': 1,
-            score: 1,
+          notDoneBugCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Bug'] },
+                    { $ne: ['$issueStatus', 'Done'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
+          comment: { $first: '$comment' }, //getting the first one from each group
         },
-      ])
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
+      },
+      {
+        $project: {
+          score: {
+            // $divide: [{ $add: ['$taskRatio', '$storyRatio'] },],
+            $divide: [
+              {
+                $add: [
+                  {
+                    $cond: {
+                      if: {
+                        $eq: [
+                          { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                          0,
+                        ],
+                      },
+                      then: 0,
+                      else: {
+                        $divide: [
+                          '$doneTaskCount',
+                          { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                        ],
+                      },
+                    },
+                  },
+                  {
+                    $cond: {
+                      if: {
+                        $eq: [
+                          { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                          0,
+                        ],
+                      },
+                      then: 0,
+                      else: {
+                        $divide: [
+                          '$doneStoryCount',
+                          { $add: ['$doneStoryCount', '$notDoneStoryCount'] },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+              2,
+            ],
+          },
+          _id: 1,
+        },
+      },
+      {
+        $sort: { date: 1 }, // Sort by date in ascending order
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'userData',
+        },
+      },
+      {
+        $unwind: '$userData',
+      },
+      {
+        $project: {
+          'userData.displayName': 1,
+          'userData.emailAddress': 1,
+          'userData.designation': 1,
+          'userData.avatarUrls': 1,
+          score: 1,
+        },
+      },
+      {
+        $facet: {
+          total: [{ $count: 'total' }],
+          data: [
+            { $skip: (Number(page) - 1) * Number(limit) },
+            { $limit: Number(limit) },
+          ],
+        },
+      },
+      {
+        $unwind: '$total',
+      },
+      {
+        $project: {
+          count: '$total.total',
+          data: 1,
+        },
+      },
+      ///bring out userData
+      // {
+      //   $replaceRoot: { newRoot: { $mergeObjects: ["$userData", "$$ROOT"] } }
+      // },
+      // {
+      //   $project:{
+      //     'userData':0
+      //   }
+      // }
+    ]);
 
-    return result;
+    return result[0];
   }
   // ----------------------------------------------------------------------------//
 

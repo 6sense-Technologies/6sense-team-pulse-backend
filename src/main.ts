@@ -8,11 +8,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = new DocumentBuilder()
-  .setTitle('Efficiency APIs')
-  .setDescription('Efficiency API docs')
-  .setVersion('1.0')
-  .addTag('Effciency')
-  .build();
+    .setTitle('Efficiency APIs')
+    .setDescription('Efficiency API docs')
+    .setVersion('1.0')
+    .addTag('Effciency')
+    .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
   app.use(cors());
@@ -23,7 +23,7 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
-  await app.listen(8000);
+  await app.listen(3000, '192.168.0.158');
 }
 
 bootstrap();

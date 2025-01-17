@@ -22,12 +22,17 @@ export class GoalsService {
     });
   }
 
-  async findAll(page: number = 1, limit: number = 10) {
-    return this.goalModel
-      .find()
+  async findAll(userId: string, page: number = 1, limit: number = 10) {
+    const count = await this.goalModel.find({ user: userId }).countDocuments();
+
+    const datas = await this.goalModel
+      .find({ user: userId })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
-
+    return {
+      count: count,
+      data: datas,
+    };
   }
 
   findOne(id: string) {
@@ -56,12 +61,18 @@ export class GoalsService {
     });
   }
 
-  findAllAction(id: string, page: number = 1, limit: number = 10) {
-    
-    return this.goalActionModel
+  async findAllAction(id: string, page: number = 1, limit: number = 10) {
+    const counts = await this.goalActionModel
       .find({ goal: id })
-      .skip((page - 1) *limit )
+      .countDocuments();
+    const datas = await this.goalActionModel
+      .find({ goal: id })
+      .skip((page - 1) * limit)
       .limit(limit);
+    return {
+      count: counts,
+      data: datas,
+    };
   }
 
   findOneAction(id: string) {

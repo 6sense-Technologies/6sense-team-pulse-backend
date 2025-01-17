@@ -22,9 +22,13 @@ export class GoalsController {
     return this.goalsService.create(createGoalDto);
   }
 
-  @Get()
-  findAll(@Query('page') page: number, @Query('limit') limit: number) {
-    return this.goalsService.findAll(+page, +limit);
+  @Get('user')
+  findAll(
+    @Query('userId') userId: string,
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ) {
+    return this.goalsService.findAll(userId, +page, +limit);
   }
 
   @Get(':id')
