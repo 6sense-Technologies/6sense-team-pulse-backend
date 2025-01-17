@@ -22,11 +22,12 @@ export class GoalsService {
     });
   }
 
-  findAll(page: number = 1, limit: number = 10) {
+  async findAll(page: number = 1, limit: number = 10) {
     return this.goalModel
       .find()
-      .skip((page - 1) * limit)
-      .limit(limit);
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
   }
 
   findOne(id: string) {
@@ -56,9 +57,10 @@ export class GoalsService {
   }
 
   findAllAction(id: string, page: number = 1, limit: number = 10) {
+    
     return this.goalActionModel
       .find({ goal: id })
-      .skip((page - 1) * limit)
+      .skip((page - 1) *limit )
       .limit(limit);
   }
 

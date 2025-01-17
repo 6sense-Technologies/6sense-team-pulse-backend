@@ -29,6 +29,7 @@ export class GoalsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
+    console.log(id);
     return this.goalsService.findOne(id);
   }
 

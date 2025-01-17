@@ -27,6 +27,7 @@ import {
   validateAccountId,
   validateDate,
 } from 'src/common/helpers/validation.helper';
+import { IssueEntry } from '../users/schemas/IssueEntry.schema';
 
 dotenv.config();
 
@@ -48,6 +49,8 @@ export class JiraService {
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(IssueEntry.name)
+    private readonly issueEntryModel: Model<IssueEntry>,
   ) {
     // Constructor for injecting userModel
   }
@@ -115,7 +118,10 @@ export class JiraService {
     }
   }
 
-  async getUserDetailsFromJira(jiraWorkspaceUrl: string, accountId: string): Promise<IJiraUserData> {
+  async getUserDetailsFromJira(
+    jiraWorkspaceUrl: string,
+    accountId: string,
+  ): Promise<IJiraUserData> {
     const endpoint = `/rest/api/3/user?accountId=${accountId}`;
     try {
       const response1 = await firstValueFrom(
@@ -333,6 +339,15 @@ export class JiraService {
             dueDate,
             issueLinks: linkedIssues,
           });
+          this.issueEntryModel.create({
+            issueId: issueId,
+            issueSummary: summary,
+            issueStatus: status,
+            issueType: issueType,
+            date: dueDate,
+            issueLinks: linkedIssues,
+          });
+          console.log(`Issue created with id: ${issueId}`);
         }
       });
 
@@ -447,6 +462,17 @@ export class JiraService {
             dueDate,
             issueLinks: linkedIssues,
           });
+
+          /// EXPERIMENTAL MODIFICATION
+          this.issueEntryModel.create({
+            issueId: issueId,
+            issueSummary: summary,
+            issueStatus: status,
+            issueType: issueType,
+            date: dueDate,
+            issueLinks: linkedIssues,
+          });
+          console.log(`Issue entry added with Issue ID: ${issueId}`);
         }
       }
 
