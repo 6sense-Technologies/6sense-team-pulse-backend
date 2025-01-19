@@ -4,6 +4,8 @@ import { AppModule } from './app.module';
 import * as cors from 'cors';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -22,8 +24,20 @@ async function bootstrap(): Promise<void> {
     methods: 'GET,POST,PUT,DELETE',
     credentials: true,
   });
-
-  await app.listen(3000, '192.168.0.158');
+  const configService = app.get(ConfigService);
+  const mqttMicroservice =
+    await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
+      transport: Transport.MQTT,
+      options: {
+        url: configService.get('MQTT_BROKER_URL'),
+        userProperties: { 'x-version': '1.0.0' },
+        subscribeOptions: {
+          qos: 2,
+        },
+      },
+    });
+  await mqttMicroservice.listen();
+  await app.listen(3000, 'localhost');
 }
 
 bootstrap();

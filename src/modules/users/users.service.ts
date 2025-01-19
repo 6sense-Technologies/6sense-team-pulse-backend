@@ -61,7 +61,7 @@ export class UserService {
     const result = await this.issueEntryModel.aggregate([
       {
         $match: {
-          user: new mongoose.Types.ObjectId(userId),
+          user: new mongoose.Types.ObjectId(userId), ///aka user
           issueType: { $in: ['Task', 'Story', 'Bug'] },
         },
       },
@@ -313,6 +313,8 @@ export class UserService {
   }
   async calculateOverview(page: Number, limit: Number) {
     // const count = await this.userModel.countDocuments();
+    console.log(`${page}--${limit}`);
+
     const result = await this.issueEntryModel.aggregate([
       {
         $match: {
@@ -321,7 +323,7 @@ export class UserService {
       },
       {
         $group: {
-          _id: '$user',
+          _id: '$user', ///aka : user
           doneTaskCount: {
             $sum: {
               $cond: [
@@ -437,6 +439,7 @@ export class UserService {
         $project: {
           score: {
             // $divide: [{ $add: ['$taskRatio', '$storyRatio'] },],
+
             $divide: [
               {
                 $add: [

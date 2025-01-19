@@ -53,7 +53,7 @@ dotenv.config();
     GitRepoModule,
     QueueHandlerModule,
     ProjectsModule,
-    GoalsModule
+    GoalsModule,
   ],
   providers: [
     {

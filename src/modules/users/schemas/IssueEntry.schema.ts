@@ -3,9 +3,6 @@ import { Document, Types } from 'mongoose';
 
 @Schema()
 export class IssueEntry extends Document {
-  @Prop({ type: Types.ObjectId })
-  _id: Types.ObjectId;
-
   @Prop({ required: true })
   serialNumber: number;
 
@@ -24,7 +21,7 @@ export class IssueEntry extends Document {
   @Prop({ required: true })
   planned: boolean;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   link: string;
 
   @Prop({ required: true })
@@ -36,7 +33,7 @@ export class IssueEntry extends Document {
   @Prop({ required: true })
   accountId: string;
 
-  @Prop({ type: Types.ObjectId, required: true })
+  @Prop({ type: Types.ObjectId, required: false })
   user: Types.ObjectId;
 
   @Prop()
