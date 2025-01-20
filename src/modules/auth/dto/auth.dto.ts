@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateUserDTO {
+export class CreateUserEmailPasswordDTO {
   @ApiProperty({
     description: 'The display name of the user',
     example: 'John Doe',
@@ -32,24 +32,27 @@ export class CreateUserDTO {
     example: 'StrongPassword123!',
   })
   @IsString()
-  @ValidateIf((o) => o.authType === 'password')
-  @IsNotEmpty({ message: 'Password is required for password-based signup.' })
-  @IsOptional()
-  password?: string;
-
+  @IsNotEmpty({ message: 'Password is required for signup.' })
+  password: string;
+}
+export class CreateUserEmail {
   @ApiProperty({
-    description: 'The type of authentication to use for the user.',
-    example: 'password',
-    enum: ['password', 'passwordless'], // This generates Swagger documentation with the allowed values.
+    description: 'The display name of the user',
+    example: 'John Doe',
   })
   @IsString()
   @IsNotEmpty()
-  @IsIn(['password', 'passwordless'], {
-    message: 'authType must be either "password" or "passwordless".',
-  }) // Enforces that authType must be one of these two values.
-  authType: 'password' | 'passwordless';
-}
+  displayName: string;
 
+  @ApiProperty({
+    description: 'The email address of the user',
+    example: 'john.doe@example.com',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsEmail()
+  emailAddress: string;
+}
 export class LoginUserEmailPasswordDTO {
   @ApiProperty({
     description: 'The email address of the user',
@@ -69,8 +72,7 @@ export class LoginUserEmailPasswordDTO {
   password: string;
 }
 
-
-export class LoginUserEmailOnly{
+export class LoginUserEmailOnly {
   @ApiProperty({
     description: 'The email address of the user',
     example: 'john.doe@example.com',

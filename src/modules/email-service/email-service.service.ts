@@ -1,5 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as OTPAuth from 'otpauth';
 import { VerifyEmailDto } from './dto/email-service.dto';
@@ -8,9 +8,10 @@ import { VerifyEmailDto } from './dto/email-service.dto';
 export class EmailService {
   constructor(
     private configService: ConfigService,
+
     private readonly mailerService: MailerService,
   ) {}
-  private generateToken(emailAddress: string) {
+  private async generateToken(emailAddress: string) {
     const totp = new OTPAuth.TOTP({
       issuer: '6senseTechnologies',
       label: emailAddress,
@@ -22,9 +23,9 @@ export class EmailService {
     return totp.generate();
   }
   public async sendEmail(emailAddress: string) {
-    const totpCode = this.generateToken(emailAddress);
-    const emailTemplate = `Your verification code: ${totpCode}`
-    console.log(`Email template ${emailTemplate}`)
+    const totpCode = await this.generateToken(emailAddress);
+    const emailTemplate = `Your verification code: ${totpCode}`;
+    console.log(`Email template ${emailTemplate}`);
     const response = await this.mailerService.sendMail({
       from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
       to: emailAddress,
@@ -43,7 +44,13 @@ export class EmailService {
       secret: this.configService.get('OTP_PRIVATE_KEY'),
     });
     const token = verifyEmailDTO.token;
-    const validated = totp.validate({ token, window: 1 });
+    const delta = totp.validate({ token, window: 1 });
+
+    let validated: boolean = false;
+    if (delta !== null) {
+      validated = true;
+    }
+
     return { isValidated: validated };
   }
 }

@@ -1,8 +1,16 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { Model } from 'mongoose';
 import { Users } from './schemas/users.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { CreateUserDTO, LoginUserEmailPasswordDTO } from './dto/auth.dto';
+import {
+  CreateUserEmail,
+  CreateUserEmailPasswordDTO,
+  LoginUserEmailPasswordDTO,
+} from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email-service/email-service.service';
@@ -34,33 +42,74 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
-  
-  public async register(createUserDTO: CreateUserDTO) {
+  public async registerEmailPassword(
+    createUserEmailPasswordDTO: CreateUserEmailPasswordDTO,
+  ) {
     const userExist = await this.userModel.findOne({
-      emailAddress: createUserDTO.emailAddress,
+      emailAddress: createUserEmailPasswordDTO.emailAddress,
     });
     if (userExist) {
       throw new ConflictException('User already exist');
     }
-    const hashedPassword = await bcrypt.hash(createUserDTO.password, 10);
-    let createdUser: any;
-    if (createUserDTO.authType === 'password') {
-      // console.log(
-      //   `Generate Token ${this.generateToken(createUserDTO.emailAddress)}`,
-      // );
-      createdUser = await this.userModel.create({
-        displayName: createUserDTO.displayName,
-        emailAddress: createUserDTO.emailAddress,
-        password: hashedPassword,
-      });
-    } else {
-      createdUser = await this.userModel.create({
-        displayName: createUserDTO.displayName,
-        emailAddress: createUserDTO.emailAddress,
-        password: null,
-      });
-    }
-    this.emailService.sendEmail(createUserDTO.emailAddress);
+    const hashedPassword = await bcrypt.hash(
+      createUserEmailPasswordDTO.password,
+      10,
+    );
+
+    const createdUser = await this.userModel.create({
+      displayName: createUserEmailPasswordDTO.displayName,
+      emailAddress: createUserEmailPasswordDTO.emailAddress,
+      password: hashedPassword,
+    });
+
+    this.emailService.sendEmail(createUserEmailPasswordDTO.emailAddress);
     return createdUser;
+  }
+
+  public async registerEmail(createUserEmail: CreateUserEmail) {
+    const userExist = await this.userModel.findOne({
+      emailAddress: createUserEmail.emailAddress,
+    });
+    if (userExist) {
+      throw new ConflictException('User already exist');
+    }
+    const createdUser = await this.userModel.create({
+      displayName: createUserEmail.displayName,
+      emailAddress: createUserEmail.emailAddress,
+      password: null,
+    });
+    return createdUser;
+  }
+
+  public async loginEmailPassword(
+    loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO,
+  ) {
+    const user = await this.userModel.findOne({
+      emailAddress: loginUserEmailPasswordDTO.emailAddress,
+    });
+
+    if (user && user.password !== null) {
+      const checkPassword = await bcrypt.compare(
+        loginUserEmailPasswordDTO.password,
+        user.password,
+      );
+      if (!checkPassword) {
+        throw new BadRequestException('Invalid Credentials');
+      } else {
+        const { access_token, refresh_token } = this.generateTokens(
+          user.id,
+          user.emailAddress,
+        );
+        const userInfo = user.toObject();
+        delete userInfo.password;
+        return {
+          userInfo,
+          access_token: access_token,
+          refresh_token: refresh_token,
+        };
+      }
+    } else {
+      throw new BadRequestException('Invalid Credentials');
+    }
   }
 }
