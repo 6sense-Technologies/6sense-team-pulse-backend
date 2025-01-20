@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { GitRepoService } from './git-repo.service';
 import { GitRepoController } from './git-repo.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from '../users/schemas/user.schema';
-import { IssueHistory, IssueHistorySchema } from '../users/schemas/IssueHistory.schems';
-import { IssueEntry, IssueEntrySchema } from '../users/schemas/IssueEntry.schema';
-import { GitRepo, GitRepoSchema } from '../users/schemas/GitRepo.schema';
+import { User, UserSchema } from '../user-depreciated/schemas/user.schema';
+import { IssueHistory, IssueHistorySchema } from '../user-depreciated/schemas/IssueHistory.schems';
+import { IssueEntry, IssueEntrySchema } from '../user-depreciated/schemas/IssueEntry.schema';
+import { GitRepo, GitRepoSchema } from '../user-depreciated/schemas/GitRepo.schema';
 
 @Module({
   imports: [

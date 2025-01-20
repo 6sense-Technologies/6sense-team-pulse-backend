@@ -1,4 +1,4 @@
-import { User } from '../../modules/users/schemas/user.schema';
+import { User } from '../../modules/user-depreciated/schemas/user.schema';
 
 export interface IJiraUserData {
   accountId: string;

@@ -4,7 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UserModule } from './modules/users/users.module';
+import { UserModule } from './modules/user-depreciated/users.module';
 import { JiraModule } from './modules/jira/jira.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
@@ -16,6 +16,9 @@ import { BullModule } from '@nestjs/bullmq';
 import { QueueHandlerModule } from './modules/queue-handler/queue-handler.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { GoalsModule } from './modules/goals/goals.module';
+import { UsersModule } from './modules/auth/auth.module';
+import { EmailServiceModule } from './modules/email-service/email-service.module';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 dotenv.config();
 
@@ -46,6 +49,16 @@ dotenv.config();
       },
       inject: [ConfigService],
     }),
+    MailerModule.forRoot({
+      transport: {
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_SERVICE_PORT,
+        auth: {
+          user: process.env.EMAIL_USERNAME,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      },
+    }),
     UserModule,
     JiraModule,
     TrelloModule,
@@ -54,6 +67,8 @@ dotenv.config();
     QueueHandlerModule,
     ProjectsModule,
     GoalsModule,
+    UsersModule,
+    EmailServiceModule,
   ],
   providers: [
     {

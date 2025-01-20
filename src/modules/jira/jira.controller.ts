@@ -15,7 +15,7 @@ import {
   IJirsUserIssues,
   ISuccessResponse,
 } from 'src/common/interfaces/jira.interfaces';
-import { Designation, Project } from '../users/enums/user.enum';
+import { Designation, Project } from '../user-depreciated/enums/user.enum';
 import { ClientMqtt, MessagePattern, Payload } from '@nestjs/microservices';
 
 @Controller('jira')

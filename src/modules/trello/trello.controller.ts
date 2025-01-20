@@ -10,7 +10,7 @@ import {
 import { TrelloService } from './trello.service';
 import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
-import { Designation, Project } from '../users/enums/user.enum';
+import { Designation, Project } from '../user-depreciated/enums/user.enum';
 
 @Controller('trello')
 export class TrelloController {

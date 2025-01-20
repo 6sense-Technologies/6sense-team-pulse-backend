@@ -10,7 +10,7 @@ import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, Mongoose, Schema, Types } from 'mongoose';
-import { IIssue, User } from '../users/schemas/user.schema';
+import { IIssue, User } from '../user-depreciated/schemas/user.schema';
 import {
   IDailyMetrics,
   IJiraIssue,
@@ -19,15 +19,15 @@ import {
   ISuccessResponse,
 } from '../../common/interfaces/jira.interfaces';
 import { TrelloService } from '../trello/trello.service';
-import { UserService } from '../users/users.service';
+import { UserService } from '../user-depreciated/users.service';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { handleError } from 'src/common/helpers/error.helper';
-import { Designation, Project } from '../users/enums/user.enum';
+import { Designation, Project } from '../user-depreciated/enums/user.enum';
 import {
   validateAccountId,
   validateDate,
 } from 'src/common/helpers/validation.helper';
-import { IssueEntry } from '../users/schemas/IssueEntry.schema';
+import { IssueEntry } from '../user-depreciated/schemas/IssueEntry.schema';
 import { ClientMqtt } from '@nestjs/microservices';
 
 dotenv.config();
