@@ -39,11 +39,15 @@ export class GoalsService {
     return this.goalModel.findOne({ _id: id }).populate('user');
   }
 
-  async update(id: string, updateGoalDto: UpdateGoalDto) {
+  async update(id: string) {
     let data = {};
-    data['status'] = updateGoalDto.status;
-    if (updateGoalDto.goal) data['goalItem'] = updateGoalDto.goal;
-    return await this.goalModel.findOneAndUpdate({ _id: id }, data);
+    data['status'] = 'Completed';
+    return await this.goalModel.findOneAndUpdate({ _id: id }, data, {
+      new: true,
+      upsert: true,
+      // // Return additional properties about the operation, not just the document
+      // includeResultMetadata: true,
+    });
   }
 
   remove(id: string) {

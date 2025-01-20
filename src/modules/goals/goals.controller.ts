@@ -38,8 +38,8 @@ export class GoalsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateGoalDto: UpdateGoalDto) {
-    return this.goalsService.update(id, updateGoalDto);
+  update(@Param('id') id: string) {
+    return this.goalsService.update(id);
   }
 
   @Delete(':id')
