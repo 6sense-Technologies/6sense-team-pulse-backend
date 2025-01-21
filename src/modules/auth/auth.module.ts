@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Users, UsersSchema } from './schemas/users.schema';
+import { Users, UsersSchema } from '../users/schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { OTPSecret, OTPSecretSchema } from './schemas/OTPSecret.schema';
+import { OTPSecret, OTPSecretSchema } from '../users/schemas/OTPSecret.schema';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { JWTRefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
 

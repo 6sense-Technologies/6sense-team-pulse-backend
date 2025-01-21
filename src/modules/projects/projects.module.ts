@@ -2,17 +2,17 @@ import { Module } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { ProjectsController } from './projects.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from '../user-depreciated/schemas/user.schema';
+import { User, UserSchema } from '../users/schemas/user.schema';
 import {
   IssueHistory,
   IssueHistorySchema,
-} from '../user-depreciated/schemas/IssueHistory.schems';
+} from '../users/schemas/IssueHistory.schems';
 import {
   IssueEntry,
   IssueEntrySchema,
-} from '../user-depreciated/schemas/IssueEntry.schema';
-import { GitRepo, GitRepoSchema } from '../user-depreciated/schemas/GitRepo.schema';
-import { Project, ProjectSchema } from '../user-depreciated/schemas/Project.schema';
+} from '../users/schemas/IssueEntry.schema';
+import { GitRepo, GitRepoSchema } from '../users/schemas/GitRepo.schema';
+import { Project, ProjectSchema } from '../users/schemas/Project.schema';
 
 @Module({
   imports: [

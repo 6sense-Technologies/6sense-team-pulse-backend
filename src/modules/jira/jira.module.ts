@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { JiraService } from './jira.service';
 import { JiraController } from './jira.controller';
-import { UserModule } from '../user-depreciated/users.module';
+import { UserModule } from '../users/schemas/users.module';
 import { TrelloModule } from '../trello/trello.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 

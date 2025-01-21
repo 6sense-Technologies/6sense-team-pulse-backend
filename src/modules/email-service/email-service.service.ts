@@ -2,10 +2,10 @@ import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { VerifyEmailDto } from './dto/email-service.dto';
-import { OTPSecret } from '../auth/schemas/OTPSecret.schema';
+import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 import { MailerService } from '@nestjs-modules/mailer';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Users } from '../auth/schemas/users.schema';
+import { Users } from '../users/schemas/users.schema';
 
 @Injectable()
 export class EmailService {

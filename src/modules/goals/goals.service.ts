@@ -5,7 +5,7 @@ import { Goal } from './entities/goal.entity';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreateGoalActionDto } from './dto/create-goal-action.dto';
-import { GoalAction } from '../user-depreciated/schemas/GoalAction.schema';
+import { GoalAction } from '../users/schemas/GoalAction.schema';
 
 @Injectable()
 export class GoalsService {

@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { Users } from './schemas/users.schema';
+import { Users } from '../users/schemas/users.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   CreateUserEmail,

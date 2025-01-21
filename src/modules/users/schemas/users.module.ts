@@ -1,18 +1,15 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from './schemas/user.schema';
-import {
-  IssueHistory,
-  IssueHistorySchema,
-} from './schemas/IssueHistory.schems';
+import { User, UserSchema } from './user.schema';
+import { IssueHistory, IssueHistorySchema } from './IssueHistory.schems';
 import { JiraModule } from 'src/modules/jira/jira.module';
-import { UserService } from './users.service';
-import { UserController } from './users.controller';
-import { IssueEntry, IssueEntrySchema } from './schemas/IssueEntry.schema';
-import { Comment, CommentSchema } from './schemas/Comment.schema';
-import { Project, ProjectSchema } from './schemas/Project.schema';
-import { TrelloModule } from '../trello/trello.module';
-import { UserProject, UserProjectSchema } from './schemas/UserProject.schema';
+import { UserService } from '../users.service';
+import { UserController } from '../users.controller';
+import { IssueEntry, IssueEntrySchema } from './IssueEntry.schema';
+import { Comment, CommentSchema } from './Comment.schema';
+import { Project, ProjectSchema } from './Project.schema';
+import { TrelloModule } from '../../trello/trello.module';
+import { UserProject, UserProjectSchema } from './UserProject.schema';
 
 @Module({
   imports: [

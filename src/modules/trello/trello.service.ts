@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
-import { IIssue, User } from '../user-depreciated/schemas/user.schema';
+import { IIssue, User } from '../users/schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -22,9 +22,9 @@ import {
   validateAccountId,
   validateDate,
 } from '../../common/helpers/validation.helper';
-import { UserService } from '../user-depreciated/users.service';
+import { UserService } from '../users/users.service';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
-import { Designation, Project } from '../user-depreciated/enums/user.enum';
+import { Designation, Project } from '../users/enums/user.enum';
 import { ConfigService } from '@nestjs/config';
 
 dotenv.config();

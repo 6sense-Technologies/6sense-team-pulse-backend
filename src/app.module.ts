@@ -4,7 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UserModule } from './modules/user-depreciated/users.module';
+import { UserModule } from './modules/users/schemas/users.module';
 import { JiraModule } from './modules/jira/jira.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';

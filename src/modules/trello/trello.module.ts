@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TrelloService } from './trello.service';
 import { TrelloController } from './trello.controller';
-import { UserModule } from '../user-depreciated/users.module';
+import { UserModule } from '../users/schemas/users.module';
 
 @Module({
   imports: [
