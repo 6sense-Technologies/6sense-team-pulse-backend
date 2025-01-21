@@ -26,21 +26,21 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
   private generateTokens(userId: string, email: string) {
-    const access_token = this.jwtService.sign(
+    const accessToken = this.jwtService.sign(
       { userId, email },
       {
         secret: this.configService.get('JWT_SECRET'),
         expiresIn: this.configService.get('JWT_EXPIRE'),
       },
     );
-    const refresh_token = this.jwtService.sign(
+    const refreshToken = this.jwtService.sign(
       { userId, email },
       {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
         expiresIn: this.configService.get('JWT_EXPIRE_REFRESH_TOKEN'),
       },
     );
-    return { access_token, refresh_token };
+    return { accessToken, refreshToken };
   }
 
   public async registerEmailPassword(
@@ -65,7 +65,11 @@ export class AuthService {
     const userObject = createdUser.toObject();
     delete userObject.password;
     this.emailService.sendEmail(createUserEmailPasswordDTO.emailAddress);
-    return userObject;
+    const { accessToken, refreshToken } = this.generateTokens(
+      userObject.id,
+      userObject.emailAddress,
+    );
+    return { userInfo: userObject, accessToken, refreshToken };
   }
 
   public async registerEmail(createUserEmail: CreateUserEmail) {
@@ -80,6 +84,7 @@ export class AuthService {
       emailAddress: createUserEmail.emailAddress,
       password: null,
     });
+
     return createdUser;
   }
 
@@ -89,9 +94,9 @@ export class AuthService {
     const user = await this.userModel.findOne({
       emailAddress: loginUserEmailPasswordDTO.emailAddress,
     });
-    if(!user.is_verified){
-      throw new BadRequestException('User is not verified')
-    }
+    // if(!user.isVerified){
+    //   throw new BadRequestException('User is not verified')
+    // }
     if (user && user.password !== null) {
       const checkPassword = await bcrypt.compare(
         loginUserEmailPasswordDTO.password,
@@ -100,7 +105,7 @@ export class AuthService {
       if (!checkPassword) {
         throw new BadRequestException('Invalid Credentials');
       } else {
-        const { access_token, refresh_token } = this.generateTokens(
+        const { accessToken, refreshToken } = this.generateTokens(
           user.id,
           user.emailAddress,
         );
@@ -108,8 +113,8 @@ export class AuthService {
         delete userInfo.password;
         return {
           userInfo,
-          access_token: access_token,
-          refresh_token: refresh_token,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
         };
       }
     } else {

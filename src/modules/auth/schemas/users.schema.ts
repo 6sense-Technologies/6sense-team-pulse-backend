@@ -13,7 +13,7 @@ export class Users extends Document {
   password: string;
 
   @Prop({ type: Boolean, required: false, default: 0 })
-  is_verified: boolean;
+  isVerified: boolean;
 }
 
 export const UsersSchema = SchemaFactory.createForClass(Users);

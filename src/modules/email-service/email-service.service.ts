@@ -40,7 +40,7 @@ export class EmailService {
       await this.otpSecretModel.create({
         emailAddress: emailAddress,
         secret: code,
-        timestamp: currentTime, // MongoDB will automatically handle timestamps
+        timestamp: currentTime,
       });
     }
 
@@ -69,7 +69,7 @@ export class EmailService {
     const tokenEntry = await this.otpSecretModel.findOne({
       emailAddress: verifyEmailDTO.email,
     });
-    
+
     if (!tokenEntry) {
       throw new BadRequestException('Invalid Token');
     }
@@ -90,7 +90,7 @@ export class EmailService {
     const user = await this.usersModel.findOne({
       emailAddress: verifyEmailDTO.email,
     });
-    user.is_verified = true;
+    user.isVerified = true;
     user.save();
     return { isValidated: true };
   }
