@@ -5,6 +5,7 @@ import {
   ValidateIf,
   IsEmail,
   IsIn,
+  IsStrongPassword,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -23,16 +24,28 @@ export class CreateUserEmailPasswordDTO {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail()
+  @IsEmail({},{message: 'Email is not valid'})
   emailAddress: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description:
       'The password for password-based signup. Required only if authType is "password".',
-    example: 'StrongPassword123!',
+    example: 'Strong@Password123!',
   })
   @IsString()
   @IsNotEmpty({ message: 'Password is required for signup.' })
+  @IsStrongPassword(
+    {
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minSymbols: 1,
+    },
+    {
+      message:
+        'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
+    },
+  )
   password: string;
 }
 export class CreateUserEmail {
@@ -50,7 +63,7 @@ export class CreateUserEmail {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail()
+  @IsEmail({},{message: 'Email is not valid'})
   emailAddress: string;
 }
 export class LoginUserEmailPasswordDTO {
@@ -60,15 +73,27 @@ export class LoginUserEmailPasswordDTO {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail()
+  @IsEmail({},{message: 'Email is not valid'})
   emailAddress: string;
 
   @ApiProperty({
     description: 'The password of the user',
-    example: 'yourPassword123',
+    example: 'Strong@Password123!',
   })
   @IsString()
   @IsNotEmpty()
+  @IsStrongPassword(
+    {
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minSymbols: 1,
+    },
+    {
+      message:
+        'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
+    },
+  )
   password: string;
 }
 
@@ -79,6 +104,6 @@ export class LoginUserEmailOnly {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail()
+  @IsEmail({},{message: 'Email is not valid'})
   emailAddress: string;
 }

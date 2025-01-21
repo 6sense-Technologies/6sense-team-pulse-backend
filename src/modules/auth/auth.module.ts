@@ -6,13 +6,26 @@ import { Users, UsersSchema } from './schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { OTPSecret, OTPSecretSchema } from './schemas/OTPSecret.schema';
+import { JwtStrategy } from './strategy/jwt.strategy';
+import { JWTRefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
 
 @Module({
   imports: [
     PassportModule,
     JwtModule.register({}),
-    MongooseModule.forFeature([{ name: Users.name, schema: UsersSchema }])],
+    MongooseModule.forFeature([
+      { name: Users.name, schema: UsersSchema },
+      { name: OTPSecret.name, schema: OTPSecretSchema },
+    ]),
+  ],
   controllers: [AuthController],
-  providers: [AuthService, MongooseModule,EmailService],
+  providers: [
+    AuthService,
+    MongooseModule,
+    JwtStrategy,
+    JWTRefreshTokenStrategy,
+    EmailService,
+  ],
 })
-export class UsersModule {}
+export class AuthModule {}

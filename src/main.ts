@@ -1,4 +1,4 @@
-import './instrument';
+// import './instrument';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cors from 'cors';
@@ -14,6 +14,14 @@ async function bootstrap(): Promise<void> {
     .setDescription('Efficiency API docs')
     .setVersion('1.0')
     .addTag('Effciency')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'JWT',
+      description: 'Enter JWT Token',
+      in: 'header',
+    })
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);

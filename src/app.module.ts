@@ -16,7 +16,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { QueueHandlerModule } from './modules/queue-handler/queue-handler.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { GoalsModule } from './modules/goals/goals.module';
-import { UsersModule } from './modules/auth/auth.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { EmailServiceModule } from './modules/email-service/email-service.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 
@@ -67,7 +67,7 @@ dotenv.config();
     QueueHandlerModule,
     ProjectsModule,
     GoalsModule,
-    UsersModule,
+    AuthModule,
     EmailServiceModule,
   ],
   providers: [

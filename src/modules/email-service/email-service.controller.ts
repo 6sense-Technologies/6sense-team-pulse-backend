@@ -10,7 +10,7 @@ export class EmailServiceController {
     async verifyEmail(@Body() verifyEmailDTO:VerifyEmailDto){
         return this.emailService.verifyToken(verifyEmailDTO)
     }
-    @Post('test-email')
+    @Post('send-verfication-email')
     async sendEmail(@Query('emailAddress') emailAddress:string){
         return this.emailService.sendEmail(emailAddress)
     }

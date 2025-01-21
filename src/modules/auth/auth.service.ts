@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { Users } from './schemas/users.schema';
@@ -61,9 +62,10 @@ export class AuthService {
       emailAddress: createUserEmailPasswordDTO.emailAddress,
       password: hashedPassword,
     });
-
+    const userObject = createdUser.toObject();
+    delete userObject.password;
     this.emailService.sendEmail(createUserEmailPasswordDTO.emailAddress);
-    return createdUser;
+    return userObject;
   }
 
   public async registerEmail(createUserEmail: CreateUserEmail) {
@@ -87,7 +89,9 @@ export class AuthService {
     const user = await this.userModel.findOne({
       emailAddress: loginUserEmailPasswordDTO.emailAddress,
     });
-
+    if(!user.is_verified){
+      throw new BadRequestException('User is not verified')
+    }
     if (user && user.password !== null) {
       const checkPassword = await bcrypt.compare(
         loginUserEmailPasswordDTO.password,
@@ -111,5 +115,18 @@ export class AuthService {
     } else {
       throw new BadRequestException('Invalid Credentials');
     }
+  }
+  public async generateRefreshTokens(refreshToken: string) {
+    if (
+      !(await this.jwtService.verify(refreshToken, {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+      }))
+    ) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    const decoded = this.jwtService.decode(refreshToken);
+    console.log(decoded);
+    const tokens = this.generateTokens(decoded.userId, decoded.email);
+    return tokens;
   }
 }
