@@ -560,84 +560,84 @@ export class UserService {
     });
     this.logger.log(projects);
     // return;
-    if (createUserDto.jiraId) {
-      const project = projects.find((project) => {
-        return project.tool == 'jira';
-      });
-      if (project) {
-        this.logger.log(project);
-        try {
-          const jiraUser = await this.jiraService.getUserDetailsFromJira(
-            project.toolURL,
-            createUserDto.jiraId,
-          );
-          if (jiraUser) {
-            userToSave = {
-              ...userToSave,
-              jiraAccountId: jiraUser.accountId,
-              displayName: jiraUser.displayName,
-              emailAddress: jiraUser.emailAddress,
-              avatarUrls: jiraUser.avatarUrls['48x48'],
-            };
-            this.logger.log(jiraUser);
-          } else {
-            throw new BadRequestException({
-              error: `The user doesn\'t have access to any Jira Workspace`,
-            });
-          }
-        } catch (error) {
-          this.logger.error(error);
-          throw new BadRequestException({
-            error: `The user doesn\'t have access to the Jira Workspace named ${project.name}`,
-          });
-        }
-      } else {
-        throw new BadRequestException({
-          error: `The user doesn\'t have access to any Jira Workspace`,
-        });
-      }
-    }
+    // if (createUserDto.jiraId) {
+    //   const project = projects.find((project) => {
+    //     return project.tool == 'jira';
+    //   });
+    //   if (project) {
+    //     this.logger.log(project);
+    //     try {
+    //       const jiraUser = await this.jiraService.getUserDetailsFromJira(
+    //         project.toolURL,
+    //         createUserDto.jiraId,
+    //       );
+    //       if (jiraUser) {
+    //         userToSave = {
+    //           ...userToSave,
+    //           jiraAccountId: jiraUser.accountId,
+    //           displayName: jiraUser.displayName,
+    //           emailAddress: jiraUser.emailAddress,
+    //           avatarUrls: jiraUser.avatarUrls['48x48'],
+    //         };
+    //         this.logger.log(jiraUser);
+    //       } else {
+    //         throw new BadRequestException({
+    //           error: `The user doesn\'t have access to any Jira Workspace`,
+    //         });
+    //       }
+    //     } catch (error) {
+    //       this.logger.error(error);
+    //       throw new BadRequestException({
+    //         error: `The user doesn\'t have access to the Jira Workspace named ${project.name}`,
+    //       });
+    //     }
+    //   } else {
+    //     throw new BadRequestException({
+    //       error: `The user doesn\'t have access to any Jira Workspace`,
+    //     });
+    //   }
+    // }
 
-    if (createUserDto.trelloId) {
-      const project = projects.find((project) => {
-        return project.tool == 'trello';
-      });
-      if (project) {
-        this.logger.log(project);
-        try {
-          const trelloUser = await this.trelloService.getUserDetailsFromTrello(
-            project.toolURL,
-            createUserDto.trelloId,
-          );
-          if (trelloUser) {
-            if (!userToSave.displayName && trelloUser.fullName) {
-              userToSave.displayName = trelloUser.fullName;
-            }
-            if (!userToSave.emailAddress && trelloUser.email) {
-              userToSave.emailAddress = trelloUser.email;
-            }
-            userToSave.trelloAccountId = trelloUser.id;
-            this.logger.log(trelloUser);
-          } else {
-            throw new BadRequestException({
-              error: 'invalid_trello',
-              message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
-            });
-          }
-        } catch (error) {
-          this.logger.error(error);
-          throw new BadRequestException({
-            error: 'invalid_trello',
-            message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
-          });
-        }
-      } else {
-        throw new BadRequestException({
-          error: 'invalid_trello',
-          message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
-        });
-      }
-    }
+    // if (createUserDto.trelloId) {
+    //   const project = projects.find((project) => {
+    //     return project.tool == 'trello';
+    //   });
+    //   if (project) {
+    //     this.logger.log(project);
+    //     try {
+    //       const trelloUser = await this.trelloService.getUserDetailsFromTrello(
+    //         project.toolURL,
+    //         createUserDto.trelloId,
+    //       );
+    //       if (trelloUser) {
+    //         if (!userToSave.displayName && trelloUser.fullName) {
+    //           userToSave.displayName = trelloUser.fullName;
+    //         }
+    //         if (!userToSave.emailAddress && trelloUser.email) {
+    //           userToSave.emailAddress = trelloUser.email;
+    //         }
+    //         userToSave.trelloAccountId = trelloUser.id;
+    //         this.logger.log(trelloUser);
+    //       } else {
+    //         throw new BadRequestException({
+    //           error: 'invalid_trello',
+    //           message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
+    //         });
+    //       }
+    //     } catch (error) {
+    //       this.logger.error(error);
+    //       throw new BadRequestException({
+    //         error: 'invalid_trello',
+    //         message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
+    //       });
+    //     }
+    //   } else {
+    //     throw new BadRequestException({
+    //       error: 'invalid_trello',
+    //       message: `The user doesn\'t have access to the Trello Workspace named ${project.name}`,
+    //     });
+    //   }
+    // }
     let orQuery = [];
     if (userToSave.jiraAccountId)
       orQuery.push({ jiraAccountId: userToSave.jiraAccountId });

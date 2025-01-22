@@ -11,17 +11,22 @@ import {
   CreateUserEmail,
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
+  VerifyEmailDto,
 } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email-service/email-service.service';
 import { JwtService } from '@nestjs/jwt';
+import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly emailService: EmailService,
     @InjectModel(Users.name) private readonly userModel: Model<Users>,
+    @InjectModel(OTPSecret.name)
+    private readonly otpSecretModel: Model<OTPSecret>,
+
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
@@ -133,5 +138,37 @@ export class AuthService {
     console.log(decoded);
     const tokens = this.generateTokens(decoded.userId, decoded.email);
     return tokens;
+  }
+
+  // Function to validate the code and check if it's within the 2-minute window
+  public async verifyToken(verifyEmailDTO: VerifyEmailDto) {
+    // Retrieve the latest entry from the database
+    const tokenEntry = await this.otpSecretModel.findOne({
+      emailAddress: verifyEmailDTO.email,
+    });
+
+    if (!tokenEntry) {
+      throw new BadRequestException('Invalid Token');
+    }
+
+    // Check if the provided code matches the stored code
+    if (tokenEntry.secret !== verifyEmailDTO.token) {
+      throw new BadRequestException('Invalid Token');
+    }
+
+    // Check if the time difference is within the allowed 2 minutes (120 seconds)
+    const currentTime = new Date();
+    const timeDifference =
+      (currentTime.getTime() - tokenEntry.updatedAt.getTime()) / 1000;
+    // console.log(timeDifference);
+    if (timeDifference > 120) {
+      throw new BadRequestException('Token Expired');
+    }
+    const user = await this.userModel.findOne({
+      emailAddress: verifyEmailDTO.email,
+    });
+    user.isVerified = true;
+    user.save();
+    return { isValidated: true };
   }
 }

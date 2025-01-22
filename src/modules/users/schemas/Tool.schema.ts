@@ -2,14 +2,17 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class Project extends Document {
+export class Tool extends Document {
   @Prop({ type: String, default: '' })
-  name: string;
+  toolName: string;
+
+  @Prop({ type: String, default: '' })
+  toolUrl: string;
 
   @Prop({ 
     type: [{ type: MongooseSchema.Types.ObjectId, ref: 'ProjectTool' }]
   })
-  tools: MongooseSchema.Types.ObjectId[]; // Virtual population
+  projects: MongooseSchema.Types.ObjectId[]; // Virtual population
 }
 
-export const ProjectSchema = SchemaFactory.createForClass(Project);
+export const ToolSchema = SchemaFactory.createForClass(Tool);

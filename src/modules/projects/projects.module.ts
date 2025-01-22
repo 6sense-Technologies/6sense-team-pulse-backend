@@ -13,6 +13,12 @@ import {
 } from '../users/schemas/IssueEntry.schema';
 import { GitRepo, GitRepoSchema } from '../users/schemas/GitRepo.schema';
 import { Project, ProjectSchema } from '../users/schemas/Project.schema';
+import { Tool, ToolSchema } from '../users/schemas/Tool.schema';
+import {
+  ProjectTool,
+  ProjectToolSchema,
+} from '../users/schemas/ProjectTool.schema';
+import { Organization, OrganizationSchema } from '../users/schemas/Organization.schema';
 
 @Module({
   imports: [
@@ -22,6 +28,9 @@ import { Project, ProjectSchema } from '../users/schemas/Project.schema';
       { name: IssueEntry.name, schema: IssueEntrySchema },
       { name: GitRepo.name, schema: GitRepoSchema },
       { name: Project.name, schema: ProjectSchema },
+      { name: Tool.name, schema: ToolSchema },
+      { name: ProjectTool.name, schema: ProjectToolSchema },
+      { name: Organization.name, schema: OrganizationSchema },
     ]),
   ],
   controllers: [ProjectsController],

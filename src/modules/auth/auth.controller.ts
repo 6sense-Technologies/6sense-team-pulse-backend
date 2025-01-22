@@ -4,6 +4,7 @@ import {
   CreateUserEmail,
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
+  VerifyEmailDto,
 } from './dto/auth.dto';
 import { AccessTokenGuard } from './guards/accessToken.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -47,5 +48,9 @@ export class AuthController {
     return this.authService.generateRefreshTokens(refreshToken)
   }
 
+  @Post('verify-email')
+  verifyEmail(@Body() verifyEmailDTO:VerifyEmailDto){
+    return this.authService.verifyToken(verifyEmailDTO)
+  }
   
 }

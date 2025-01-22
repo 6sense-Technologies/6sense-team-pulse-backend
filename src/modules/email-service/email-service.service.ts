@@ -4,8 +4,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { VerifyEmailDto } from './dto/email-service.dto';
 import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 import { MailerService } from '@nestjs-modules/mailer';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Users } from '../users/schemas/users.schema';
+import { EmailTemplate } from './templates/email-template.template';
 
 @Injectable()
 export class EmailService {
@@ -49,9 +54,17 @@ export class EmailService {
 
   // Function to send the email with the 6-digit code
   public async sendEmail(emailAddress: string) {
+    const user = await this.usersModel.findOne({ emailAddress: emailAddress });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     const code = await this.generateAndStoreCode(emailAddress);
-    const emailTemplate = `Your verification code: ${code}`;
-    console.log(`Email template: ${emailTemplate}`);
+    const emailTemplate = EmailTemplate.userVerificationOTPEmailTemplate(
+      user.displayName,
+      code,
+    );
+    console.log(`${emailAddress}  Verification code: ${code}`);
 
     const response = await this.mailerService.sendMail({
       from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
@@ -61,37 +74,5 @@ export class EmailService {
     });
 
     return response;
-  }
-
-  // Function to validate the code and check if it's within the 2-minute window
-  public async verifyToken(verifyEmailDTO: VerifyEmailDto) {
-    // Retrieve the latest entry from the database
-    const tokenEntry = await this.otpSecretModel.findOne({
-      emailAddress: verifyEmailDTO.email,
-    });
-
-    if (!tokenEntry) {
-      throw new BadRequestException('Invalid Token');
-    }
-
-    // Check if the provided code matches the stored code
-    if (tokenEntry.secret !== verifyEmailDTO.token) {
-      throw new BadRequestException('Invalid Token');
-    }
-
-    // Check if the time difference is within the allowed 2 minutes (120 seconds)
-    const currentTime = new Date();
-    const timeDifference =
-      (currentTime.getTime() - tokenEntry.updatedAt.getTime()) / 1000;
-    // console.log(timeDifference);
-    if (timeDifference > 120) {
-      throw new BadRequestException('Token Expired');
-    }
-    const user = await this.usersModel.findOne({
-      emailAddress: verifyEmailDTO.email,
-    });
-    user.isVerified = true;
-    user.save();
-    return { isValidated: true };
   }
 }

@@ -4,14 +4,10 @@ import { VerifyEmailDto } from './dto/email-service.dto';
 
 @Controller('email-service')
 export class EmailServiceController {
-    constructor(private readonly emailService:EmailService){}
-    
-    @Post('verified')
-    async verifyEmail(@Body() verifyEmailDTO:VerifyEmailDto){
-        return this.emailService.verifyToken(verifyEmailDTO)
-    }
-    @Post('send-verfication-email')
-    async sendEmail(@Query('emailAddress') emailAddress:string){
-        return this.emailService.sendEmail(emailAddress)
-    }
+  constructor(private readonly emailService: EmailService) {}
+
+  @Post('send-verfication-email')
+  async sendEmail(@Query('emailAddress') emailAddress: string) {
+    return this.emailService.sendEmail(emailAddress);
+  }
 }
