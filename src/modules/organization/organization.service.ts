@@ -30,6 +30,7 @@ export class OrganizationService {
       organizationName: createOrganizationDTO.organizationName,
       domain: createOrganizationDTO.domainName,
       users: [new Types.ObjectId(userId)],
+      createdBy: new Types.ObjectId(userId),
     });
 
     return organization;

@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -21,13 +22,18 @@ export class ProjectsController {
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto,@Req() req) {
-    return this.projectsService.create(createProjectDto,req['user'].userId);
+  create(@Body() createProjectDto: CreateProjectDto, @Req() req: Request) {
+    return this.projectsService.create(createProjectDto, req['user'].userId);
   }
-
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
   @Get()
-  findAll() {
-    return this.projectsService.findAll();
+  findAll(
+    @Req() req: Request,
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ) {
+    return this.projectsService.findAll(+page, +limit, req['user'].userId);
   }
 
   @Get(':id')

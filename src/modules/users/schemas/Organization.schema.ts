@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
 import { Users } from './users.schema';
-import { Project } from './Project.schema'
+import { Project } from './Project.schema';
+import { User } from './user.schema';
 @Schema({ timestamps: true })
 export class Organization extends Document {
   @Prop({ type: String, default: '' })
@@ -10,17 +11,20 @@ export class Organization extends Document {
   @Prop({ type: String, default: '' })
   domain: string;
 
-  @Prop({ 
+  @Prop({
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }], // Reference to the User schema
-    default: [], 
+    default: [],
   })
   users: mongoose.Types.ObjectId[];
-  
+
   @Prop({
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }], // Reference to the User schema
-    default: [], 
+    default: [],
   })
   projects: mongoose.Types.ObjectId[];
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  createdBy: User;
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);

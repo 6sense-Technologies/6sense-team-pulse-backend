@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -20,43 +20,71 @@ export class ProjectsService {
   ) {}
 
   async create(createProjectDto: CreateProjectDto, userId: string) {
-    const projectModel = await this.projectModel.create({
-      name: createProjectDto.name,
-    });
-    // const organization = await this.Organization.findOne({
-    //   user
-    // });
     const organization = await this.Organization.aggregate([
       {
         $match: {
-          users: { $in: [new Types.ObjectId(userId)] }
-        }
+          createdBy: new Types.ObjectId(userId),
+        },
       },
       {
         $project: {
-          _id: 1
-        }
-      }
-    ])
+          _id: 1,
+        },
+      },
+    ]);
+    if (organization.length === 0) {
+      throw new NotFoundException('No organization found for the user');
+    }
     const tools = await this.toolModel.insertMany(createProjectDto.tools);
-
-    projectModel.tools = tools as any;
-    projectModel.save();
-
+    const projectModel = await this.projectModel.create({
+      name: createProjectDto.name,
+      tools: tools,
+      createdBy: new Types.ObjectId(userId),
+    });
+    await this.Organization.updateOne(
+      { _id: organization[0]._id },
+      { $push: { projects: projectModel } },
+    );
     return projectModel;
   }
 
-  async findAll() {
-    return await this.projectModel.aggregate([
+  async findAll(page: number, limit: number, userId: string) {
+    const skip = (page - 1) * limit;
+
+    const [result] = await this.projectModel.aggregate([
+      {
+        $match: {
+          createdBy: new Types.ObjectId(userId),
+        },
+      },
       {
         $lookup: {
-          from: 'tools', 
-          localField: 'tools', 
-          foreignField: '_id', 
-          as: 'tools' 
-        }
-      }
+          from: 'tools',
+          localField: 'tools',
+          foreignField: '_id',
+          as: 'tools',
+        },
+      },
+      {
+        $facet: {
+          metadata: [{ $count: 'total' }],
+          data: [{ $skip: skip }, { $limit: limit }],
+        },
+      },
+      {
+        $project: {
+          total: { $arrayElemAt: ['$metadata.total', 0] },
+          data: 1, // Include paginated results
+        },
+      },
     ]);
+
+    return {
+      total: result?.total || 0,
+      page,
+      limit,
+      data: result?.data || [],
+    };
   }
 
   findOne(id: string) {
