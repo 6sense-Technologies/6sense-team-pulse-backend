@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   CreateUserEmail,
@@ -66,6 +74,14 @@ export class AuthController {
     @Body() createOrganizationDTO: CreateOrganizationDTO,
     @Req() req: Request,
   ) {
-    return this.organizationService.create(createOrganizationDTO, req['user'].userId);
+    return this.organizationService.create(
+      createOrganizationDTO,
+      req['user'].userId,
+    );
+  }
+
+  @Get('user-status')
+  checkStatus(@Query('email') emailAddress: string) {
+    return this.authService.checkStatus(emailAddress);
   }
 }

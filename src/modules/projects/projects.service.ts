@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -20,6 +24,12 @@ export class ProjectsService {
   ) {}
 
   async create(createProjectDto: CreateProjectDto, userId: string) {
+    const project = await this.projectModel.findOne({
+      name: createProjectDto.name,
+    });
+    if (project) {
+      throw new ConflictException('Project with this name already exists');
+    }
     const organization = await this.Organization.aggregate([
       {
         $match: {
@@ -40,6 +50,7 @@ export class ProjectsService {
       name: createProjectDto.name,
       tools: tools,
       createdBy: new Types.ObjectId(userId),
+      assignedUsers: [new Types.ObjectId(userId)],
     });
     await this.Organization.updateOne(
       { _id: organization[0]._id },
@@ -66,9 +77,28 @@ export class ProjectsService {
         },
       },
       {
+        $addFields: {
+          teamSize: { $size: '$assignedUsers' },
+        },
+      },
+      {
         $facet: {
           metadata: [{ $count: 'total' }],
-          data: [{ $skip: skip }, { $limit: limit }],
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                tools: 1,
+                teamSize: 1, // Include teamSize in the results
+                createdBy: 1,
+                createdAt: 1,
+                updatedAt: 1,
+              },
+            },
+          ],
         },
       },
       {

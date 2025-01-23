@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Model } from 'mongoose';
@@ -18,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email-service/email-service.service';
 import { JwtService } from '@nestjs/jwt';
 import { OTPSecret } from '../users/schemas/OTPSecret.schema';
+import { Organization } from '../users/schemas/Organization.schema';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +28,8 @@ export class AuthService {
     @InjectModel(Users.name) private readonly userModel: Model<Users>,
     @InjectModel(OTPSecret.name)
     private readonly otpSecretModel: Model<OTPSecret>,
-
+    @InjectModel(Organization.name)
+    private readonly organizationModel: Model<Organization>,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
@@ -170,5 +173,26 @@ export class AuthService {
     user.isVerified = true;
     user.save();
     return { isValidated: true };
+  }
+
+  public async checkStatus(emailAddress: string) {
+    const user = await this.userModel.findOne({ emailAddress: emailAddress });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const organizations = await this.organizationModel.find({
+      createdBy: user._id,
+    });
+    if (organizations.length === 0) {
+      return {
+        verified: user.isVerified,
+        hasOrganization: false,
+      };
+    } else {
+      return {
+        verified: user.isVerified,
+        hasOrganization: true,
+      };
+    }
   }
 }
