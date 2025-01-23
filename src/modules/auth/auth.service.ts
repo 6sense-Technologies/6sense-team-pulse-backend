@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Users } from '../users/schemas/users.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import {
@@ -20,6 +20,7 @@ import { EmailService } from '../email-service/email-service.service';
 import { JwtService } from '@nestjs/jwt';
 import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 import { Organization } from '../users/schemas/Organization.schema';
+import { userInfo } from 'os';
 
 @Injectable()
 export class AuthService {
@@ -77,6 +78,16 @@ export class AuthService {
       userObject.id,
       userObject.emailAddress,
     );
+    const organizations = await this.organizationModel.find({
+      createdBy: userObject._id,
+    });
+    console.log(organizations);
+    console.log(userObject);
+    if (organizations.length > 0) {
+      userObject['hasOrganization'] = true;
+    } else {
+      userObject['hasOrganization'] = false;
+    }
     return { userInfo: userObject, accessToken, refreshToken };
   }
 
@@ -92,7 +103,6 @@ export class AuthService {
       emailAddress: createUserEmail.emailAddress,
       password: null,
     });
-
     return createdUser;
   }
 
@@ -118,7 +128,16 @@ export class AuthService {
           user.emailAddress,
         );
         const userInfo = user.toObject();
+
         delete userInfo.password;
+        const organizations = await this.organizationModel.find({
+          createdBy: userInfo._id,
+        });
+        if (organizations.length > 0) {
+          userInfo['hasOrganization'] = true;
+        } else {
+          userInfo['hasOrganization'] = false;
+        }
         return {
           userInfo,
           accessToken: accessToken,
