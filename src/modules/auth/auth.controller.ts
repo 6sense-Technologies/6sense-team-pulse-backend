@@ -9,17 +9,23 @@ import {
 import { AccessTokenGuard } from './guards/accessToken.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { RefreshTokenGuard } from './guards/refreshToken.guard';
+import { CreateOrganizationDTO } from '../organization/dto/organization.dto';
+import { Organization } from '../users/schemas/Organization.schema';
+import { OrganizationService } from '../organization/organization.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly organizationService: OrganizationService,
+  ) {}
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @Get('check-login')
   async checkLogin() {
     return 'Logged In';
   }
-  @Post('registration')
+  @Post('register')
   async registerEmailPassword(
     @Body() createUserEmailPasswordDTO: CreateUserEmailPasswordDTO,
   ) {
@@ -28,7 +34,7 @@ export class AuthController {
     );
   }
 
-  @Post('registration-sso')
+  @Post('register/sso')
   async register(@Body() createUserEmail: CreateUserEmail) {
     return await this.authService.registerEmail(createUserEmail);
   }
@@ -45,12 +51,21 @@ export class AuthController {
   @Post('refresh')
   refreshTokens(@Req() req: Request) {
     const refreshToken: string = req['user'].refreshToken;
-    return this.authService.generateRefreshTokens(refreshToken)
+    return this.authService.generateRefreshTokens(refreshToken);
   }
 
-  @Post('verify-email')
-  verifyEmail(@Body() verifyEmailDTO:VerifyEmailDto){
-    return this.authService.verifyToken(verifyEmailDTO)
+  @Post('register/verify-email')
+  verifyEmail(@Body() verifyEmailDTO: VerifyEmailDto) {
+    return this.authService.verifyToken(verifyEmailDTO);
   }
-  
+
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Post('register/organization')
+  createOrganization(
+    @Body() createOrganizationDTO: CreateOrganizationDTO,
+    @Req() req: Request,
+  ) {
+    return this.organizationService.create(createOrganizationDTO, req['user'].userId);
+  }
 }

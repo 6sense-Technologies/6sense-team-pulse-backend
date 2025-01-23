@@ -9,6 +9,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { OTPSecret, OTPSecretSchema } from '../users/schemas/OTPSecret.schema';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { JWTRefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
+import { OrganizationService } from '../organization/organization.service';
+import {
+  Organization,
+  OrganizationSchema,
+} from '../users/schemas/Organization.schema';
 
 @Module({
   imports: [
@@ -17,6 +22,7 @@ import { JWTRefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
     MongooseModule.forFeature([
       { name: Users.name, schema: UsersSchema },
       { name: OTPSecret.name, schema: OTPSecretSchema },
+      { name: Organization.name, schema: OrganizationSchema },
     ]),
   ],
   controllers: [AuthController],
@@ -26,6 +32,7 @@ import { JWTRefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
     JwtStrategy,
     JWTRefreshTokenStrategy,
     EmailService,
+    OrganizationService,
   ],
 })
 export class AuthModule {}
