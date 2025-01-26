@@ -6,6 +6,7 @@ import {
   Organization,
   OrganizationSchema,
 } from '../users/schemas/Organization.schema';
+import { Users, UsersSchema } from '../users/schemas/users.schema';
 
 @Module({
   imports: [
@@ -13,6 +14,10 @@ import {
       {
         name: Organization.name,
         schema: OrganizationSchema,
+      },
+      {
+        name: Users.name,
+        schema: UsersSchema,
       },
     ]),
   ],
