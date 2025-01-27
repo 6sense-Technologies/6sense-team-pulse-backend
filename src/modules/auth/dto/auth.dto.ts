@@ -24,7 +24,7 @@ export class CreateUserEmailPasswordDTO {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail({},{message: 'Email is not valid'})
+  @IsEmail({}, { message: 'Email is not valid' })
   emailAddress: string;
 
   @ApiProperty({
@@ -36,10 +36,10 @@ export class CreateUserEmailPasswordDTO {
   @IsNotEmpty({ message: 'Password is required for signup.' })
   @IsStrongPassword(
     {
-      minLength: 8,
       minLowercase: 1,
       minUppercase: 1,
       minSymbols: 1,
+      
     },
     {
       message:
@@ -63,7 +63,7 @@ export class CreateUserEmail {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail({},{message: 'Email is not valid'})
+  @IsEmail({}, { message: 'Email is not valid' })
   emailAddress: string;
 }
 export class LoginUserEmailPasswordDTO {
@@ -73,7 +73,7 @@ export class LoginUserEmailPasswordDTO {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail({},{message: 'Email is not valid'})
+  @IsEmail({}, { message: 'Email is not valid' })
   emailAddress: string;
 
   @ApiProperty({
@@ -84,7 +84,6 @@ export class LoginUserEmailPasswordDTO {
   @IsNotEmpty()
   @IsStrongPassword(
     {
-      minLength: 8,
       minLowercase: 1,
       minUppercase: 1,
       minSymbols: 1,
@@ -104,11 +103,10 @@ export class LoginUserEmailOnly {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail({},{message: 'Email is not valid'})
+  @IsEmail({}, { message: 'Email is not valid' })
   emailAddress: string;
 }
 export class VerifyEmailDto {
-  
   @ApiProperty({
     description: 'The email verification token',
     example: 'abc123xyz',
