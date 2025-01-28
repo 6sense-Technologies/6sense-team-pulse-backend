@@ -6,6 +6,8 @@ import {
   IsEmail,
   IsIn,
   IsStrongPassword,
+  MinLength,
+  IsUppercase,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -36,14 +38,15 @@ export class CreateUserEmailPasswordDTO {
   @IsNotEmpty({ message: 'Password is required for signup.' })
   @IsStrongPassword(
     {
+      minLength: 3,
       minLowercase: 1,
       minUppercase: 1,
       minSymbols: 1,
-      
+      minNumbers: 0,
     },
     {
       message:
-        'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
+        'Invalid password format. Your password must include at least one uppercase letter, one lowercase letter, and one special character.',
     },
   )
   password: string;
@@ -84,13 +87,15 @@ export class LoginUserEmailPasswordDTO {
   @IsNotEmpty()
   @IsStrongPassword(
     {
+      minLength: 3,
       minLowercase: 1,
       minUppercase: 1,
       minSymbols: 1,
+      minNumbers: 0,
     },
     {
       message:
-        'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
+        'Invalid password format. Your password must include at least one uppercase letter, one lowercase letter, and one special character.',
     },
   )
   password: string;
