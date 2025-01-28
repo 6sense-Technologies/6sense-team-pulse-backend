@@ -145,7 +145,7 @@ export class AuthService {
         };
       }
     } else {
-      throw new BadRequestException('Invalid Credentials');
+      throw new BadRequestException('User does not exists');
     }
   }
   public async generateRefreshTokens(refreshToken: string) {
