@@ -16,11 +16,11 @@ import { UserModule } from '../users/schemas/users.module';
 
 @Module({
   imports: [
+    UserModule,
     MongooseModule.forFeature([
       {
         name: Organization.name,
         schema: OrganizationSchema,
-        
       },
       {
         name: OrganizationUserRole.name,
@@ -30,15 +30,13 @@ import { UserModule } from '../users/schemas/users.module';
         name: Users.name,
         schema: UsersSchema,
       },
-
       {
         name: Role.name,
         schema: RoleSchema,
       },
-
     ]),
   ],
-  providers: [MongooseModule,OrganizationService],
+  providers: [MongooseModule, OrganizationService],
   controllers: [OrganizationController],
 })
 export class OrganizationModule {}

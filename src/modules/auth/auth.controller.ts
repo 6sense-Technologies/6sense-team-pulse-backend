@@ -74,7 +74,7 @@ export class AuthController {
     @Body() createOrganizationDTO: CreateOrganizationDTO,
     @Req() req: Request,
   ) {
-    console.log(req);
+    console.log(req['user']);
     return this.organizationService.create(
       createOrganizationDTO,
       req['user'].email,

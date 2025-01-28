@@ -64,12 +64,15 @@ export class OrganizationService {
       let role: any = await this.roleModel
         .findOne({ roleName: 'admin' })
         .session(session);
-      if (!role) {
-        role = await this.roleModel.create([{ roleName: 'admin' }], {
-          session,
-        });
-      }
 
+      if (!role) {
+        role = await this.roleModel.create(
+          [{ roleName: 'admin', createdBy: user }],
+          {
+            session,
+          },
+        );
+      }
       await this.organizationUserRole.create(
         [
           {

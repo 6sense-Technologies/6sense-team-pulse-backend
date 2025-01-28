@@ -60,10 +60,10 @@ export interface IUser {
 
 @Schema({ timestamps: true })
 export class User extends Document {
-  @Prop({ type: String, unique: true, default: '' })
+  @Prop({ type: String, unique: false, default: '' })
   jiraAccountId: string;
 
-  @Prop({ type: String, unique: true, default: '' })
+  @Prop({ type: String, unique: false, default: '' })
   trelloAccountId: string;
 
   @Prop({ type: String, default: '' })

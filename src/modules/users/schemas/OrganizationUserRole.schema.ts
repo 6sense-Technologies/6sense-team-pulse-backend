@@ -6,12 +6,11 @@ import { Organization } from './Organization.schema';
 import { Role } from './Role.schema';
 import { Users } from './users.schema';
 
-
-export type OrganizationUserRoleDocument = HydratedDocument<OrganizationUserRole>;
+export type OrganizationUserRoleDocument =
+  HydratedDocument<OrganizationUserRole>;
 
 @Schema({ timestamps: true })
 export class OrganizationUserRole {
-  
   @Prop({ type: Types.ObjectId, ref: Organization.name, required: true })
   organization: Types.ObjectId;
 
@@ -21,10 +20,9 @@ export class OrganizationUserRole {
   @Prop({ type: Types.ObjectId, ref: Role.name, required: true })
   role: Types.ObjectId;
 
-  
-
   @Prop({ type: Types.ObjectId, ref: User.name }) // Tracks who assigned the user
   createdBy: Types.ObjectId;
 }
 
-export const OrganizationUserRoleSchema = SchemaFactory.createForClass(OrganizationUserRole);
+export const OrganizationUserRoleSchema =
+  SchemaFactory.createForClass(OrganizationUserRole);
