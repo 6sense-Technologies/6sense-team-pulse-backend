@@ -7,6 +7,12 @@ import {
   OrganizationSchema,
 } from '../users/schemas/Organization.schema';
 import { Users, UsersSchema } from '../users/schemas/users.schema';
+import {
+  OrganizationUserRole,
+  OrganizationUserRoleSchema,
+} from '../users/schemas/OrganizationUserRole.schema';
+import { Role, RoleSchema } from '../users/schemas/Role.schema';
+import { UserModule } from '../users/schemas/users.module';
 
 @Module({
   imports: [
@@ -14,14 +20,25 @@ import { Users, UsersSchema } from '../users/schemas/users.schema';
       {
         name: Organization.name,
         schema: OrganizationSchema,
+        
+      },
+      {
+        name: OrganizationUserRole.name,
+        schema: OrganizationUserRoleSchema,
       },
       {
         name: Users.name,
         schema: UsersSchema,
       },
+
+      {
+        name: Role.name,
+        schema: RoleSchema,
+      },
+
     ]),
   ],
-  providers: [OrganizationService],
+  providers: [MongooseModule,OrganizationService],
   controllers: [OrganizationController],
 })
 export class OrganizationModule {}
