@@ -19,6 +19,12 @@ import {
   OrganizationUserRoleSchema,
 } from '../users/schemas/OrganizationUserRole.schema';
 import { Role, RoleSchema } from '../users/schemas/Role.schema';
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from './guards/roles.guard';
+import {
+  OrganizationProjectUser,
+  OrganizationProjectUserSchema,
+} from '../users/schemas/OrganizationProjectUser.schema';
 
 @Module({
   imports: [
@@ -28,6 +34,10 @@ import { Role, RoleSchema } from '../users/schemas/Role.schema';
       { name: Users.name, schema: UsersSchema },
       { name: OTPSecret.name, schema: OTPSecretSchema },
       { name: Organization.name, schema: OrganizationSchema },
+      {
+        name: OrganizationProjectUser.name,
+        schema: OrganizationProjectUserSchema,
+      },
       { name: OrganizationUserRole.name, schema: OrganizationUserRoleSchema },
       { name: Role.name, schema: RoleSchema },
     ]),

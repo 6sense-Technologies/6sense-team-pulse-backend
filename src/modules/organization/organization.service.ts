@@ -12,6 +12,7 @@ import { Users } from '../users/schemas/users.schema';
 import { OrganizationUserRole } from '../users/schemas/OrganizationUserRole.schema';
 import { Role } from '../users/schemas/Role.schema';
 import { InjectConnection } from '@nestjs/mongoose';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class OrganizationService {
@@ -27,10 +28,7 @@ export class OrganizationService {
     private readonly roleModel: Model<Role>,
   ) {}
 
-  async create(
-    createOrganizationDTO: CreateOrganizationDTO,
-    userEmail: string,
-  ) {
+  async create(createOrganizationDTO: CreateOrganizationDTO, userId: string) {
     if (
       await this.organizationModel.findOne({
         domain: createOrganizationDTO.domainName,
@@ -46,7 +44,7 @@ export class OrganizationService {
 
     try {
       const user = await this.usersModel
-        .findOne({ emailAddress: userEmail })
+        .findOne({ _id: userId })
         .session(session);
 
       const organization = await this.organizationModel.create(

@@ -11,6 +11,8 @@ import { Model, Types } from 'mongoose';
 import { Tool } from '../users/schemas/Tool.schema';
 import { ProjectTool } from '../users/schemas/ProjectTool.schema';
 import { Organization } from '../users/schemas/Organization.schema';
+import { OrganizationProjectUser } from '../users/schemas/OrganizationProjectUser.schema';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class ProjectsService {
@@ -21,6 +23,8 @@ export class ProjectsService {
     private readonly ProjectTool: Model<ProjectTool>,
     @InjectModel(Organization.name)
     private readonly Organization: Model<Organization>,
+    @InjectModel(OrganizationProjectUser.name)
+    private readonly OrganizationProjectUser: Model<OrganizationProjectUser>,
   ) {}
 
   async create(createProjectDto: CreateProjectDto, userId: string) {
@@ -56,6 +60,11 @@ export class ProjectsService {
       { _id: organization[0]._id },
       { $push: { projects: projectModel } },
     );
+    await this.OrganizationProjectUser.create({
+      organization: organization[0]._id,
+      project: projectModel,
+      user: new Types.ObjectId(userId),
+    });
     return projectModel;
   }
 

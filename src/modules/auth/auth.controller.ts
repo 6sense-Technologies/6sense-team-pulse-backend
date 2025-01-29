@@ -77,7 +77,7 @@ export class AuthController {
     console.log(req['user']);
     return this.organizationService.create(
       createOrganizationDTO,
-      req['user'].email,
+      req['user'].userId,
     );
   }
 

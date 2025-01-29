@@ -75,7 +75,7 @@ export class AuthService {
     delete userObject.password;
     this.emailService.sendEmail(createUserEmailPasswordDTO.emailAddress);
     const { accessToken, refreshToken } = this.generateTokens(
-      userObject.id,
+      userObject._id as string,
       userObject.emailAddress,
     );
     const organizations = await this.organizationModel.find({
