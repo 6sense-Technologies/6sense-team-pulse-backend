@@ -77,6 +77,7 @@ export class UserService {
                     {
                       $in: ['$issueStatus', ['Done', 'In Review']],
                     },
+                    { $eq: ['$planned', true] },
                   ],
                 },
                 1,
@@ -176,6 +177,94 @@ export class UserService {
               ],
             },
           },
+          doneTaskCountPlanned: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    {
+                      $in: ['$issueStatus', ['Done', 'In Review']],
+                    },
+                    { $eq: ['$planned', true] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          totalTaskCountPlanned: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    { $eq: ['$planned', true] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          doneTaskCountUnplanned: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    {
+                      $in: ['$issueStatus', ['Done', 'In Review']],
+                    },
+                    {
+                      $eq: ['planned', false],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          totalTaskCountUnPlanned: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$issueType', 'Task'] },
+                    {
+                      $not: { $in: ['$issueStatus', ['Done', 'In Review']] },
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          totalBugs: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [{ $eq: ['$issueType', 'Bug'] }],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          totalStories: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [{ $eq: ['$issueType', 'Story'] }],
+                },
+                1,
+                0,
+              ],
+            },
+          },
           comment: { $first: '$comment' }, //getting the first one from each group
         },
       },
@@ -188,19 +277,25 @@ export class UserService {
           notDoneStoryCount: 1,
           doneBugCount: 1,
           notDoneBugCount: 1,
+          doneTaskCountPlanned: 1,
+          totalTaskCountPlanned: 1,
+          doneTaskCountUnplanned: 1,
+          totalTaskCountUnPlanned: 1,
+          totalBugs: 1,
+          totalStories: 1,
           comment: 1, // Include the first comment
           user: 1,
           // Calculate ratios
           taskRatio: {
             $cond: {
               if: {
-                $eq: [{ $add: ['$doneTaskCount', '$notDoneTaskCount'] }, 0],
+                $eq: [{ $add: ['$totalTaskCountPlanned'] }, 0],
               }, // If the total count is 0, set ratio to null
               then: 0,
               else: {
                 $divide: [
                   '$doneTaskCount',
-                  { $add: ['$doneTaskCount', '$notDoneTaskCount'] },
+                  { $add: ['$totalTaskCountPlanned'] },
                 ],
               }, // done / (done + not done)
             },
@@ -333,6 +428,7 @@ export class UserService {
                     {
                       $in: ['$issueStatus', ['Done', 'In Review']],
                     },
+                    { $eq: ['$planned', true] },
                   ],
                 },
                 1,
@@ -432,6 +528,7 @@ export class UserService {
               ],
             },
           },
+
           comment: { $first: '$comment' }, //getting the first one from each group
         },
       },
