@@ -40,7 +40,14 @@ export class UserController {
   ) {
     return this.userService.calculateOverview(page, limit);
   }
-
+  @Get('daily-performence')
+  async calculateDailyPerformence(
+    @Query('userId') userId: string,
+    @Query('Page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.userService.dailyPerformence(userId, page, limit);
+  }
   //------------------------///
   @Get()
   async getAllUsers(

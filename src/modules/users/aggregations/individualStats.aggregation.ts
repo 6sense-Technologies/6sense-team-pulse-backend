@@ -201,7 +201,7 @@ export const individualStats = (
       },
     },
     {
-      $sort: { _id: -1 }, // Re-sort grouped data by date descending
+      $sort: { _id: -1 },
     },
     {
       $addFields: {

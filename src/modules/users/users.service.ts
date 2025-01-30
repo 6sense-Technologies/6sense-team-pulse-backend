@@ -35,6 +35,7 @@ import { UserProject } from './schemas/UserProject.schema';
 import { overView } from './aggregations/overview.aggregation';
 import { individualStats } from './aggregations/individualStats.aggregation';
 import { monthlyStat } from './aggregations/individualMonthlyPerformence.aggregation';
+import { dailyPerformenceAgg } from './aggregations/dailyPerformence.aggregation';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -105,6 +106,11 @@ export class UserService {
     const result = await this.issueEntryModel.aggregate(overViewAggr);
 
     return result[0];
+  }
+
+  async dailyPerformence(userId: string, page: Number, limit: Number) {
+    const aggdailyPerformence: any = dailyPerformenceAgg(userId, page, limit);
+    return this.issueEntryModel.aggregate(aggdailyPerformence);
   }
   // ----------------------------------------------------------------------------//
 
