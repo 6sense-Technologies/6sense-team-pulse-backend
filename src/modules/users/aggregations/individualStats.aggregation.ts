@@ -5,7 +5,7 @@ export const individualStats = (
   page: Number,
   limit: Number,
 ) => {
-  const indiestatAgg= [
+  const indiestatAgg = [
     {
       $match: {
         user: new Types.ObjectId(userId),
@@ -121,9 +121,9 @@ export const individualStats = (
                   {
                     $in: ['$issueStatus', ['Done', 'In Review']],
                   },
-                //   {
-                //     $eq: ['$planned', true],
-                //   },
+                  //   {
+                  //     $eq: ['$planned', true],
+                  //   },
                 ],
               },
               1,
@@ -144,9 +144,9 @@ export const individualStats = (
                       $in: ['$issueStatus', ['Done', 'In Review']],
                     },
                   },
-                //   {
-                //     $eq: ['$planned', true],
-                //   },
+                  //   {
+                  //     $eq: ['$planned', true],
+                  //   },
                 ],
               },
               1,
@@ -165,9 +165,9 @@ export const individualStats = (
                   {
                     $in: ['$issueStatus', ['Done', 'In Review']],
                   },
-                //   {
-                //     $eq: ['$planned', true],
-                //   },
+                  //   {
+                  //     $eq: ['$planned', true],
+                  //   },
                 ],
               },
               1,
@@ -188,9 +188,9 @@ export const individualStats = (
                       $in: ['$issueStatus', ['Done', 'In Review']],
                     },
                   },
-                //   {
-                //     $eq: ['$planned', true],
-                //   },
+                  //   {
+                  //     $eq: ['$planned', true],
+                  //   },
                 ],
               },
               1,
@@ -213,11 +213,14 @@ export const individualStats = (
             '$notDoneTaskCountUnplanned',
           ],
         },
-        totalDoneTaskCount: {
-          $sum: ['$doneTaskCountPlanned', '$doneTaskCountUnplanned'],
+        totalTaskPlanned: {
+          $sum: ['$doneTaskCountPlanned', '$notDoneTaskCountPlanned'],
         },
-        totalNotDoneTaskCount: {
-          $sum: ['$notDoneTaskCountPlanned', '$notDoneTaskCountUnplanned'],
+        totalTaskUnPlanned: {
+          $sum: ['$doneTaskCountUnplanned', '$notDoneTaskCountUnplanned'],
+        },
+        totalDoneTaskCount: {
+          $sum: ['$doneTaskCountPlanned', '$doneTaskCountUnPlanned'],
         },
         totalStoryCount: {
           $sum: ['$doneStoryCount', '$notDoneStoryCount'],
@@ -240,7 +243,7 @@ export const individualStats = (
                 {
                   $divide: ['$totalDoneTaskCount', '$totalTaskCount'],
                 },
-                1,
+                100,
               ],
             },
           ],
@@ -256,7 +259,7 @@ export const individualStats = (
                 {
                   $divide: ['$doneStoryCount', '$totalStoryCount'],
                 },
-                1,
+                100,
               ],
             },
           ],
@@ -295,7 +298,7 @@ export const individualStats = (
                     },
                   ],
                 },
-                3,
+                300,
               ],
             },
             100,
@@ -322,5 +325,5 @@ export const individualStats = (
       },
     },
   ];
-  return indiestatAgg
+  return indiestatAgg;
 };

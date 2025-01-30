@@ -89,8 +89,8 @@ export class UserService {
     return {
       userData: userData,
       history: result[0],
-      monthlyScore: monthly,
-      previousMonthScore: previousMonthly,
+      currentMonthScore: monthly[0]['averageScore'],
+      lastMonthScore: previousMonthly[0]['averageScore'],
     };
   }
   async calculateOverview(page: Number, limit: Number) {
