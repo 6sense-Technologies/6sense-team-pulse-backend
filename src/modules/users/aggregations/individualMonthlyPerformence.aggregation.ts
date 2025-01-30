@@ -1,16 +1,15 @@
 import mongoose, { Types } from 'mongoose';
 
-export const individualStats = (
-  userId: string,
-  page: Number,
-  limit: Number,
-) => {
-  const indiestatAgg= [
+export const monthlyStat = (userId: string, date: string) => {
+  const monthlyStatAgg = [
     {
       $match: {
         user: new Types.ObjectId(userId),
         issueType: {
           $in: ['Task', 'Story', 'Bug'],
+        },
+        date: {
+          $gte: new Date(date),
         },
       },
     },
@@ -121,9 +120,9 @@ export const individualStats = (
                   {
                     $in: ['$issueStatus', ['Done', 'In Review']],
                   },
-                //   {
-                //     $eq: ['$planned', true],
-                //   },
+                  //   {
+                  //     $eq: ['$planned', true],
+                  //   },
                 ],
               },
               1,
@@ -144,9 +143,9 @@ export const individualStats = (
                       $in: ['$issueStatus', ['Done', 'In Review']],
                     },
                   },
-                //   {
-                //     $eq: ['$planned', true],
-                //   },
+                  //   {
+                  //     $eq: ['$planned', true],
+                  //   },
                 ],
               },
               1,
@@ -165,9 +164,9 @@ export const individualStats = (
                   {
                     $in: ['$issueStatus', ['Done', 'In Review']],
                   },
-                //   {
-                //     $eq: ['$planned', true],
-                //   },
+                  //   {
+                  //     $eq: ['$planned', true],
+                  //   },
                 ],
               },
               1,
@@ -188,9 +187,9 @@ export const individualStats = (
                       $in: ['$issueStatus', ['Done', 'In Review']],
                     },
                   },
-                //   {
-                //     $eq: ['$planned', true],
-                //   },
+                  //   {
+                  //     $eq: ['$planned', true],
+                  //   },
                 ],
               },
               1,
@@ -304,23 +303,16 @@ export const individualStats = (
       },
     },
     {
-      $facet: {
-        total: [{ $count: 'total' }],
-        data: [
-          { $skip: (Number(page) - 1) * Number(limit) },
-          { $limit: Number(limit) },
-        ],
+      $group: {
+        _id: null,
+        averageScore: { $avg: '$score' },
       },
     },
     {
-      $unwind: '$total',
-    },
-    {
-      $project: {
-        count: '$total.total',
-        data: 1,
+      $addFields: {
+        averageScore: '$averageScore',
       },
     },
   ];
-  return indiestatAgg
+  return monthlyStatAgg;
 };

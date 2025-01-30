@@ -34,6 +34,7 @@ import { TrelloService } from '../trello/trello.service';
 import { UserProject } from './schemas/UserProject.schema';
 import { overView } from './aggregations/overview.aggregation';
 import { individualStats } from './aggregations/individualStats.aggregation';
+import { monthlyStat } from './aggregations/individualMonthlyPerformence.aggregation';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -64,13 +65,32 @@ export class UserService {
     const result = await this.issueEntryModel.aggregate(
       individualStatAggregation,
     );
+    const todaysDate = new Date();
+    const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
+    const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
+    const sixtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 60);
+    const sixDaysAgoDate = new Date(sixtyDaysAgo).toISOString();
 
+    const thirtyDaymonthlyAggregation: any = monthlyStat(
+      userId,
+      thirtyDaysAgoDate,
+    );
+    const monthly = await this.issueEntryModel.aggregate(
+      thirtyDaymonthlyAggregation,
+    );
+    const sixtyDaymonthlyAggregation: any = monthlyStat(userId, sixDaysAgoDate);
+
+    const previousMonthly = await this.issueEntryModel.aggregate(
+      sixtyDaymonthlyAggregation,
+    );
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls');
     return {
       userData: userData,
       history: result[0],
+      monthlyScore: monthly,
+      previousMonthScore: previousMonthly,
     };
   }
   async calculateOverview(page: Number, limit: Number) {
