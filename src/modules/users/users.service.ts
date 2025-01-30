@@ -9,7 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model } from 'mongoose';
+import mongoose, { Model, Mongoose, Types } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
 import { IssueHistory } from './schemas/IssueHistory.schems';
@@ -76,10 +76,12 @@ export class UserService {
   async calculateOverview(page: Number, limit: Number) {
     // const count = await this.userModel.countDocuments();
     console.log(`${page}--${limit}`);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const formattedDateThirtyDays = thirtyDaysAgo.toISOString().split('T')[0]; // Converts to "YYYY-MM-DD"
-    const overViewAggr: any = overView(formattedDateThirtyDays, page, limit);
+    // Get the current date and subtract 30 days
+    const todaysDate = new Date();
+    const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
+    const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
+    console.log(`Fetching data ${thirtyDaysAgoDate}`);
+    const overViewAggr: any = overView(thirtyDaysAgoDate, page, limit);
     const result = await this.issueEntryModel.aggregate(overViewAggr);
 
     return result[0];

@@ -6,7 +6,7 @@ export const overView = (date: string, page: Number, limit: Number) => {
           $ne: 'holidays/leave',
         },
         date: {
-          $gte: date,
+          $gte: new Date(date),
         },
       },
     },
@@ -112,9 +112,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
                   {
                     $in: ['$issueStatus', ['Done', 'In Review']],
                   },
-                  {
-                    $eq: ['$planned', true],
-                  },
+                  // {
+                  //   $eq: ['$planned', true],
+                  // },
                 ],
               },
               1,
@@ -135,9 +135,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
                       $in: ['$issueStatus', ['Done', 'In Review']],
                     },
                   },
-                  {
-                    $eq: ['$planned', true],
-                  },
+                  // {
+                  //   $eq: ['$planned', true],
+                  // },
                 ],
               },
               1,
@@ -156,9 +156,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
                   {
                     $in: ['$issueStatus', ['Done', 'In Review']],
                   },
-                  {
-                    $eq: ['$planned', true],
-                  },
+                  // {
+                  //   $eq: ['$planned', true],
+                  // },
                 ],
               },
               1,
@@ -179,9 +179,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
                       $in: ['$issueStatus', ['Done', 'In Review']],
                     },
                   },
-                  {
-                    $eq: ['$planned', true],
-                  },
+                  // {
+                  //   $eq: ['$planned', true],
+                  // },
                 ],
               },
               1,
@@ -309,13 +309,14 @@ export const overView = (date: string, page: Number, limit: Number) => {
     },
     {
       $project: {
-        'userData.displayName': 1,
-        'userData.emailAddress': 1,
-        'userData.designation': 1,
-        'userData.avatarUrls': 1,
-        taskCompletionRate: 1,
-        storyCompletionRate: 1,
-        codeToBugRatio: 1,
+        displayName: '$userData.displayName',
+        emailAddress: '$userData.emailAddress',
+        designation: '$userData.designation',
+        avatarUrls: '$userData.avatarUrls',
+        role: 'Member',
+        // taskCompletionRate: 1,
+        // storyCompletionRate: 1,
+        // codeToBugRatio: 1,
         performence: 1,
       },
     },
@@ -339,3 +340,5 @@ export const overView = (date: string, page: Number, limit: Number) => {
     },
   ];
 };
+
+
