@@ -192,7 +192,7 @@ export const overView = (date: string, page: Number, limit: Number) => {
     {
       $group: {
         _id: '$_id.user',
-        avgPerformance: { $avg: '$performance' },
+        performance: { $avg: '$performance' },
       },
     },
     {
@@ -213,7 +213,7 @@ export const overView = (date: string, page: Number, limit: Number) => {
         designation: '$userData.designation',
         avatarUrls: '$userData.avatarUrls',
         role: 'Member',
-        avgPerformance: 1,
+        performance: 1,
       },
     },
     {

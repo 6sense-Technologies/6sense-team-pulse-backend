@@ -25,7 +25,7 @@ export class UserController {
     // Constructor for injecting UserService
   }
   // Experimental Modification
-  @Get('v2')
+  @Get('individual')
   async calculateIndividualStats(
     @Query('userId') userId: string,
     @Query('page') page: number = 1,
@@ -33,14 +33,14 @@ export class UserController {
   ) {
     return this.userService.calculateIndividualStats(userId, page, limit);
   }
-  @Get('v2/all')
+  @Get('overview')
   async calculateOverview(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
     return this.userService.calculateOverview(page, limit);
   }
-  @Get('daily-performence')
+  @Get('daily-performance')
   async calculateDailyPerformence(
     @Query('userId') userId: string,
     @Query('dateTime') dateTime: string,
