@@ -18,7 +18,10 @@ export const monthlyStat = (userId: string, date: string) => {
     },
     {
       $group: {
-        _id: '$date',
+        _id: {
+          user: '$user',
+          date: '$date',
+        },
         insight: { $first: '$comment' },
         // Group by the 'date' field
         doneTaskCountPlanned: {

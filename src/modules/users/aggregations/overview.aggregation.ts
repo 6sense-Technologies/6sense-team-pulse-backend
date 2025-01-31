@@ -2,31 +2,21 @@ export const overView = (date: string, page: Number, limit: Number) => {
   return [
     {
       $match: {
-        comment: {
-          $ne: 'holidays/leave',
-        },
-        date: {
-          $gte: new Date(date),
-        },
+        comment: { $ne: 'holidays/leave' },
+        date: { $gte: new Date(date) },
       },
     },
     {
       $group: {
-        _id: '$user',
+        _id: { user: '$user', date: '$date' },
         doneTaskCountPlanned: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
-                  {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
-                  },
-                  {
-                    $eq: ['$planned', true],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
+                  { $in: ['$issueStatus', ['Done', 'In Review']] },
+                  { $eq: ['$planned', true] },
                 ],
               },
               1,
@@ -39,15 +29,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
-                  {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
-                  },
-                  {
-                    $eq: ['$planned', false],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
+                  { $in: ['$issueStatus', ['Done', 'In Review']] },
+                  { $eq: ['$planned', false] },
                 ],
               },
               1,
@@ -60,17 +44,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
-                  {
-                    $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
-                    },
-                  },
-                  {
-                    $eq: ['$planned', true],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
+                  { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
+                  { $eq: ['$planned', true] },
                 ],
               },
               1,
@@ -83,17 +59,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
-                  {
-                    $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
-                    },
-                  },
-                  {
-                    $eq: ['$planned', false],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
+                  { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
+                  { $eq: ['$planned', false] },
                 ],
               },
               1,
@@ -106,15 +74,8 @@ export const overView = (date: string, page: Number, limit: Number) => {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Story'],
-                  },
-                  {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
-                  },
-                  // {
-                  //   $eq: ['$planned', true],
-                  // },
+                  { $eq: ['$issueType', 'Story'] },
+                  { $in: ['$issueStatus', ['Done', 'In Review']] },
                 ],
               },
               1,
@@ -127,17 +88,8 @@ export const overView = (date: string, page: Number, limit: Number) => {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Story'],
-                  },
-                  {
-                    $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
-                    },
-                  },
-                  // {
-                  //   $eq: ['$planned', true],
-                  // },
+                  { $eq: ['$issueType', 'Story'] },
+                  { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
                 ],
               },
               1,
@@ -150,15 +102,8 @@ export const overView = (date: string, page: Number, limit: Number) => {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Bug'],
-                  },
-                  {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
-                  },
-                  // {
-                  //   $eq: ['$planned', true],
-                  // },
+                  { $eq: ['$issueType', 'Bug'] },
+                  { $in: ['$issueStatus', ['Done', 'In Review']] },
                 ],
               },
               1,
@@ -171,17 +116,8 @@ export const overView = (date: string, page: Number, limit: Number) => {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Bug'],
-                  },
-                  {
-                    $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
-                    },
-                  },
-                  // {
-                  //   $eq: ['$planned', true],
-                  // },
+                  { $eq: ['$issueType', 'Bug'] },
+                  { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
                 ],
               },
               1,
@@ -204,83 +140,45 @@ export const overView = (date: string, page: Number, limit: Number) => {
         totalDoneTaskCount: {
           $sum: ['$doneTaskCountPlanned', '$doneTaskCountUnplanned'],
         },
-        totalNotDoneTaskCount: {
-          $sum: ['$notDoneTaskCountPlanned', '$notDoneTaskCountUnplanned'],
-        },
-        totalStoryCount: {
-          $sum: ['$doneStoryCount', '$notDoneStoryCount'],
-        },
-        totalBugCount: {
-          $sum: ['$doneBugCount', '$notDoneBugCount'],
-        },
+        totalStoryCount: { $sum: ['$doneStoryCount', '$notDoneStoryCount'] },
+        totalBugCount: { $sum: ['$doneBugCount', '$notDoneBugCount'] },
       },
     },
     {
       $addFields: {
         taskCompletionRate: {
           $cond: [
-            {
-              $eq: ['$totalTaskCount', 0],
-            },
+            { $eq: ['$totalTaskCount', 0] },
             1,
-            {
-              $multiply: [
-                {
-                  $divide: ['$totalDoneTaskCount', '$totalTaskCount'],
-                },
-                1,
-              ],
-            },
+            { $divide: ['$totalDoneTaskCount', '$totalTaskCount'] },
           ],
         },
         storyCompletionRate: {
           $cond: [
-            {
-              $eq: ['$totalStoryCount', 0],
-            },
+            { $eq: ['$totalStoryCount', 0] },
             0,
-            {
-              $multiply: [
-                {
-                  $divide: ['$doneStoryCount', '$totalStoryCount'],
-                },
-                1,
-              ],
-            },
+            { $divide: ['$doneStoryCount', '$totalStoryCount'] },
           ],
         },
         codeToBugRatio: {
           $cond: [
-            {
-              $eq: ['$totalTaskCount', 0],
-            },
+            { $eq: ['$totalTaskCount', 0] },
             0,
-            {
-              $multiply: [
-                {
-                  $divide: ['$totalBugCount', '$totalTaskCount'],
-                },
-                1,
-              ],
-            },
+            { $divide: ['$totalBugCount', '$totalTaskCount'] },
           ],
         },
       },
     },
     {
       $addFields: {
-        performence: {
+        performance: {
           $multiply: [
             {
               $divide: [
                 {
                   $add: [
-                    {
-                      $multiply: ['$taskCompletionRate', 1],
-                    },
-                    {
-                      $multiply: ['$storyCompletionRate', 2],
-                    },
+                    { $multiply: ['$taskCompletionRate', 1] },
+                    { $multiply: ['$storyCompletionRate', 2] },
                   ],
                 },
                 3,
@@ -292,8 +190,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
       },
     },
     {
-      $sort: {
-        date: 1,
+      $group: {
+        _id: '$_id.user',
+        avgPerformance: { $avg: '$performance' },
       },
     },
     {
@@ -314,10 +213,7 @@ export const overView = (date: string, page: Number, limit: Number) => {
         designation: '$userData.designation',
         avatarUrls: '$userData.avatarUrls',
         role: 'Member',
-        // taskCompletionRate: 1,
-        // storyCompletionRate: 1,
-        // codeToBugRatio: 1,
-        performence: 1,
+        avgPerformance: 1,
       },
     },
     {
