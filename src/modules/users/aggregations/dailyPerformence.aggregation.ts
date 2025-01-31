@@ -2,10 +2,11 @@ import { Types } from 'mongoose';
 
 export const dailyPerformenceAgg = (
   userId: string,
+  dateTime: string,
   page: Number,
   limit: Number,
 ) => {
-  const todaysDate = new Date();
+  const todaysDate = new Date(dateTime);
   //   //   const todaysDate = new Date();
   //   const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
   //   const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
@@ -14,6 +15,7 @@ export const dailyPerformenceAgg = (
     {
       $match: {
         user: { $eq: new Types.ObjectId(userId) },
+        date: { $eq: todaysDate },
       },
     },
     {

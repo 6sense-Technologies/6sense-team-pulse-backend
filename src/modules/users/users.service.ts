@@ -108,8 +108,18 @@ export class UserService {
     return result[0];
   }
 
-  async dailyPerformence(userId: string, page: Number, limit: Number) {
-    const aggdailyPerformence: any = dailyPerformenceAgg(userId, page, limit);
+  async dailyPerformence(
+    userId: string,
+    dateTime: string,
+    page: Number,
+    limit: Number,
+  ) {
+    const aggdailyPerformence: any = dailyPerformenceAgg(
+      userId,
+      dateTime,
+      page,
+      limit,
+    );
     return this.issueEntryModel.aggregate(aggdailyPerformence);
   }
   // ----------------------------------------------------------------------------//

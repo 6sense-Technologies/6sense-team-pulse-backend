@@ -43,10 +43,11 @@ export class UserController {
   @Get('daily-performence')
   async calculateDailyPerformence(
     @Query('userId') userId: string,
+    @Query('dateTime') dateTime: string,
     @Query('Page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    return this.userService.dailyPerformence(userId, page, limit);
+    return this.userService.dailyPerformence(userId, dateTime,page, limit);
   }
   //------------------------///
   @Get()
