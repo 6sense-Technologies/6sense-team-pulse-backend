@@ -1,4 +1,11 @@
 export const overView = (date: string, page: Number, limit: Number) => {
+  const doneCondition = [
+    'Done',
+    'In Review',
+    'USER STORIES (Verified In Beta)',
+    'USER STORIES (Verified In Test)',
+  ];
+  
   return [
     {
       $match: {
@@ -15,7 +22,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
               {
                 $and: [
                   { $eq: ['$issueType', 'Task'] },
-                  { $in: ['$issueStatus', ['Done', 'In Review']] },
+                  {
+                    $in: ['$issueStatus', doneCondition],
+                  },
                   { $eq: ['$planned', true] },
                 ],
               },
@@ -30,7 +39,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
               {
                 $and: [
                   { $eq: ['$issueType', 'Task'] },
-                  { $in: ['$issueStatus', ['Done', 'In Review']] },
+                  {
+                    $in: ['$issueStatus', doneCondition],
+                  },
                   { $eq: ['$planned', false] },
                 ],
               },
@@ -45,7 +56,11 @@ export const overView = (date: string, page: Number, limit: Number) => {
               {
                 $and: [
                   { $eq: ['$issueType', 'Task'] },
-                  { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
+                  {
+                    $not: {
+                      $in: ['$issueStatus', doneCondition],
+                    },
+                  },
                   { $eq: ['$planned', true] },
                 ],
               },
@@ -60,7 +75,11 @@ export const overView = (date: string, page: Number, limit: Number) => {
               {
                 $and: [
                   { $eq: ['$issueType', 'Task'] },
-                  { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
+                  {
+                    $not: {
+                      $in: ['$issueStatus', doneCondition],
+                    },
+                  },
                   { $eq: ['$planned', false] },
                 ],
               },
@@ -75,7 +94,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
               {
                 $and: [
                   { $eq: ['$issueType', 'Story'] },
-                  { $in: ['$issueStatus', ['Done', 'In Review']] },
+                  {
+                    $in: ['$issueStatus', doneCondition],
+                  },
                 ],
               },
               1,
@@ -89,7 +110,11 @@ export const overView = (date: string, page: Number, limit: Number) => {
               {
                 $and: [
                   { $eq: ['$issueType', 'Story'] },
-                  { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
+                  {
+                    $not: {
+                      $in: ['$issueStatus', doneCondition],
+                    },
+                  },
                 ],
               },
               1,
@@ -103,7 +128,9 @@ export const overView = (date: string, page: Number, limit: Number) => {
               {
                 $and: [
                   { $eq: ['$issueType', 'Bug'] },
-                  { $in: ['$issueStatus', ['Done', 'In Review']] },
+                  {
+                    $in: ['$issueStatus', doneCondition],
+                  },
                 ],
               },
               1,
@@ -117,7 +144,11 @@ export const overView = (date: string, page: Number, limit: Number) => {
               {
                 $and: [
                   { $eq: ['$issueType', 'Bug'] },
-                  { $not: { $in: ['$issueStatus', ['Done', 'In Review']] } },
+                  {
+                    $not: {
+                      $in: ['$issueStatus', doneCondition],
+                    },
+                  },
                 ],
               },
               1,

@@ -5,6 +5,12 @@ export const individualStats = (
   page: Number,
   limit: Number,
 ) => {
+  const doneCondition = [
+    'Done',
+    'In Review',
+    'USER STORIES (Verified In Beta)',
+    'USER STORIES (Verified In Test)',
+  ];
   const indiestatAgg = [
     {
       $match: {
@@ -31,7 +37,7 @@ export const individualStats = (
                     $eq: ['$issueType', 'Task'],
                   },
                   {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
+                    $in: ['$issueStatus', doneCondition],
                   },
                   {
                     $eq: ['$planned', true],
@@ -52,7 +58,7 @@ export const individualStats = (
                     $eq: ['$issueType', 'Task'],
                   },
                   {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
+                    $in: ['$issueStatus', doneCondition],
                   },
                   {
                     $eq: ['$planned', false],
@@ -74,7 +80,7 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
+                      $in: ['$issueStatus', doneCondition],
                     },
                   },
                   {
@@ -97,7 +103,7 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
+                      $in: ['$issueStatus', doneCondition],
                     },
                   },
                   {
@@ -119,7 +125,7 @@ export const individualStats = (
                     $eq: ['$issueType', 'Story'],
                   },
                   {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
+                    $in: ['$issueStatus',doneCondition],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -141,7 +147,7 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
+                      $in: ['$issueStatus',doneCondition],
                     },
                   },
                   //   {
@@ -163,7 +169,7 @@ export const individualStats = (
                     $eq: ['$issueType', 'Bug'],
                   },
                   {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
+                    $in: ['$issueStatus', doneCondition],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -185,7 +191,7 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
+                      $in: ['$issueStatus', doneCondition],
                     },
                   },
                   //   {

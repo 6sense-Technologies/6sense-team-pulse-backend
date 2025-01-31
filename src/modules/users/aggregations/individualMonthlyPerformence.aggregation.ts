@@ -1,6 +1,12 @@
 import mongoose, { Types } from 'mongoose';
 
 export const monthlyStat = (userId: string, date: string) => {
+  const doneCondition = [
+    'Done',
+    'In Review',
+    'USER STORIES (Verified In Beta)',
+    'USER STORIES (Verified In Test)',
+  ];
   const monthlyStatAgg = [
     {
       $match: {
@@ -33,7 +39,7 @@ export const monthlyStat = (userId: string, date: string) => {
                     $eq: ['$issueType', 'Task'],
                   },
                   {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
+                    $in: ['$issueStatus', doneCondition],
                   },
                   {
                     $eq: ['$planned', true],
@@ -54,7 +60,7 @@ export const monthlyStat = (userId: string, date: string) => {
                     $eq: ['$issueType', 'Task'],
                   },
                   {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
+                    $in: ['$issueStatus', doneCondition],
                   },
                   {
                     $eq: ['$planned', false],
@@ -76,7 +82,7 @@ export const monthlyStat = (userId: string, date: string) => {
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
+                      $in: ['$issueStatus', doneCondition],
                     },
                   },
                   {
@@ -99,7 +105,7 @@ export const monthlyStat = (userId: string, date: string) => {
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
+                      $in: ['$issueStatus', doneCondition],
                     },
                   },
                   {
@@ -121,7 +127,7 @@ export const monthlyStat = (userId: string, date: string) => {
                     $eq: ['$issueType', 'Story'],
                   },
                   {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
+                    $in: ['$issueStatus', doneCondition],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -143,7 +149,7 @@ export const monthlyStat = (userId: string, date: string) => {
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
+                      $in: ['$issueStatus',doneCondition],
                     },
                   },
                   //   {
@@ -165,7 +171,7 @@ export const monthlyStat = (userId: string, date: string) => {
                     $eq: ['$issueType', 'Bug'],
                   },
                   {
-                    $in: ['$issueStatus', ['Done', 'In Review']],
+                    $in: ['$issueStatus',doneCondition],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -187,7 +193,7 @@ export const monthlyStat = (userId: string, date: string) => {
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', ['Done', 'In Review']],
+                      $in: ['$issueStatus',doneCondition],
                     },
                   },
                   //   {
