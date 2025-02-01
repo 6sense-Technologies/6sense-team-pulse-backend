@@ -299,9 +299,9 @@ export const monthlyStat = (userId: string, date: string) => {
                     {
                       $eq: ['$totalStoryCount', 0],
                     },
-                    {
-                      $divide: ['$taskCompletionRate', 100],
-                    },
+
+                    '$taskCompletionRate',
+
                     {
                       $divide: [
                         {
@@ -312,14 +312,12 @@ export const monthlyStat = (userId: string, date: string) => {
                             },
                           ],
                         },
-                        300,
+                        3,
                       ],
                     },
                   ],
                 },
-                {
-                  $divide: ['$storyCompletionRate', 100],
-                },
+                '$storyCompletionRate',
               ],
             },
             100,
