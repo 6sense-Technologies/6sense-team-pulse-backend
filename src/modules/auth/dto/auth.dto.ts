@@ -81,18 +81,18 @@ export class LoginUserEmailPasswordDTO {
     example: 'Strong@Password123!',
   })
   @IsString()
-  @IsNotEmpty()
-  @IsStrongPassword(
-    {
-      minLowercase: 1,
-      minUppercase: 1,
-      minSymbols: 1,
-    },
-    {
-      message:
-        'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
-    },
-  )
+  // @IsNotEmpty()
+  // @IsStrongPassword(
+  //   {
+  //     minLowercase: 1,
+  //     minUppercase: 1,
+  //     minSymbols: 1,
+  //   },
+  //   {
+  //     message:
+  //       'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
+  //   },
+  // )
   password: string;
 }
 
