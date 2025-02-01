@@ -28,8 +28,11 @@ export const dailyPerformenceAgg = (
         issueType: 1,
         linkedId: '$link',
         issueStatus: 1,
+        issueIdUrl: 1,
+        issueLinkUrl: 1,
       },
     },
+
     {
       $facet: {
         total: [{ $count: 'total' }],
