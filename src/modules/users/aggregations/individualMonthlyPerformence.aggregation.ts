@@ -149,7 +149,7 @@ export const monthlyStat = (userId: string, date: string) => {
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus',doneCondition],
+                      $in: ['$issueStatus', doneCondition],
                     },
                   },
                   //   {
@@ -171,7 +171,7 @@ export const monthlyStat = (userId: string, date: string) => {
                     $eq: ['$issueType', 'Bug'],
                   },
                   {
-                    $in: ['$issueStatus',doneCondition],
+                    $in: ['$issueStatus', doneCondition],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -193,7 +193,7 @@ export const monthlyStat = (userId: string, date: string) => {
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus',doneCondition],
+                      $in: ['$issueStatus', doneCondition],
                     },
                   },
                   //   {
@@ -292,18 +292,34 @@ export const monthlyStat = (userId: string, date: string) => {
         score: {
           $multiply: [
             {
-              $divide: [
+              $cond: [
+                { $gt: ['$totalTaskCount', 0] },
                 {
-                  $add: [
+                  $cond: [
                     {
-                      $multiply: ['$taskCompletionRate', 1],
+                      $eq: ['$totalStoryCount', 0],
                     },
                     {
-                      $multiply: ['$storyCompletionRate', 2],
+                      $divide: ['$taskCompletionRate', 100],
+                    },
+                    {
+                      $divide: [
+                        {
+                          $add: [
+                            '$taskCompletionRate',
+                            {
+                              $multiply: ['$storyCompletionRate', 2],
+                            },
+                          ],
+                        },
+                        300,
+                      ],
                     },
                   ],
                 },
-                3,
+                {
+                  $divide: ['$storyCompletionRate', 100],
+                },
               ],
             },
             100,

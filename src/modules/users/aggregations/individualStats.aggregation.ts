@@ -125,7 +125,7 @@ export const individualStats = (
                     $eq: ['$issueType', 'Story'],
                   },
                   {
-                    $in: ['$issueStatus',doneCondition],
+                    $in: ['$issueStatus', doneCondition],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -147,7 +147,7 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus',doneCondition],
+                      $in: ['$issueStatus', doneCondition],
                     },
                   },
                   //   {
@@ -293,18 +293,34 @@ export const individualStats = (
         score: {
           $multiply: [
             {
-              $divide: [
+              $cond: [
+                { $gt: ['$totalTaskCount', 0] },
                 {
-                  $add: [
+                  $cond: [
                     {
-                      $multiply: ['$taskCompletionRate', 1],
+                      $eq: ['$totalStoryCount', 0],
                     },
                     {
-                      $multiply: ['$storyCompletionRate', 2],
+                      $divide: ['$taskCompletionRate', 100],
+                    },
+                    {
+                      $divide: [
+                        {
+                          $add: [
+                            '$taskCompletionRate',
+                            {
+                              $multiply: ['$storyCompletionRate', 2],
+                            },
+                          ],
+                        },
+                        300,
+                      ],
                     },
                   ],
                 },
-                300,
+                {
+                  $divide: ['$storyCompletionRate', 100],
+                },
               ],
             },
             100,
