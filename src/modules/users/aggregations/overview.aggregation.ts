@@ -289,6 +289,11 @@ export const overView = (date: string, page: Number, limit: Number) => {
       },
     },
     {
+      $sort:{
+        designation:1
+      }
+    },
+    {
       $facet: {
         total: [{ $count: 'total' }],
         data: [
