@@ -66,32 +66,50 @@ export class UserService {
     const result = await this.issueEntryModel.aggregate(
       individualStatAggregation,
     );
-    const todaysDate = new Date();
-    const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
-    const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
-    const sixtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 60);
-    const sixDaysAgoDate = new Date(sixtyDaysAgo).toISOString();
+    let today = new Date();
 
-    const thirtyDaymonthlyAggregation: any = monthlyStat(
-      userId,
-      thirtyDaysAgoDate,
-    );
-    const monthly = await this.issueEntryModel.aggregate(
-      thirtyDaymonthlyAggregation,
-    );
-    const sixtyDaymonthlyAggregation: any = monthlyStat(userId, sixDaysAgoDate);
+    // Current month start date
+    let currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1,
+    ).toISOString();
 
-    const previousMonthly = await this.issueEntryModel.aggregate(
-      sixtyDaymonthlyAggregation,
-    );
+    // Last month start date
+    let lastMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth() - 1,
+      1,
+    ).toISOString();
+
+    // Last month end date
+    let lastMonthEnd = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      0,
+    ).toISOString();
+
+    const currentMonthAgg: any = monthlyStat(userId, currentMonthStart);
+    const currentMonth = await this.issueEntryModel.aggregate(currentMonthAgg);
+
+    const lastMonthAgg: any = monthlyStat(userId, lastMonthStart, lastMonthEnd);
+    const lastMonth = await this.issueEntryModel.aggregate(lastMonthAgg);
+    // console.log(currentMonth);
+    // console.log(lastMonth);
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls');
+    if (currentMonth.length == 0) {
+      currentMonth.push({ averageScore: 0 });
+    }
+    if (lastMonth.length == 0) {
+      lastMonth.push({ averageScore: 0 });
+    }
     return {
       userData: userData,
       history: result[0],
-      currentMonthScore: monthly[0]['averageScore'],
-      lastMonthScore: previousMonthly[0]['averageScore'],
+      currentMonthScore: currentMonth[0]['averageScore'],
+      lastMonthScore: lastMonth[0]['averageScore'],
     };
   }
   async calculateOverview(page: Number, limit: Number) {
@@ -120,7 +138,15 @@ export class UserService {
       page,
       limit,
     );
-    return this.issueEntryModel.aggregate(aggdailyPerformence);
+    const userData = await this.userModel
+      .findById(userId)
+      .select('displayName emailAddress designation avatarUrls');
+    const dailyPerformance =
+      await this.issueEntryModel.aggregate(aggdailyPerformence);
+    return {
+      userData,
+      dailyPerformance: dailyPerformance[0],
+    };
   }
   // ----------------------------------------------------------------------------//
 

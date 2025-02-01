@@ -1,6 +1,12 @@
 import mongoose, { Types } from 'mongoose';
 
-export const monthlyStat = (userId: string, date: string) => {
+export const monthlyStat = (
+  userId: string,
+  startDate: string,
+  endDate: string = new Date().toISOString(),
+) => {
+  // console.log(`StartDate: ${startDate}`);
+  // console.log(`EndDate: ${endDate}`);
   const doneCondition = [
     'Done',
     'In Review',
@@ -15,7 +21,8 @@ export const monthlyStat = (userId: string, date: string) => {
           $in: ['Task', 'Story', 'Bug'],
         },
         date: {
-          $gte: new Date(date),
+          $gte: new Date(startDate), // Greater than or equal to startDate
+          $lte: new Date(endDate), // Less than or equal to endDate
         },
       },
     },
@@ -331,9 +338,10 @@ export const monthlyStat = (userId: string, date: string) => {
         averageScore: { $avg: '$score' },
       },
     },
+
     {
       $addFields: {
-        averageScore: '$averageScore',
+        averageScore: { $ifNull: ['$averageScore', 0] }, // Default to 0 if undefined or null
       },
     },
   ];
