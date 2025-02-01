@@ -145,7 +145,7 @@ export class AuthService {
         };
       }
     } else {
-      throw new BadRequestException('User does not exists');
+      throw new NotFoundException('User does not exists');
     }
   }
   public async generateRefreshTokens(refreshToken: string) {
