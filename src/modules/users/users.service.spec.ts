@@ -4,6 +4,9 @@ import { getModelToken } from '@nestjs/mongoose';
 import { User } from './schemas/user.schema';
 import { IssueHistory } from './schemas/IssueHistory.schems';
 import { IssueEntry } from './schemas/IssueEntry.schema';
+import { JiraService } from '../jira/jira.service';
+import { TrelloService } from '../trello/trello.service';
+
 // import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -169,7 +172,8 @@ describe('UserService', () => {
   // let issueHistoryModel: Model<IssueHistory>;
   // let issueEntryModel: Model<IssueEntry>;
   let configService: ConfigService;
-
+  let jiraService: JiraService;
+  let trelloService: TrelloService;
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -187,11 +191,41 @@ describe('UserService', () => {
           provide: getModelToken(IssueEntry.name),
           useValue: mockIssueEntryModel,
         },
+        {
+          provide: getModelToken(User.name),
+          useValue: {
+            findById: jest.fn(),
+          },
+        },
+        {
+          provide: getModelToken(IssueEntry.name),
+          useValue: {
+            aggregate: jest.fn(),
+          },
+        },
+        {
+          provide: getModelToken(IssueHistory.name),
+          useValue: {},
+        },
+        {
+          provide: JiraService,
+          useValue: {},
+        },
+        {
+          provide: TrelloService,
+          useValue: {},
+        },
+        {
+          provide: ConfigService,
+          useValue: {},
+        },
       ],
     }).compile();
 
     userService = module.get<UserService>(UserService);
     configService = module.get<ConfigService>(ConfigService);
+    jiraService = module.get<JiraService>(JiraService);
+    trelloService = module.get<TrelloService>(TrelloService);
     // userModel = module.get<Model<User>>(getModelToken(User.name));
     // issueHistoryModel = module.get<Model<IssueHistory>>(
     //   getModelToken(IssueHistory.name),

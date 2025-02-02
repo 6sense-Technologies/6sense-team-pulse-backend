@@ -97,14 +97,14 @@ describe('AuthService', () => {
   });
 
   describe('loginEmailPassword', () => {
-    it('should throw BadRequestException for invalid credentials', async () => {
+    it('should throw NotfoundException for non existent email', async () => {
       userModel.findOne.mockResolvedValue(null);
       await expect(
         authService.loginEmailPassword({
           emailAddress: 'test@example.com',
           password: 'password123',
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should return tokens on successful login', async () => {

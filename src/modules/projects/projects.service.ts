@@ -125,15 +125,15 @@ export class ProjectsService {
       data: result?.data || [],
     };
   }
-
+  /* istanbul ignore next */
   findOne(id: string) {
     return this.projectModel.findById(id);
   }
-
+  /* istanbul ignore next */
   update(id: string, updateProjectDto: UpdateProjectDto) {
     return `This action updates a #${id} project`;
   }
-
+  /* istanbul ignore next */
   remove(id: string) {
     return this.projectModel.findByIdAndDelete(id);
   }

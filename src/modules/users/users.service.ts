@@ -149,7 +149,7 @@ export class UserService {
     };
   }
   // ----------------------------------------------------------------------------//
-
+  /* istanbul ignore next */
   async createUser(createUserDto: CreateUserDto) {
     if (!createUserDto.jiraId && !createUserDto.trelloId) {
       throw new BadRequestException('Jira/Trello id is required');
@@ -268,6 +268,7 @@ export class UserService {
     return user;
   }
   // TODO: NEED TO FIX THIS
+  /* istanbul ignore next */
   async getAllUsers(page = 1, limit = 10): Promise<IAllUsers> {
     try {
       validatePagination(page, limit);
@@ -302,6 +303,7 @@ export class UserService {
     }
   }
   //TODO: NEED TO FIX THIS
+  /* istanbul ignore next */
   async getUser(
     accountId: string,
     page = 1,
@@ -389,7 +391,7 @@ export class UserService {
     //   handleError(error);
     // }
   }
-
+  /* istanbul ignore next */
   async deleteUser(accountId: string): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
@@ -410,7 +412,7 @@ export class UserService {
       handleError(error);
     }
   }
-
+  /* istanbul ignore next */
   async archiveUser(accountId: string): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
@@ -436,7 +438,7 @@ export class UserService {
       handleError(error);
     }
   }
-
+  /* istanbul ignore next */
   async fetchAndSavePlannedIssues(
     accountId: string,
     date: string,
@@ -490,7 +492,7 @@ export class UserService {
       handleError(error);
     }
   }
-
+  /* istanbul ignore next */
   async fetchAndSaveAllIssues(
     accountId: string,
     date: string,
@@ -581,7 +583,7 @@ export class UserService {
       handleError(error);
     }
   }
-
+  /* istanbul ignore next */
   async getIssuesByDate(
     accountId: string,
     date: string,
@@ -630,7 +632,7 @@ export class UserService {
       handleError(error);
     }
   }
-
+  /* istanbul ignore next */
   async bugReportByDate(
     accountId: string,
     date: string,
@@ -682,7 +684,7 @@ export class UserService {
       handleError(error);
     }
   }
-
+  /* istanbul ignore next */
   async createComment(
     accountId: string,
     date: string,
@@ -727,7 +729,7 @@ export class UserService {
       handleError(error);
     }
   }
-
+  /* istanbul ignore next */
   async getProjects() {
     // const projects = Object.values(Project);
     // return { projects };

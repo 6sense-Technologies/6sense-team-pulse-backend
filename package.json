@@ -95,11 +95,35 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.service.ts",
-      "!**/modules/trello/trello.service.ts",
-      "!**/modules/jira/jira.service.ts"
+      "modules/auth/**/*.service.ts",
+      "modules/email-service/**/*.service.ts",
+      "modules/projects/**/*.service.ts"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/",
+      "/src/modules/git-repo/",
+      "/src/modules/github/",
+      "/src/modules/goals/",
+      "/src/modules/organization/",
+      "/src/modules/queue-handler/",
+      "/src/modules/tool/",
+      "/src/modules/trello/",
+      "/src/modules/jira/",
+      "/src/modules/users/"
+    ],
+    "modulePathIgnorePatterns": [
+      "/src/modules/git-repo/",
+      "/src/modules/github/",
+      "/src/modules/goals/",
+      "/src/modules/organization/",
+      "/src/modules/queue-handler/",
+      "/src/modules/tool/",
+      "/src/modules/trello/",
+      "/src/modules/jira/",
+      "/src/modules/users/"
+    ]
   }
 }

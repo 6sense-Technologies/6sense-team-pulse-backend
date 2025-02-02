@@ -21,12 +21,12 @@ import {
 import { TrelloService } from '../trello/trello.service';
 import { UserService } from '../users/users.service';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
-import { handleError } from 'src/common/helpers/error.helper';
+import { handleError } from '../../common/helpers/error.helper';
 import { Designation, Project } from '../users/enums/user.enum';
 import {
   validateAccountId,
   validateDate,
-} from 'src/common/helpers/validation.helper';
+} from '../../common/helpers/validation.helper';
 import { IssueEntry } from '../users/schemas/IssueEntry.schema';
 import { ClientMqtt } from '@nestjs/microservices';
 

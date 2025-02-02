@@ -12,7 +12,7 @@ import {
   OrganizationUserRoleSchema,
 } from '../users/schemas/OrganizationUserRole.schema';
 import { Role, RoleSchema } from '../users/schemas/Role.schema';
-import { UserModule } from '../users/schemas/users.module';
+import { UserModule } from '../users/users.module';
 import { AuthService } from '../auth/auth.service';
 
 @Module({
