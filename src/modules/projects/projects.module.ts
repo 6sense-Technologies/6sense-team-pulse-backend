@@ -18,8 +18,19 @@ import {
   ProjectTool,
   ProjectToolSchema,
 } from '../users/schemas/ProjectTool.schema';
-import { Organization, OrganizationSchema } from '../users/schemas/Organization.schema';
-
+import {
+  Organization,
+  OrganizationSchema,
+} from '../users/schemas/Organization.schema';
+import {
+  OrganizationProjectUser,
+  OrganizationProjectUserSchema,
+} from '../users/schemas/OrganizationProjectUser.schema';
+import {
+  OrganizationUserRole,
+  OrganizationUserRoleSchema
+} from '../users/schemas/OrganizationUserRole.schema'
+import { JwtService } from '@nestjs/jwt';
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -31,9 +42,17 @@ import { Organization, OrganizationSchema } from '../users/schemas/Organization.
       { name: Tool.name, schema: ToolSchema },
       { name: ProjectTool.name, schema: ProjectToolSchema },
       { name: Organization.name, schema: OrganizationSchema },
+      {
+        name: OrganizationProjectUser.name,
+        schema: OrganizationProjectUserSchema,
+      },
+      {
+        name: OrganizationUserRole.name,
+        schema: OrganizationUserRoleSchema
+      }
     ]),
   ],
   controllers: [ProjectsController],
-  providers: [ProjectsService],
+  providers: [ProjectsService,JwtService],
 })
 export class ProjectsModule {}

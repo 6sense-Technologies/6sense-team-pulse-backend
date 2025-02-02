@@ -75,7 +75,7 @@ export class AuthService {
     delete userObject.password;
     this.emailService.sendEmail(createUserEmailPasswordDTO.emailAddress);
     const { accessToken, refreshToken } = this.generateTokens(
-      userObject.id,
+      userObject._id as string,
       userObject.emailAddress,
     );
     const organizations = await this.organizationModel.find({
@@ -145,7 +145,7 @@ export class AuthService {
         };
       }
     } else {
-      throw new BadRequestException('Invalid Credentials');
+      throw new NotFoundException('User does not exists');
     }
   }
   public async generateRefreshTokens(refreshToken: string) {

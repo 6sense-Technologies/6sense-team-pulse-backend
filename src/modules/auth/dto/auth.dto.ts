@@ -24,7 +24,7 @@ export class CreateUserEmailPasswordDTO {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail({},{message: 'Email is not valid'})
+  @IsEmail({}, { message: 'Email is not valid' })
   emailAddress: string;
 
   @ApiProperty({
@@ -36,14 +36,15 @@ export class CreateUserEmailPasswordDTO {
   @IsNotEmpty({ message: 'Password is required for signup.' })
   @IsStrongPassword(
     {
-      minLength: 8,
+      minLength: 3,
       minLowercase: 1,
       minUppercase: 1,
       minSymbols: 1,
+      minNumbers: 0,
     },
     {
       message:
-        'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
+        'Invalid password format. Your password must include at least one uppercase letter, one lowercase letter, and one special character.',
     },
   )
   password: string;
@@ -63,7 +64,7 @@ export class CreateUserEmail {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail({},{message: 'Email is not valid'})
+  @IsEmail({}, { message: 'Email is not valid' })
   emailAddress: string;
 }
 export class LoginUserEmailPasswordDTO {
@@ -73,7 +74,7 @@ export class LoginUserEmailPasswordDTO {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail({},{message: 'Email is not valid'})
+  @IsEmail({}, { message: 'Email is not valid' })
   emailAddress: string;
 
   @ApiProperty({
@@ -81,19 +82,18 @@ export class LoginUserEmailPasswordDTO {
     example: 'Strong@Password123!',
   })
   @IsString()
-  @IsNotEmpty()
-  @IsStrongPassword(
-    {
-      minLength: 8,
-      minLowercase: 1,
-      minUppercase: 1,
-      minSymbols: 1,
-    },
-    {
-      message:
-        'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
-    },
-  )
+  // @IsNotEmpty()
+  // @IsStrongPassword(
+  //   {
+  //     minLowercase: 1,
+  //     minUppercase: 1,
+  //     minSymbols: 1,
+  //   },
+  //   {
+  //     message:
+  //       'Invalid password format.Password mustbe 8 character long and must contain minimum one uppercase,lowercase and special symbol',
+  //   },
+  // )
   password: string;
 }
 
@@ -104,11 +104,10 @@ export class LoginUserEmailOnly {
   })
   @IsString()
   @IsNotEmpty()
-  @IsEmail({},{message: 'Email is not valid'})
+  @IsEmail({}, { message: 'Email is not valid' })
   emailAddress: string;
 }
 export class VerifyEmailDto {
-  
   @ApiProperty({
     description: 'The email verification token',
     example: 'abc123xyz',

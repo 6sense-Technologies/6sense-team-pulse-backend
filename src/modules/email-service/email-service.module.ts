@@ -6,7 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { UserService } from '../users/users.service';
 import { AuthModule } from '../auth/auth.module';
-import { UserModule } from '../users/schemas/users.module';
+import { UserModule } from '../users/users.module';
 import { OTPSecret, OTPSecretSchema } from '../users/schemas/OTPSecret.schema';
 import { Users, UsersSchema } from '../users/schemas/users.schema';
 

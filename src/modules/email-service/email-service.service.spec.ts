@@ -15,7 +15,8 @@ describe('EmailService', () => {
   let mailerService: any;
   let configService: any;
 
-  beforeEach(async () => {
+  // Helper function to mock dependencies
+  const setupTestingModule = async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EmailService,
@@ -48,74 +49,94 @@ describe('EmailService', () => {
       ],
     }).compile();
 
-    emailService = module.get<EmailService>(EmailService);
-    otpSecretModel = module.get(getModelToken(OTPSecret.name));
-    usersModel = module.get(getModelToken(Users.name));
-    mailerService = module.get<MailerService>(MailerService);
-    configService = module.get<ConfigService>(ConfigService);
+    return {
+      emailService: module.get<EmailService>(EmailService),
+      otpSecretModel: module.get(getModelToken(OTPSecret.name)),
+      usersModel: module.get(getModelToken(Users.name)),
+      mailerService: module.get<MailerService>(MailerService),
+      configService: module.get<ConfigService>(ConfigService),
+    };
+  };
+
+  beforeEach(async () => {
+    const dependencies = await setupTestingModule();
+    emailService = dependencies.emailService;
+    otpSecretModel = dependencies.otpSecretModel;
+    usersModel = dependencies.usersModel;
+    mailerService = dependencies.mailerService;
+    configService = dependencies.configService;
   });
 
   describe('sendEmail', () => {
+    const mockUser = { displayName: 'Test User' };
+    const mockEmailAddress = 'test@example.com';
+    const mockCode = '123456';
+
+    beforeEach(() => {
+      // Mock the generateCode function to return a predictable value
+      jest.spyOn(emailService as any, 'generateCode').mockReturnValue(mockCode);
+    });
+
     it('should throw NotFoundException if user does not exist', async () => {
       usersModel.findOne.mockResolvedValue(null);
-      await expect(emailService.sendEmail('test@example.com')).rejects.toThrow(
+
+      await expect(emailService.sendEmail(mockEmailAddress)).rejects.toThrow(
         NotFoundException,
       );
     });
 
-    it('should send an email successfully with a verification code', async () => {
-      const mockUser = { displayName: 'Test User' };
+    it('should send an email successfully with a verification code for a new user', async () => {
       usersModel.findOne.mockResolvedValue(mockUser);
-      otpSecretModel.findOne.mockResolvedValue(null);
+      otpSecretModel.findOne.mockResolvedValue(null); // No existing OTP entry
       otpSecretModel.create.mockResolvedValue({});
-      jest.spyOn(emailService as any, 'generateCode').mockReturnValue('123456');
       mailerService.sendMail.mockResolvedValue({ success: true });
       EmailTemplate.userVerificationOTPEmailTemplate = jest
         .fn()
         .mockReturnValue('Mocked Template');
 
-      const result = await emailService.sendEmail('test@example.com');
+      const result = await emailService.sendEmail(mockEmailAddress);
 
       expect(result).toEqual({ success: true });
       expect(mailerService.sendMail).toHaveBeenCalledWith({
         from: `6sense Projects noreply@example.com`,
-        to: 'test@example.com',
-        subject: 'Please Verify your account for test@example.com',
+        to: mockEmailAddress,
+        subject: `Please Verify your account for ${mockEmailAddress}`,
         text: 'Mocked Template',
+      });
+      expect(otpSecretModel.create).toHaveBeenCalledWith({
+        emailAddress: mockEmailAddress,
+        secret: mockCode,
+        timestamp: expect.any(Date),
       });
     });
 
     it('should update an existing OTPSecret entry with a new code', async () => {
-      const mockUser = { displayName: 'Test User' };
       const mockOTPEntry = {
-        secret: '654321',
+        secret: 'old-code',
         save: jest.fn(),
       };
 
       usersModel.findOne.mockResolvedValue(mockUser);
-      otpSecretModel.findOne.mockResolvedValue(mockOTPEntry);
-      jest.spyOn(emailService as any, 'generateCode').mockReturnValue('123456');
+      otpSecretModel.findOne.mockResolvedValue(mockOTPEntry); // Existing OTP entry
       mailerService.sendMail.mockResolvedValue({ success: true });
 
-      await emailService.sendEmail('test@example.com');
+      await emailService.sendEmail(mockEmailAddress);
 
-      expect(mockOTPEntry.secret).toBe('123456');
+      expect(mockOTPEntry.secret).toBe(mockCode);
       expect(mockOTPEntry.save).toHaveBeenCalled();
     });
 
     it('should create a new OTPSecret entry if none exists', async () => {
-      const mockUser = { displayName: 'Test User' };
       usersModel.findOne.mockResolvedValue(mockUser);
-      otpSecretModel.findOne.mockResolvedValue(null);
+      otpSecretModel.findOne.mockResolvedValue(null); // No existing OTP entry
       otpSecretModel.create.mockResolvedValue({});
-      jest.spyOn(emailService as any, 'generateCode').mockReturnValue('123456');
       mailerService.sendMail.mockResolvedValue({ success: true });
 
-      await emailService.sendEmail('test@example.com');
+      await emailService.sendEmail(mockEmailAddress);
 
       expect(otpSecretModel.create).toHaveBeenCalledWith({
-        emailAddress: 'test@example.com',
-        secret: '123456',
+        emailAddress: mockEmailAddress,
+        secret: mockCode,
         timestamp: expect.any(Date),
       });
     });
