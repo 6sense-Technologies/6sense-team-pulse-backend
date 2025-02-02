@@ -58,24 +58,26 @@ export class JiraService {
   /*EXPERIMENTAL MODIFICATION*/
   public async fetchAndSaveFromJira(data: any) {
     for (let i = 0; i < data.length; i += 1) {
-      const user = await this.userModel.findOne({
-        accountId: data[i].accountId,
-      });
-      if (user) {
-        await this.issueEntryModel.create({
-          serialNumber: i,
-          issueId: data[i].issueId,
-          issueType: data[i].issueName,
-          issueStatus: data[i].issueStatus,
-          issueSummary: data[i].issueSummary,
-          username: user.displayName,
-          planned: data[i].planned,
-          link: data[i].issueLinks || '',
+      if (data[i].accountId) {
+        const user = await this.userModel.findOne({
           accountId: data[i].accountId,
-          user: new mongoose.Types.ObjectId(user.id),
-          date: new Date(Date.now()).toISOString().split('T')[0],
-          insight: '',
         });
+        if (user) {
+          await this.issueEntryModel.create({
+            serialNumber: i,
+            issueId: data[i].issueId,
+            issueType: data[i].issueName,
+            issueStatus: data[i].issueStatus,
+            issueSummary: data[i].issueSummary,
+            username: user.displayName,
+            planned: data[i].planned,
+            link: data[i].issueLinks || '',
+            accountId: data[i].accountId,
+            user: new mongoose.Types.ObjectId(user.id),
+            date: new Date(Date.now()).toISOString().split('T')[0],
+            insight: '',
+          });
+        }
       }
     }
   }
