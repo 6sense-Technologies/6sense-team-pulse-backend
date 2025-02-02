@@ -74,6 +74,7 @@ export class JiraService {
           accountId: data[i].accountId,
           user: new mongoose.Types.ObjectId(user.id),
           date: new Date(Date.now()).toISOString().split('T')[0],
+          insight: '',
         });
       }
     }
