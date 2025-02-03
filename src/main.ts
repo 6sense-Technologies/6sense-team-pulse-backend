@@ -41,11 +41,13 @@ async function bootstrap(): Promise<void> {
         subscribeOptions: {
           qos: 2,
         },
+        username: configService.get('MQTT_USERNAME'),
+        password: configService.get('MQTT_PASSWORD'),
       },
     });
   //commit
   await mqttMicroservice.listen();
-  await app.listen(8000,'localhost');
+  await app.listen(8000, 'localhost');
 }
 
 bootstrap();
