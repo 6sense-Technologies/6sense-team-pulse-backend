@@ -1,7 +1,6 @@
 // import './instrument';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as cors from 'cors';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
@@ -25,7 +24,7 @@ async function bootstrap(): Promise<void> {
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
-  app.use(cors());
+  app.enableCors();
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors({
     origin: ['http://localhost:3000', 'https://6sense-efficiency.vercel.app'],
