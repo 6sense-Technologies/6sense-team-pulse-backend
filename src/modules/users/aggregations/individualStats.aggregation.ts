@@ -226,7 +226,7 @@ export const individualStats = (
           $sum: ['$doneTaskCountUnplanned', '$notDoneTaskCountUnplanned'],
         },
         totalDoneTaskCount: {
-          $sum: ['$doneTaskCountPlanned', '$doneTaskCountUnPlanned'],
+          $sum: ['$doneTaskCountPlanned', '$doneTaskCountUnplanned'],
         },
         totalStoryCount: {
           $sum: ['$doneStoryCount', '$notDoneStoryCount'],
