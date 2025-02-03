@@ -45,7 +45,6 @@ async function bootstrap(): Promise<void> {
         password: configService.get('MQTT_PASSWORD'),
       },
     });
-  //commit
   await mqttMicroservice.listen();
   await app.listen(8000, 'localhost');
 }
