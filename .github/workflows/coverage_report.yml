@@ -2,7 +2,7 @@ name: Coverage Reporting
 
 on:
   push:
-    branches: [main] # 1. Specify target branches; use a wildcard if needed for flexibility.
+    branches: [test] # 1. Specify target branches; use a wildcard if needed for flexibility.
   workflow_dispatch:
   
 jobs:
