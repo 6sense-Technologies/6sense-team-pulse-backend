@@ -33,6 +33,7 @@ async function bootstrap(): Promise<void> {
     origin: '*', // Allows all origins to access the API
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Allows these HTTP methods
     allowedHeaders: 'Content-Type, Accept', // Allowed headers
+    credentials: true,
   });
   // app.enableCors({
   //   origin: ['http://localhost:3000', 'https://6sense-efficiency.vercel.app','https://o4t-under-development.vercel.app'],
