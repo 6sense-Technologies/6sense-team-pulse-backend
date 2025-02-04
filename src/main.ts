@@ -5,7 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-
+import * as cors from 'cors';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = new DocumentBuilder()
@@ -24,17 +24,15 @@ async function bootstrap(): Promise<void> {
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
-   
-  // app.enableCors({
-  //   origin: '*', // Allows any origin
-  // });
+
+  // app.use(cors());
   app.useGlobalPipes(new ValidationPipe());
-  
+
   // Enable CORS for all origins
   app.enableCors({
-    origin: '*',  // Allows all origins to access the API
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',  // Allows these HTTP methods
-    allowedHeaders: 'Content-Type, Accept',  // Allowed headers
+    origin: '*', // Allows all origins to access the API
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Allows these HTTP methods
+    allowedHeaders: 'Content-Type, Accept', // Allowed headers
   });
   // app.enableCors({
   //   origin: ['http://localhost:3000', 'https://6sense-efficiency.vercel.app','https://o4t-under-development.vercel.app'],
