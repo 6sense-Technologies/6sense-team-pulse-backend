@@ -29,7 +29,7 @@ import {
 } from '../../common/helpers/validation.helper';
 import { IssueEntry } from '../users/schemas/IssueEntry.schema';
 import { ClientMqtt } from '@nestjs/microservices';
-
+import * as moment from 'moment';
 dotenv.config();
 
 @Injectable()
@@ -56,30 +56,39 @@ export class JiraService {
     // Constructor for injecting userModel
   }
   /*EXPERIMENTAL MODIFICATION*/
-  public async fetchAndSaveFromJira(data: any) {
+  public async fetchAndSaveFromJira(rawData: any) {
+    const data = JSON.parse(rawData);
+    console.log(data);
     for (let i = 0; i < data.length; i += 1) {
       if (data[i].accountId) {
         const user = await this.userModel.findOne({
           accountId: data[i].accountId,
         });
         if (user) {
+          console.log(
+            `Found user issue entry for  ${user.displayName} saving...`,
+          );
           await this.issueEntryModel.create({
             serialNumber: i,
             issueId: data[i].issueId,
-            issueType: data[i].issueName,
+            issueType: data[i].issueType || '',
             issueStatus: data[i].issueStatus,
             issueSummary: data[i].issueSummary,
             username: user.displayName,
             planned: data[i].planned,
             link: data[i].issueLinks || '',
             accountId: data[i].accountId,
+            projectUrl: data[i].projectUrl,
+            issueIdUrl: data[i].issueIdUrl,
+            issueLinkUrl: data[i].issueLinkUrl,
             user: new mongoose.Types.ObjectId(user.id),
-            date: new Date(Date.now()).toISOString().split('T')[0],
+            date: moment.utc(),
             insight: '',
           });
         }
       }
     }
+    console.log('DONE..');
   }
 
   ///----------------------------///
