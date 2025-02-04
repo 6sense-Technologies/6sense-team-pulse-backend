@@ -32,7 +32,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: '*', // Allows all origins to access the API
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Allows these HTTP methods
-    allowedHeaders: 'Content-Type, Accept', // Allowed headers
+    allowedHeaders: 'Content-Type, Accept, Authorization', // Add 'Authorization' here
     credentials: true,
   });
   // app.enableCors({
