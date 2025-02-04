@@ -24,12 +24,12 @@ async function bootstrap(): Promise<void> {
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
-  app.enableCors({
-    origin: '*', // Allows any origin
-  });
+  // app.enableCors({
+  //   origin: '*', // Allows any origin
+  // });
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://6sense-efficiency.vercel.app'],
+    origin: ['http://localhost:3000', 'https://6sense-efficiency.vercel.app','https://o4t-under-development.vercel.app'],
     methods: 'GET,POST,PUT,DELETE',
     credentials: true,
   });
