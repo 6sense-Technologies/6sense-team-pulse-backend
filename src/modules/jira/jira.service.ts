@@ -65,26 +65,38 @@ export class JiraService {
           accountId: data[i].accountId,
         });
         if (user) {
+          const issueDate = new Date(data[i].date);
           console.log(
-            `Found user issue entry for  ${user.displayName} saving...`,
+            `Found user inserting issue for  ${user.displayName}-Date: ${issueDate}....`,
           );
-          await this.issueEntryModel.create({
-            serialNumber: i,
-            issueId: data[i].issueId,
-            issueType: data[i].issueType || '',
-            issueStatus: data[i].issueStatus,
-            issueSummary: data[i].issueSummary,
-            username: user.displayName,
-            planned: data[i].planned,
-            link: data[i].issueLinks || '',
-            accountId: data[i].accountId,
-            projectUrl: data[i].projectUrl,
-            issueIdUrl: data[i].issueIdUrl,
-            issueLinkUrl: data[i].issueLinkUrl,
-            user: new mongoose.Types.ObjectId(user.id),
-            date: moment.utc(),
-            insight: '',
-          });
+
+          await this.issueEntryModel.findOneAndUpdate(
+            {
+              issueId: data[i].issueId, // Match by issueId
+              projectUrl: data[i].projectUrl, // Match by projectUrl
+            },
+            {
+              serialNumber: i,
+              issueId: data[i].issueId,
+              issueType: data[i].issueType || '',
+              issueStatus: data[i].issueStatus,
+              issueSummary: data[i].issueSummary,
+              username: user.displayName,
+              planned: data[i].planned,
+              link: data[i].issueLinks || '',
+              accountId: data[i].accountId,
+              projectUrl: data[i].projectUrl,
+              issueIdUrl: data[i].issueIdUrl,
+              issueLinkUrl: data[i].issueLinkUrl,
+              user: new mongoose.Types.ObjectId(user.id),
+              date: issueDate,
+              insight: '',
+            },
+            {
+              upsert: true, // Create a new document if none matches
+              new: true, // Return the updated document
+            },
+          );
         }
       }
     }

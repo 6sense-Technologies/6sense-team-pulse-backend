@@ -127,7 +127,7 @@ export class UserService {
     const teamMembers = await this.organizationModel.findOne({
       createdBy: new Types.ObjectId(userId),
     });
-
+    console.log(teamMembers['users']);
     const overViewAggr: any = overView(
       thirtyDaysAgoDate,
       page,
