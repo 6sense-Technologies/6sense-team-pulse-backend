@@ -36,6 +36,7 @@ import { overView } from './aggregations/overview.aggregation';
 import { individualStats } from './aggregations/individualStats.aggregation';
 import { monthlyStat } from './aggregations/individualMonthlyPerformence.aggregation';
 import { dailyPerformenceAgg } from './aggregations/dailyPerformence.aggregation';
+import { Organization } from './schemas/Organization.schema';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -55,6 +56,8 @@ export class UserService {
     private readonly projectModel: Model<Project>,
     @InjectModel(UserProject.name)
     private readonly userProjectModel: Model<UserProject>,
+    @InjectModel(Organization.name)
+    private readonly organizationModel: Model<Organization>,
     private readonly configService: ConfigService,
   ) {
     //Nothing
@@ -112,7 +115,7 @@ export class UserService {
       lastMonthScore: lastMonth[0]['averageScore'],
     };
   }
-  async calculateOverview(page: Number, limit: Number) {
+  async calculateOverview(page: Number, limit: Number, userId: string) {
     // const count = await this.userModel.countDocuments();
     console.log(`${page}--${limit}`);
     // Get the current date and subtract 30 days
@@ -120,9 +123,22 @@ export class UserService {
     const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
     const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
     console.log(`Fetching data ${thirtyDaysAgoDate}`);
-    const overViewAggr: any = overView(thirtyDaysAgoDate, page, limit);
-    const result = await this.issueEntryModel.aggregate(overViewAggr);
 
+    const teamMembers = await this.organizationModel.findOne({
+      createdBy: new Types.ObjectId(userId),
+    });
+
+    const overViewAggr: any = overView(
+      thirtyDaysAgoDate,
+      page,
+      limit,
+      teamMembers['users'],
+    );
+
+    const result = await this.issueEntryModel.aggregate(overViewAggr);
+    if (result.length === 0) {
+      return [{}];
+    }
     return result[0];
   }
 

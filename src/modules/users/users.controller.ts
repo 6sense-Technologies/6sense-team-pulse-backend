@@ -7,6 +7,8 @@ import {
   Put,
   Body,
   Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -18,6 +20,8 @@ import {
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from './enums/user.enum';
 import { CreateUserDto } from './dto/create-user.dto';
+import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('users')
 export class UserController {
@@ -34,11 +38,14 @@ export class UserController {
     return this.userService.calculateIndividualStats(userId, page, limit);
   }
   @Get('overview')
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
   async calculateOverview(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Req() req: Request,
   ) {
-    return this.userService.calculateOverview(page, limit);
+    return this.userService.calculateOverview(page, limit, req['user'].userId);
   }
   @Get('daily-performance')
   async calculateDailyPerformence(
@@ -47,7 +54,7 @@ export class UserController {
     @Query('Page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    return this.userService.dailyPerformence(userId, dateTime,page, limit);
+    return this.userService.dailyPerformence(userId, dateTime, page, limit);
   }
   //------------------------///
   @Get()

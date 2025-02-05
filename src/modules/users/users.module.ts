@@ -13,6 +13,10 @@ import { Comment, CommentSchema } from './schemas/Comment.schema';
 import { Project, ProjectSchema } from './schemas/Project.schema';
 import { TrelloModule } from '../trello/trello.module';
 import { UserProject, UserProjectSchema } from './schemas/UserProject.schema';
+import {
+  Organization,
+  OrganizationSchema,
+} from './schemas/Organization.schema';
 
 @Module({
   imports: [
@@ -23,6 +27,7 @@ import { UserProject, UserProjectSchema } from './schemas/UserProject.schema';
       { name: Comment.name, schema: CommentSchema },
       { name: Project.name, schema: ProjectSchema },
       { name: UserProject.name, schema: UserProjectSchema },
+      { name: Organization.name, schema: OrganizationSchema },
     ]),
     forwardRef(() => {
       return JiraModule;
