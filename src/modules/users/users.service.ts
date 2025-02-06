@@ -117,7 +117,7 @@ export class UserService {
       individualStatAggregation,
     );
     let today = new Date();
-
+    /// TODO: remove duplicate codes created seperate api for getUserInfo so current month performance and last month performance is not needed
     // Current month start date
     let currentMonthStart = new Date(
       today.getFullYear(),

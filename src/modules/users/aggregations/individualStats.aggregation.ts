@@ -332,20 +332,34 @@ export const individualStats = (
       $addFields: {
         insight: {
           $cond: {
-            if: { $gt: ['$doneTaskCountUnplanned', 0] },
-            then: {
-              $concat: [
-                'You were assigned ',
-                { $toString: '$doneTaskCountPlanned' },
-                ' tasks. ',
-                { $toString: '$doneTaskCountUnplanned' },
-                ' tasks that you completed were not in the task list.',
-              ],
+            if: {
+              $and: [
+                { $eq: ["$totalDoneTaskCount", 0] },
+                { $eq: ["$doneBugCount", 0] },
+                { $eq: ["$doneStoryCount", 0] }
+              ]
             },
-            else: '',
-          },
-        },
-      },
+            then: "holidays/leave",
+            else: {
+              $cond: {
+                if: { $gt: ["$doneTaskCountUnplanned", 0] },
+                then: {
+                  $concat: [
+                    "Your target was ",
+                    { $toString: "$doneTaskCountPlanned" },
+                    " but you completed ",
+                    { $toString: "$doneTaskCountUnplanned" },
+                    ". ",
+                    { $toString: "$doneTaskCountUnplanned" },
+                    " tasks that you completed do not match your target issues."
+                  ]
+                },
+                else: ""
+              }
+            }
+          }
+        }
+      }
     },
     {
       $facet: {
