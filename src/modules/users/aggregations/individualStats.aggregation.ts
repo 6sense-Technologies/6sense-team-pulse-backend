@@ -26,7 +26,7 @@ export const individualStats = (
     {
       $group: {
         _id: '$date',
-        insight: { $first: '$comment' },
+        // insight: { $first: '$comment' },
         // Group by the 'date' field
         doneTaskCountPlanned: {
           $sum: {
@@ -325,6 +325,25 @@ export const individualStats = (
             },
             100,
           ],
+        },
+      },
+    },
+    {
+      $addFields: {
+        insight: {
+          $cond: {
+            if: { $gt: ['$doneTaskCountUnplanned', 0] },
+            then: {
+              $concat: [
+                'You were assigned ',
+                { $toString: '$doneTaskCountPlanned' },
+                ' tasks. ',
+                { $toString: '$doneTaskCountUnplanned' },
+                ' tasks that you completed were not in the task list.',
+              ],
+            },
+            else: '',
+          },
         },
       },
     },
