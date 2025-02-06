@@ -12,7 +12,7 @@ export const overView = (
     'USER STORIES (Verified In Beta)',
     'USER STORIES (Verified In Test)',
   ];
-
+  const startDate = new Date(date).toISOString();
   return [
     {
       $match: {
@@ -78,6 +78,7 @@ export const overView = (
                   {
                     $eq: ['$planned', false],
                   },
+                  // Corrected date filter
                 ],
               },
               1,
