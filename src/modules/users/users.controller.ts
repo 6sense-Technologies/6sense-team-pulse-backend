@@ -29,6 +29,10 @@ export class UserController {
     // Constructor for injecting UserService
   }
   // Experimental Modification
+  @Get('user-info')
+  async getUserInfo(@Query('userId') userId: string) {
+    return this.userService.getUserInfo(userId);
+  }
   @Get('individual')
   async calculateIndividualStats(
     @Query('userId') userId: string,

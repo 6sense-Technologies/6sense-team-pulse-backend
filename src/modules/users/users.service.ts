@@ -64,6 +64,12 @@ export class UserService {
   }
 
   /// EXPERIMENTAL MODIFICATION
+  async getUserInfo(userId: string) {
+    const userData = await this.userModel
+      .findById(userId)
+      .select('displayName emailAddress designation avatarUrls');
+    return userData;
+  }
   async calculateIndividualStats(userId: string, page: number, limit: number) {
     const individualStatAggregation: any = individualStats(userId, page, limit);
     const result = await this.issueEntryModel.aggregate(
