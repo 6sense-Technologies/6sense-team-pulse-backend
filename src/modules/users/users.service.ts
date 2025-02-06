@@ -65,10 +65,51 @@ export class UserService {
 
   /// EXPERIMENTAL MODIFICATION
   async getUserInfo(userId: string) {
+    let today = new Date();
+
+    // Current month start date
+    let currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1,
+    ).toISOString();
+
+    // Last month start date
+    let lastMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth() - 1,
+      1,
+    ).toISOString();
+
+    // Last month end date
+    let lastMonthEnd = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      0,
+    ).toISOString();
+
+    const currentMonthAgg: any = monthlyStat(userId, currentMonthStart);
+    const currentMonth = await this.issueEntryModel.aggregate(currentMonthAgg);
+
+    const lastMonthAgg: any = monthlyStat(userId, lastMonthStart, lastMonthEnd);
+    const lastMonth = await this.issueEntryModel.aggregate(lastMonthAgg);
+    // console.log(currentMonth);
+    // console.log(lastMonth);
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls');
-    return userData;
+    if (currentMonth.length == 0) {
+      currentMonth.push({ averageScore: 0 });
+    }
+    if (lastMonth.length == 0) {
+      lastMonth.push({ averageScore: 0 });
+    }
+
+    return {
+      userData: userData,
+      currentMonthScore: currentMonth[0]['averageScore'],
+      lastMonthScore: lastMonth[0]['averageScore'],
+    };
   }
   async calculateIndividualStats(userId: string, page: number, limit: number) {
     const individualStatAggregation: any = individualStats(userId, page, limit);
