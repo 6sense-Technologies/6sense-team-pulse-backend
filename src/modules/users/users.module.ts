@@ -5,7 +5,7 @@ import {
   IssueHistory,
   IssueHistorySchema,
 } from './schemas/IssueHistory.schems';
-import { JiraModule } from 'src/modules/jira/jira.module';
+import { JiraModule } from '../jira/jira.module';
 import { UserService } from './users.service';
 import { UserController } from './users.controller';
 import { IssueEntry, IssueEntrySchema } from './schemas/IssueEntry.schema';
