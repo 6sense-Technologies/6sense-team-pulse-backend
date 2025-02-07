@@ -35,21 +35,17 @@ async function bootstrap(): Promise<void> {
     allowedHeaders: 'Content-Type, Accept, Authorization', // Add 'Authorization' here
     credentials: true,
   });
-  // const configService = app.get(ConfigService);
-  // const mqttMicroservice =
-  //   await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
-  //     transport: Transport.MQTT,
-  //     options: {
-  //       url: configService.get('MQTT_BROKER_URL'),
-  //       userProperties: { 'x-version': '1.0.0' },
-  //       subscribeOptions: {
-  //         qos: 2,
-  //       },
-  //       username: configService.get('MQTT_USERNAME'),
-  //       password: configService.get('MQTT_PASSWORD'),
-  //     },
-  //   });
-  // await mqttMicroservice.listen();
+  const configService = app.get(ConfigService);
+  const mqttMicroservice =
+    await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
+      transport: Transport.MQTT,
+      options: {
+        url: configService.get('MQTT_BROKER_URL'),
+        username: configService.get('MQTT_USERNAME'),
+        password: configService.get('MQTT_PASSWORD'),
+      },
+    });
+  await mqttMicroservice.listen();
   //updated
   await app.listen(8000, 'localhost');
 }
