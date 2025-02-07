@@ -5,7 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import * as cors from 'cors';
+// import * as cors from 'cors';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = new DocumentBuilder()
@@ -35,11 +35,6 @@ async function bootstrap(): Promise<void> {
     allowedHeaders: 'Content-Type, Accept, Authorization', // Add 'Authorization' here
     credentials: true,
   });
-  // app.enableCors({
-  //   origin: ['http://localhost:3000', 'https://6sense-efficiency.vercel.app','https://o4t-under-development.vercel.app'],
-  //   methods: 'GET,POST,PUT,DELETE',
-  //   credentials: true,
-  // });
   // const configService = app.get(ConfigService);
   // const mqttMicroservice =
   //   await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
