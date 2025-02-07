@@ -52,7 +52,7 @@ dotenv.config();
             return connection;
           },
           connectTimeoutMS: 1000000,
-          socketTimeoutMS: 55000000, // 55 seconds timeout for socket inactivity
+          socketTimeoutMS: 45000000, // 55 seconds timeout for socket inactivity
         };
       },
       inject: [ConfigService],
