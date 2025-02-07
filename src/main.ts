@@ -55,6 +55,7 @@ async function bootstrap(): Promise<void> {
       },
     });
   await mqttMicroservice.listen();
+  //updated
   await app.listen(8000, 'localhost');
 }
 
