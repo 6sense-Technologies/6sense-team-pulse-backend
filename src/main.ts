@@ -6,10 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  // Create the web application
   const webApp = await NestFactory.create(AppModule);
-
-  // Retrieve ConfigService once instead of creating a new context
   const configService = webApp.get(ConfigService);
 
   // Swagger configuration
