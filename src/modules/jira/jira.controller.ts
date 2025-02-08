@@ -17,6 +17,7 @@ import {
 } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/enums/user.enum';
 import { ClientMqtt, MessagePattern, Payload } from '@nestjs/microservices';
+import { DataFetcherDTO } from './dto/jira.dto';
 
 @Controller('jira')
 export class JiraController {
@@ -35,6 +36,13 @@ export class JiraController {
 
   @MessagePattern('job.result')
   async getResult(@Payload() data: any) {
+    // this.jiraService.fetchAndSaveFromJira(data);
+    return 'disabled';
+  }
+
+  @Post('job-result')
+  async saveResult(@Body() data: any) {
+    console.log(data);
     this.jiraService.fetchAndSaveFromJira(data);
   }
   //---------------------------/

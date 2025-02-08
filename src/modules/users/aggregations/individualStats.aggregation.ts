@@ -334,32 +334,32 @@ export const individualStats = (
           $cond: {
             if: {
               $and: [
-                { $eq: ["$totalDoneTaskCount", 0] },
-                { $eq: ["$doneBugCount", 0] },
-                { $eq: ["$doneStoryCount", 0] }
-              ]
+                { $eq: ['$totalDoneTaskCount', 0] },
+                { $eq: ['$doneBugCount', 0] },
+                { $eq: ['$doneStoryCount', 0] },
+              ],
             },
-            then: "holidays/leave",
+            then: 'holidays/leave',
             else: {
               $cond: {
-                if: { $gt: ["$doneTaskCountUnplanned", 0] },
+                if: { $gt: ['$doneTaskCountUnplanned', 0] },
                 then: {
                   $concat: [
-                    "Your target was ",
-                    { $toString: "$doneTaskCountPlanned" },
-                    " but you completed ",
-                    { $toString: "$doneTaskCountUnplanned" },
-                    ". ",
-                    { $toString: "$doneTaskCountUnplanned" },
-                    " tasks that you completed do not match your target issues."
-                  ]
+                    'Your target was ',
+                    { $toString: '$doneTaskCountPlanned' },
+                    ' but you completed ',
+                    { $toString: '$doneTaskCountUnplanned' },
+                    '. ',
+                    { $toString: '$doneTaskCountUnplanned' },
+                    ' tasks that you completed do not match your target issues.',
+                  ],
                 },
-                else: ""
-              }
-            }
-          }
-        }
-      }
+                else: '',
+              },
+            },
+          },
+        },
+      },
     },
     {
       $facet: {
