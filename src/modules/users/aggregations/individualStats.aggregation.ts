@@ -348,7 +348,11 @@ export const individualStats = (
                     'Your target was ',
                     { $toString: '$doneTaskCountPlanned' },
                     ' but you completed ',
-                    { $toString: '$doneTaskCountUnplanned' },
+                    {
+                      $toString: {
+                        $sum: ['$totalDoneTaskCount', '$doneBugCount'],
+                      },
+                    },
                     '. ',
                     { $toString: '$doneTaskCountUnplanned' },
                     ' tasks that you completed do not match your target issues.',
