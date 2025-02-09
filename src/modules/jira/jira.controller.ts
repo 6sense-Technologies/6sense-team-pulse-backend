@@ -36,14 +36,13 @@ export class JiraController {
 
   @MessagePattern('job.result')
   async getResult(@Payload() data: any) {
-    // this.jiraService.fetchAndSaveFromJira(data);
-    return 'disabled';
+    this.jiraService.fetchAndSaveFromJira(data, true);
+    // return 'disabled';
   }
 
   @Post('job-result')
   async saveResult(@Body() data: any) {
-    console.log(data);
-    this.jiraService.fetchAndSaveFromJira(data);
+    this.jiraService.fetchAndSaveFromJira(data, false);
   }
   //---------------------------/
   @Get(':accountId')

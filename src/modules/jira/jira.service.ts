@@ -56,9 +56,13 @@ export class JiraService {
     // Constructor for injecting userModel
   }
   /*EXPERIMENTAL MODIFICATION*/
-  public async fetchAndSaveFromJira(rawData: any) {
+  public async fetchAndSaveFromJira(rawData: any, fromQueue: boolean = false) {
     console.log('INVOKED');
-    const data = rawData;
+
+    let data = rawData;
+    if (fromQueue) {
+      data = JSON.parse(rawData);
+    }
     // console.log(data);
     for (let i = 0; i < data.length; i += 1) {
       if (data[i].accountId) {
