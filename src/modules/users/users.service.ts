@@ -64,7 +64,11 @@ export class UserService {
   }
 
   /// EXPERIMENTAL MODIFICATION
-  async getUserInfo(userId: string) {
+  async getUserInfo(userId: string): Promise<{
+    userData: any;
+    currentMonthScore: number;
+    lastMonthScore: number;
+  }> {
     let today = new Date();
 
     // Current month start date
@@ -162,7 +166,11 @@ export class UserService {
       lastMonthScore: lastMonth[0]['averageScore'],
     };
   }
-  async calculateOverview(page: Number, limit: Number, userId: string) {
+  async calculateOverview(
+    page: Number,
+    limit: Number,
+    userId: string,
+  ): Promise<any[]> {
     // const count = await this.userModel.countDocuments();
     console.log(`${page}--${limit}`);
     // Get the current date and subtract 30 days

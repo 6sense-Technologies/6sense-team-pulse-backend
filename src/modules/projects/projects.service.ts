@@ -2,7 +2,6 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  UseGuards,
 } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -13,8 +12,6 @@ import { Tool } from '../users/schemas/Tool.schema';
 import { ProjectTool } from '../users/schemas/ProjectTool.schema';
 import { Organization } from '../users/schemas/Organization.schema';
 import { OrganizationProjectUser } from '../users/schemas/OrganizationProjectUser.schema';
-import { JwtService } from '@nestjs/jwt';
-import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Injectable()
 export class ProjectsService {

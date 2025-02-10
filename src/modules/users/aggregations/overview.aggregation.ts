@@ -3,16 +3,10 @@ export const overView = (
   page: Number,
   limit: Number,
   filterIds: any[],
-) => {
+): any => {
   console.log('FILTER IDS: ');
   console.log(filterIds);
-  const doneCondition = [
-    'Done',
-    'In Review',
-    'USER STORIES (Verified In Beta)',
-    'USER STORIES (Verified In Test)',
-  ];
-  const startDate = new Date(date).toISOString();
+
   return [
     {
       $match: {
