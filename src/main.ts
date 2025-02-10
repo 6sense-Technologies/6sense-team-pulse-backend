@@ -42,6 +42,7 @@ async function bootstrap() {
     credentials: true,
   });
 
+
   // Create microservice with MQTT transport
   const mqttMicroservice = webApp.connectMicroservice<MicroserviceOptions>({
     transport: Transport.MQTT,
@@ -59,6 +60,7 @@ async function bootstrap() {
   // Start the web application on port 8000
   await webApp.listen(8000, 'localhost');
   console.log('Web Application started on http://localhost:8000');
+
 }
 
 bootstrap();
