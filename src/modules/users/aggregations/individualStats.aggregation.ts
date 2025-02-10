@@ -334,9 +334,9 @@ export const individualStats = (
           $cond: {
             if: {
               $and: [
-                { $eq: ['$totalDoneTaskCount', 0] },
-                { $eq: ['$doneBugCount', 0] },
-                { $eq: ['$doneStoryCount', 0] },
+                { $eq: ['$totalTaskPlanned', 0] },
+                { $eq: ['$totalBugCount', 0] },
+                { $eq: ['$totalStoryCount', 0] },
               ],
             },
             then: 'holidays/leave',
