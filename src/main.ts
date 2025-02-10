@@ -30,6 +30,7 @@ async function bootstrap() {
   // Global Pipes (validation)
   webApp.useGlobalPipes(new ValidationPipe());
 
+
   // Enable CORS for specific origins
   webApp.enableCors({
     origin: [
@@ -39,6 +40,12 @@ async function bootstrap() {
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
+
+  // Enable CORS for all origins
+  app.enableCors({
+    origin: ['http://localhost:3000','https://o4t-under-development.vercel.app','https://o4t-under-development-for-tester.vercel.app'], // Allows specific origins to access the API
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Allows these HTTP methods
+    allowedHeaders: 'Content-Type, Accept, Authorization', // Add 'Authorization' here
     credentials: true,
   });
 
