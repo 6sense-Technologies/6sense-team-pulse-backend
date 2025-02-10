@@ -30,6 +30,7 @@ export const dailyPerformenceAgg = (
         issueStatus: 1,
         issueIdUrl: 1,
         issueLinkUrl: 1,
+        planned: 1,
       },
     },
 

@@ -25,7 +25,7 @@ export class IssueEntry extends Document {
   link: string;
 
   @Prop({ required: true })
-  date: string;
+  date: Date;
 
   @Prop({ required: true })
   username: string;
@@ -33,10 +33,19 @@ export class IssueEntry extends Document {
   @Prop({ required: true })
   accountId: string;
 
+  @Prop({ required: true, default: '' })
+  projectUrl: string;
+
+  @Prop({ required: false, default: '' })
+  issueIdUrl: string;
+
+  @Prop({ required: false, default: '' })
+  issueLinkUrl: string;
+
   @Prop({ type: Types.ObjectId, required: false })
   user: Types.ObjectId;
 
-  @Prop()
+  @Prop({ default: '' })
   comment: string;
 }
 

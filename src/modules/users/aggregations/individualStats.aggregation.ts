@@ -26,7 +26,7 @@ export const individualStats = (
     {
       $group: {
         _id: '$date',
-        insight: { $first: '$comment' },
+        // insight: { $first: '$comment' },
         // Group by the 'date' field
         doneTaskCountPlanned: {
           $sum: {
@@ -226,7 +226,7 @@ export const individualStats = (
           $sum: ['$doneTaskCountUnplanned', '$notDoneTaskCountUnplanned'],
         },
         totalDoneTaskCount: {
-          $sum: ['$doneTaskCountPlanned', '$doneTaskCountUnPlanned'],
+          $sum: ['$doneTaskCountPlanned', '$doneTaskCountUnplanned'],
         },
         totalStoryCount: {
           $sum: ['$doneStoryCount', '$notDoneStoryCount'],
@@ -325,6 +325,43 @@ export const individualStats = (
             },
             100,
           ],
+        },
+      },
+    },
+    {
+      $addFields: {
+        insight: {
+          $cond: {
+            if: {
+              $and: [
+                { $eq: ['$totalDoneTaskCount', 0] },
+                { $eq: ['$doneBugCount', 0] },
+                { $eq: ['$doneStoryCount', 0] },
+              ],
+            },
+            then: 'holidays/leave',
+            else: {
+              $cond: {
+                if: { $gt: ['$doneTaskCountUnplanned', 0] },
+                then: {
+                  $concat: [
+                    'Your target was ',
+                    { $toString: '$doneTaskCountPlanned' },
+                    ' but you completed ',
+                    {
+                      $toString: {
+                        $sum: ['$totalDoneTaskCount', '$doneBugCount'],
+                      },
+                    },
+                    '. ',
+                    { $toString: '$doneTaskCountUnplanned' },
+                    ' tasks that you completed do not match your target issues.',
+                  ],
+                },
+                else: '',
+              },
+            },
+          },
         },
       },
     },

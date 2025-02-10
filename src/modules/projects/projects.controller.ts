@@ -24,12 +24,16 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
+  @Roles(['Admin'])
+  @UseGuards(RolesGuard)
   @Post()
   create(@Body() createProjectDto: CreateProjectDto, @Req() req: Request) {
     return this.projectsService.create(createProjectDto, req['user'].userId);
   }
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
+  @Roles(['Admin', 'Member'])
+  @UseGuards(RolesGuard)
   @Get()
   findAll(
     @Req() req: Request,
@@ -41,7 +45,7 @@ export class ProjectsController {
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(['Admin', 'Member'])
   @Get(':id')
   findOne(@Param('id') id: string) {
     console.log(id);

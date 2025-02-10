@@ -14,6 +14,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         transport: Transport.MQTT,
         options: {
           url: process.env.MQTT_BROKER_URL,
+          username: process.env.MQTT_USERNAME,
+          password: process.env.MQTT_PASSWORD
         },
       },
     ]),

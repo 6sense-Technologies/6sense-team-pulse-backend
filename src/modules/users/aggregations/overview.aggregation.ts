@@ -1,16 +1,24 @@
-export const overView = (date: string, page: Number, limit: Number) => {
+export const overView = (
+  date: string,
+  page: Number,
+  limit: Number,
+  filterIds: any[],
+) => {
+  console.log('FILTER IDS: ');
+  console.log(filterIds);
   const doneCondition = [
     'Done',
     'In Review',
     'USER STORIES (Verified In Beta)',
     'USER STORIES (Verified In Test)',
   ];
-
+  const startDate = new Date(date).toISOString();
   return [
     {
       $match: {
         comment: { $ne: 'holidays/leave' },
         date: { $gte: new Date(date) },
+        // user: { $in: filterIds },
       },
     },
     {
@@ -70,6 +78,7 @@ export const overView = (date: string, page: Number, limit: Number) => {
                   {
                     $eq: ['$planned', false],
                   },
+                  // Corrected date filter
                 ],
               },
               1,
@@ -292,6 +301,11 @@ export const overView = (date: string, page: Number, limit: Number) => {
       $sort: {
         displayName: 1,
         designation: 1,
+      },
+    },
+    {
+      $match: {
+        _id: { $in: filterIds },
       },
     },
     {

@@ -47,6 +47,12 @@ dotenv.config();
       useFactory: async (configService: ConfigService) => {
         return {
           uri: configService.get<string>('MONGODB_URL'),
+          connectionFactory: (connection) => {
+            connection.set('bufferCommands', false); // Optional: Disable command buffering
+            return connection;
+          },
+          connectTimeoutMS: 1000000,
+          socketTimeoutMS: 45000000, // 55 seconds timeout for socket inactivity
         };
       },
       inject: [ConfigService],
