@@ -22,6 +22,7 @@ import { Designation, Project } from './enums/user.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { InviteUserDTO } from './dto/invite-user.dto';
 
 @Controller('users')
 export class UserController {
@@ -60,6 +61,14 @@ export class UserController {
   ) {
     return this.userService.dailyPerformence(userId, dateTime, page, limit);
   }
+
+  @Post('invite')
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  async invite(@Body() inviteUserDTO: InviteUserDTO, @Req() req: Request) {
+    return this.userService.inviteUser(inviteUserDTO, req['user'].userId);
+  }
+
   //------------------------///
   @Get()
   async getAllUsers(

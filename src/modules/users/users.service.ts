@@ -6,6 +6,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -37,6 +38,10 @@ import { individualStats } from './aggregations/individualStats.aggregation';
 import { monthlyStat } from './aggregations/individualMonthlyPerformence.aggregation';
 import { dailyPerformenceAgg } from './aggregations/dailyPerformence.aggregation';
 import { Organization } from './schemas/Organization.schema';
+import { InviteUserDTO } from './dto/invite-user.dto';
+import { OrganizationUserRole } from './schemas/OrganizationUserRole.schema';
+import { Role } from './schemas/Role.schema';
+import { OrganizationProjectUser } from './schemas/OrganizationProjectUser.schema';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -58,6 +63,13 @@ export class UserService {
     private readonly userProjectModel: Model<UserProject>,
     @InjectModel(Organization.name)
     private readonly organizationModel: Model<Organization>,
+    @InjectModel(OrganizationUserRole.name)
+    private readonly organizationUserRoleModel: Model<OrganizationUserRole>,
+
+    @InjectModel(Role.name)
+    private readonly role: Model<Role>,
+    @InjectModel(OrganizationProjectUser.name)
+    private readonly organizationProjectUser: Model<OrganizationProjectUser>,
     private readonly configService: ConfigService,
   ) {
     //Nothing
@@ -189,6 +201,37 @@ export class UserService {
     return result[0];
   }
 
+  async inviteUser(inviteUserDTO: InviteUserDTO, userId: string) {
+    const user = await this.userModel.create({
+      displayName: inviteUserDTO.displayName,
+      designation: inviteUserDTO.designation,
+      emailAddress: inviteUserDTO.emailAddress,
+      jiraId: inviteUserDTO.jiraId,
+      trelloId: inviteUserDTO.trelloId,
+      githubUserName: inviteUserDTO.githubUserName,
+      isInvited: true,
+    });
+    const role = await this.role.findOne({ roleName: inviteUserDTO.role });
+    const organization = await this.organizationUserRoleModel.findOne({
+      user: new Types.ObjectId(userId),
+    });
+    if (!role) {
+      throw new NotAcceptableException('Invalid role');
+    }
+    const orgUserRole = await this.organizationUserRoleModel.create({
+      role: role,
+      user: user,
+      organization: organization,
+    });
+    for (let i = 0; i < inviteUserDTO.projects.length; i += 1) {
+      this.organizationProjectUser.create({
+        organization: organization,
+        project: inviteUserDTO.projects[i],
+        user: user,
+      });
+    }
+    return user;
+  }
   async dailyPerformence(
     userId: string,
     dateTime: string,
