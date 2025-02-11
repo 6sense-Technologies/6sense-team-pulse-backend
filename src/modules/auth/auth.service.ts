@@ -218,12 +218,9 @@ export class AuthService {
   }
   public async verifyInvite(verifyInviteDTO: VerifyInviteDTO) {
     try {
-      await this.jwtService.verifyAsync(
-        verifyInviteDTO.jwtToken,
-        {
-          secret: this.configService.get('INVITE_SECRET'),
-        },
-      );
+      await this.jwtService.verifyAsync(verifyInviteDTO.jwtToken, {
+        secret: this.configService.get('INVITE_SECRET'),
+      });
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
         throw new UnauthorizedException('Token has expired');
@@ -241,5 +238,25 @@ export class AuthService {
     }
     await user.save();
     return user;
+  }
+  public async registerInvitedUser(
+    loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO,
+  ) {
+    const user = await this.userModel.findOne({
+      emailAddress: loginUserEmailPasswordDTO.emailAddress,
+    });
+
+    user.password = loginUserEmailPasswordDTO.password;
+    await user.save();
+    const { accessToken, refreshToken } = this.generateTokens(
+      user.id,
+      user.emailAddress,
+    );
+    user['hasOrganization'] = true;
+    return {
+      user,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    };
   }
 }

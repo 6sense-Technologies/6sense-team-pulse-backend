@@ -86,10 +86,15 @@ export class AuthController {
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @Post('register/verify-invite')
-  verifyOrganization(
-    @Body() verifyInviteDTO:VerifyInviteDTO
-  ){
-    return this.authService.verifyInvite(verifyInviteDTO)
+  verifyOrganization(@Body() verifyInviteDTO: VerifyInviteDTO) {
+    return this.authService.verifyInvite(verifyInviteDTO);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Post('register/invite-onboard')
+  inviteOnBoard(@Body() loginEmailPasswordDTO: LoginUserEmailPasswordDTO) {
+    return this.authService.registerInvitedUser(loginEmailPasswordDTO);
   }
 
   @Get('user-status')
