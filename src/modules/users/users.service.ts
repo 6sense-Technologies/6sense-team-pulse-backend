@@ -206,6 +206,23 @@ export class UserService {
   }
 
   async inviteUser(inviteUserDTO: InviteUserDTO, userId: string) {
+    const [role, organization, existingUser] = await Promise.all([
+      this.roleModel.findOne({ roleName: inviteUserDTO.role }),
+      this.organizationUserRoleModel.findOne({
+        user: new Types.ObjectId(userId),
+      }),
+      this.newusersModel.findOne({ emailAddress: inviteUserDTO.emailAddress }),
+    ]);
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+    if (!role) {
+      throw new BadRequestException('Invalid role');
+    }
+    if (!organization) {
+      throw new InternalServerErrorException('Admin has no organization');
+    }
+
     const user = await this.newusersModel.create({
       displayName: inviteUserDTO.displayName,
       designation: inviteUserDTO.designation,
@@ -215,37 +232,31 @@ export class UserService {
       githubUserName: inviteUserDTO.githubUserName,
       isInvited: true,
     });
-    const role = await this.roleModel.findOne({ roleName: inviteUserDTO.role });
 
-    if (!role) {
-      throw new BadRequestException('Invalid role');
-    }
-    const organization = await this.organizationUserRoleModel.findOne({
-      user: new Types.ObjectId(userId),
+    await this.organizationUserRoleModel.create({
+      role: role._id,
+      user: user._id,
+      organization: organization._id,
     });
-    if (!organization) {
-      throw new InternalServerErrorException('admin has no organization');
-    }
-    const orgUserRole = await this.organizationUserRoleModel.create({
-      role: role,
-      user: user,
-      organization: organization,
+
+    const projects = await this.projectModel.find({
+      name: { $in: inviteUserDTO.projects },
     });
-    for (let i = 0; i < inviteUserDTO.projects.length; i += 1) {
-      const project = this.projectModel.findOne({
-        name: inviteUserDTO.projects[i],
-      });
-      if (!project) {
-        throw new BadRequestException('One or more project names are invalid');
-      }
-      this.organizationProjectUserModel.create({
-        organization: organization,
-        project: inviteUserDTO.projects[i],
-        user: user,
-      });
+    if (projects.length !== inviteUserDTO.projects.length) {
+      throw new BadRequestException('One or more project names are invalid');
     }
+
+    const projectUserEntries = projects.map((project) => ({
+      organization: organization._id,
+      project: project._id,
+      user: user._id,
+    }));
+
+    await this.organizationProjectUserModel.insertMany(projectUserEntries);
+
     return user;
   }
+
   async dailyPerformence(
     userId: string,
     dateTime: string,
