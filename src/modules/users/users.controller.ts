@@ -9,6 +9,9 @@ import {
   Post,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -21,8 +24,9 @@ import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from './enums/user.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { InviteUserDTO } from './dto/invite-user.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('users')
 export class UserController {
@@ -65,8 +69,30 @@ export class UserController {
   @Post('invite')
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
-  async invite(@Body() inviteUserDTO: InviteUserDTO, @Req() req: Request) {
-    return this.userService.inviteUser(inviteUserDTO, req['user'].userId);
+  @UseInterceptors(
+    FileInterceptor('profilePicture', {
+      limits: { fileSize: 100 * 1024 }, // 100KB limit
+      fileFilter: (req, file, callback) => {
+        if (!file.mimetype.match(/^image\/(jpeg|png|jpg)$/)) {
+          return callback(
+            new BadRequestException(
+              'Only JPEG, PNG, and JPG files are allowed!',
+            ),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  // @FileToBase64('profilePicture')
+  @ApiConsumes('multipart/form-data')
+  async invite(
+    @Body() inviteUserDTO: InviteUserDTO,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    return this.userService.inviteUser(inviteUserDTO, req['user'].userId, file);
   }
 
   //------------------------///

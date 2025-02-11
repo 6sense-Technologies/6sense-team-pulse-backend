@@ -32,6 +32,9 @@ export class Users extends Document {
 
   @Prop({ type: Boolean, required: false, default: false })
   isDisabled: boolean;
+
+  @Prop({ type: String, required: false })
+  avatarUrl: string;
 }
 
 export const UsersSchema = SchemaFactory.createForClass(Users);

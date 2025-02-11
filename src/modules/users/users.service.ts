@@ -23,6 +23,8 @@ import {
   validateDate,
   validatePagination,
 } from '../../common/helpers/validation.helper';
+import { FileInterceptor } from '@nestjs/platform-express';
+
 import {
   IAllUsers,
   IUserResponse,
@@ -205,7 +207,12 @@ export class UserService {
     return result[0];
   }
 
-  async inviteUser(inviteUserDTO: InviteUserDTO, userId: string) {
+  async inviteUser(
+    inviteUserDTO: InviteUserDTO,
+    userId: string,
+    file: Express.Multer.File,
+  ) {
+    const fileBase64Url = file.buffer.toString('base64');
     const [role, organization, existingUser] = await Promise.all([
       this.roleModel.findOne({ roleName: inviteUserDTO.role }),
       this.organizationUserRoleModel.findOne({
@@ -230,7 +237,9 @@ export class UserService {
       jiraId: inviteUserDTO.jiraId,
       trelloId: inviteUserDTO.trelloId,
       githubUserName: inviteUserDTO.githubUserName,
+      avatarUrl: fileBase64Url,
       isInvited: true,
+      isDisabled: true,
     });
 
     await this.organizationUserRoleModel.create({
@@ -238,7 +247,12 @@ export class UserService {
       user: user._id,
       organization: organization._id,
     });
-
+    if (!inviteUserDTO.projects) {
+      return user;
+    }
+    if (inviteUserDTO.projects.length === 0) {
+      return user;
+    }
     const projects = await this.projectModel.find({
       name: { $in: inviteUserDTO.projects },
     });

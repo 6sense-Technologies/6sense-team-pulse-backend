@@ -35,11 +35,13 @@ export class InviteUserDTO {
     description: 'List of project names the user is invited to',
     type: [String],
     example: ['Project Alpha', 'Project Beta'],
+    isArray: true,
   })
   @IsArray()
   @ArrayMinSize(1, { message: 'At least one project must be selected' })
   @IsString({ each: true })
-  projects: string[];
+  @IsOptional()
+  projects: [];
 
   @ApiPropertyOptional({
     description: 'Optional Jira ID associated with the user',
@@ -71,4 +73,11 @@ export class InviteUserDTO {
   })
   @IsString()
   role: string;
+
+  @ApiProperty({
+    description: 'Profile picture of the user',
+    type: 'string',
+    format: 'binary',
+  })
+  profilePicture?: any;
 }
