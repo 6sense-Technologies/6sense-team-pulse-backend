@@ -27,6 +27,9 @@ import {
   OrganizationProjectUserSchema,
 } from './schemas/OrganizationProjectUser.schema';
 import { Users, UsersSchema } from './schemas/users.schema';
+import { EmailService } from '../email-service/email-service.service';
+import { OTPSecret, OTPSecretSchema } from './schemas/OTPSecret.schema';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -45,6 +48,7 @@ import { Users, UsersSchema } from './schemas/users.schema';
       },
       { name: Role.name, schema: RoleSchema },
       { name: Users.name, schema: UsersSchema },
+      { name: OTPSecret.name, schema: OTPSecretSchema },
     ]),
     forwardRef(() => {
       return JiraModule;
@@ -53,7 +57,7 @@ import { Users, UsersSchema } from './schemas/users.schema';
       return TrelloModule;
     }),
   ],
-  providers: [UserService],
+  providers: [UserService, EmailService,JwtService],
   controllers: [UserController],
   exports: [UserService, MongooseModule],
 })

@@ -126,3 +126,12 @@ export class VerifyEmailDto {
   @IsNotEmpty({ message: 'Email should not be empty' })
   email: string;
 }
+
+export class VerifyInviteDTO {
+  @ApiProperty({
+    description: 'JWT Token for invitation',
+    example: 'dfdff08131089u108d01jd0j1wd',
+    type: String,
+  })
+  jwtToken: string;
+}

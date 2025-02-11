@@ -46,6 +46,7 @@ import { OrganizationUserRole } from './schemas/OrganizationUserRole.schema';
 import { Role } from './schemas/Role.schema';
 import { OrganizationProjectUser } from './schemas/OrganizationProjectUser.schema';
 import { Users } from './schemas/users.schema';
+import { EmailService } from '../email-service/email-service.service';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -76,6 +77,7 @@ export class UserService {
     private readonly organizationProjectUserModel: Model<OrganizationProjectUser>,
     @InjectModel(Users.name)
     private readonly newusersModel: Model<Users>,
+    private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {
     //Nothing
@@ -128,6 +130,18 @@ export class UserService {
       currentMonthScore: currentMonth[0]['averageScore'],
       lastMonthScore: lastMonth[0]['averageScore'],
     };
+  }
+  async sendMailInvitationEmail(
+    emailAddress: string,
+    fromUser: string,
+    organizationName: string,
+  ) {
+    const emailSentResponse = await this.emailService.sendInvitationEmail(
+      emailAddress,
+      fromUser,
+      organizationName,
+    );
+    return emailSentResponse;
   }
   async calculateIndividualStats(userId: string, page: number, limit: number) {
     const individualStatAggregation: any = individualStats(userId, page, limit);
@@ -213,20 +227,25 @@ export class UserService {
     file: Express.Multer.File,
   ) {
     const fileBase64Url = file.buffer.toString('base64');
-    const [role, organization, existingUser] = await Promise.all([
+    const [role, organizationUserRole, existingUser] = await Promise.all([
       this.roleModel.findOne({ roleName: inviteUserDTO.role }),
-      this.organizationUserRoleModel.findOne({
-        user: new Types.ObjectId(userId),
-      }),
+      this.organizationUserRoleModel
+        .findOne({
+          user: new Types.ObjectId(userId),
+        })
+        .populate('organization')
+        .populate('user')
+        .lean(),
       this.newusersModel.findOne({ emailAddress: inviteUserDTO.emailAddress }),
     ]);
+    // console.log(organizationUserRole);
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
     if (!role) {
       throw new BadRequestException('Invalid role');
     }
-    if (!organization) {
+    if (!organizationUserRole) {
       throw new InternalServerErrorException('Admin has no organization');
     }
 
@@ -240,17 +259,28 @@ export class UserService {
       avatarUrl: fileBase64Url,
       isInvited: true,
       isDisabled: true,
+      isVerified: true,
     });
 
     await this.organizationUserRoleModel.create({
       role: role._id,
       user: user._id,
-      organization: organization._id,
+      organization: organizationUserRole._id,
     });
     if (!inviteUserDTO.projects) {
+      await this.sendMailInvitationEmail(
+        user.emailAddress,
+        organizationUserRole['user']['displayName'],
+        organizationUserRole['organization']['organizationName'],
+      );
       return user;
     }
     if (inviteUserDTO.projects.length === 0) {
+      await this.sendMailInvitationEmail(
+        user.emailAddress,
+        organizationUserRole['user']['displayName'],
+        organizationUserRole['organization']['organizationName'],
+      );
       return user;
     }
     const projects = await this.projectModel.find({
@@ -261,12 +291,18 @@ export class UserService {
     }
 
     const projectUserEntries = projects.map((project) => ({
-      organization: organization._id,
+      organization: organizationUserRole._id,
       project: project._id,
       user: user._id,
     }));
 
     await this.organizationProjectUserModel.insertMany(projectUserEntries);
+    console.log('DONE');
+    await this.sendMailInvitationEmail(
+      user.emailAddress,
+      organizationUserRole['user']['displayName'],
+      organizationUserRole['organization']['organizationName'],
+    );
 
     return user;
   }

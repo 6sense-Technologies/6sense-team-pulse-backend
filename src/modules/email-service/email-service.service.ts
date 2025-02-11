@@ -78,26 +78,35 @@ export class EmailService {
     return response;
   }
 
-  public async sendInvitationEmail(userId: string, emailAddress: string) {
+  public async sendInvitationEmail(
+    emailAddress: string,
+    fromUser: string,
+    organizationName: string,
+  ) {
+    console.log('Sending invitation email.....');
     const user = await this.usersModel.findOne({ emailAddress: emailAddress });
     if (!user) {
       throw new NotFoundException('User not found');
     }
     const jwtToken = this.jwtService.sign(
-      { userId: userId, emailAddress: emailAddress },
+      { emailAddress: emailAddress },
       {
         secret: this.configService.get('INVITE_SECRET'),
         expiresIn: this.configService.get('JWT_EXPIRE'),
       },
     );
-    // const response = await this.mailerService.sendMail({
-    //   from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
-    //   to: emailAddress,
-    //   subject: `Please Verify your account for ${emailAddress}`,
-    //   html: emailTemplate,//updated to for gmail
-    // });
-
-    // return response;
-    return 'Done';
+    const emailTemplate = EmailTemplate.invitationEmail(
+      user.displayName,
+      jwtToken,
+      fromUser,
+      organizationName,
+    );
+    const response = await this.mailerService.sendMail({
+      from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
+      to: emailAddress,
+      subject: `Invitation for ${emailAddress}`,
+      html: emailTemplate,
+    });
+    return response;
   }
 }

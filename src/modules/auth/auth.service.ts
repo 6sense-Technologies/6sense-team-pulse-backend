@@ -13,6 +13,7 @@ import {
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
   VerifyEmailDto,
+  VerifyInviteDTO,
 } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -21,6 +22,7 @@ import { JwtService } from '@nestjs/jwt';
 import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 import { Organization } from '../users/schemas/Organization.schema';
 import { userInfo } from 'os';
+import { InviteUserDTO } from '../users/dto/invite-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -213,5 +215,31 @@ export class AuthService {
         hasOrganization: true,
       };
     }
+  }
+  public async verifyInvite(verifyInviteDTO: VerifyInviteDTO) {
+    try {
+      await this.jwtService.verifyAsync(
+        verifyInviteDTO.jwtToken,
+        {
+          secret: this.configService.get('INVITE_SECRET'),
+        },
+      );
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    // If verification fails, decode the token and proceed
+    const decoded = this.jwtService.decode(verifyInviteDTO.jwtToken);
+    const user = await this.userModel.findOne({
+      emailAddress: decoded.emailAddress,
+    });
+    if (user.isDisabled) {
+      user.isDisabled = false;
+    }
+    await user.save();
+    return user;
   }
 }

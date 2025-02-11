@@ -13,6 +13,7 @@ import {
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
   VerifyEmailDto,
+  VerifyInviteDTO,
 } from './dto/auth.dto';
 import { AccessTokenGuard } from './guards/accessToken.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -20,6 +21,7 @@ import { RefreshTokenGuard } from './guards/refreshToken.guard';
 import { CreateOrganizationDTO } from '../organization/dto/organization.dto';
 import { Organization } from '../users/schemas/Organization.schema';
 import { OrganizationService } from '../organization/organization.service';
+import { InviteUserDTO } from '../users/dto/invite-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -79,6 +81,15 @@ export class AuthController {
       createOrganizationDTO,
       req['user'].userId,
     );
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Post('register/verify-invite')
+  verifyOrganization(
+    @Body() verifyInviteDTO:VerifyInviteDTO
+  ){
+    return this.authService.verifyInvite(verifyInviteDTO)
   }
 
   @Get('user-status')
