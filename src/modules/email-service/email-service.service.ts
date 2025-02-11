@@ -70,7 +70,7 @@ export class EmailService {
       from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
       to: emailAddress,
       subject: `Please Verify your account for ${emailAddress}`,
-      text: emailTemplate,
+      html: emailTemplate,//updated to for gmail
     });
 
     return response;
