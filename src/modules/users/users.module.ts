@@ -17,6 +17,16 @@ import {
   Organization,
   OrganizationSchema,
 } from './schemas/Organization.schema';
+import {
+  OrganizationUserRole,
+  OrganizationUserRoleSchema,
+} from './schemas/OrganizationUserRole.schema';
+import { Role, RoleSchema } from './schemas/Role.schema';
+import {
+  OrganizationProjectUser,
+  OrganizationProjectUserSchema,
+} from './schemas/OrganizationProjectUser.schema';
+import { Users, UsersSchema } from './schemas/users.schema';
 
 @Module({
   imports: [
@@ -28,6 +38,13 @@ import {
       { name: Project.name, schema: ProjectSchema },
       { name: UserProject.name, schema: UserProjectSchema },
       { name: Organization.name, schema: OrganizationSchema },
+      { name: OrganizationUserRole.name, schema: OrganizationUserRoleSchema },
+      {
+        name: OrganizationProjectUser.name,
+        schema: OrganizationProjectUserSchema,
+      },
+      { name: Role.name, schema: RoleSchema },
+      { name: Users.name, schema: UsersSchema },
     ]),
     forwardRef(() => {
       return JiraModule;

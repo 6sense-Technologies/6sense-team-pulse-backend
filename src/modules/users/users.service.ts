@@ -5,6 +5,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotAcceptableException,
   NotFoundException,
@@ -42,6 +43,7 @@ import { InviteUserDTO } from './dto/invite-user.dto';
 import { OrganizationUserRole } from './schemas/OrganizationUserRole.schema';
 import { Role } from './schemas/Role.schema';
 import { OrganizationProjectUser } from './schemas/OrganizationProjectUser.schema';
+import { Users } from './schemas/users.schema';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -67,9 +69,11 @@ export class UserService {
     private readonly organizationUserRoleModel: Model<OrganizationUserRole>,
 
     @InjectModel(Role.name)
-    private readonly role: Model<Role>,
+    private readonly roleModel: Model<Role>,
     @InjectModel(OrganizationProjectUser.name)
-    private readonly organizationProjectUser: Model<OrganizationProjectUser>,
+    private readonly organizationProjectUserModel: Model<OrganizationProjectUser>,
+    @InjectModel(Users.name)
+    private readonly newusersModel: Model<Users>,
     private readonly configService: ConfigService,
   ) {
     //Nothing
@@ -202,7 +206,7 @@ export class UserService {
   }
 
   async inviteUser(inviteUserDTO: InviteUserDTO, userId: string) {
-    const user = await this.userModel.create({
+    const user = await this.newusersModel.create({
       displayName: inviteUserDTO.displayName,
       designation: inviteUserDTO.designation,
       emailAddress: inviteUserDTO.emailAddress,
@@ -211,12 +215,16 @@ export class UserService {
       githubUserName: inviteUserDTO.githubUserName,
       isInvited: true,
     });
-    const role = await this.role.findOne({ roleName: inviteUserDTO.role });
+    const role = await this.roleModel.findOne({ roleName: inviteUserDTO.role });
+
+    if (!role) {
+      throw new BadRequestException('Invalid role');
+    }
     const organization = await this.organizationUserRoleModel.findOne({
       user: new Types.ObjectId(userId),
     });
-    if (!role) {
-      throw new NotAcceptableException('Invalid role');
+    if (!organization) {
+      throw new InternalServerErrorException('admin has no organization');
     }
     const orgUserRole = await this.organizationUserRoleModel.create({
       role: role,
@@ -224,7 +232,13 @@ export class UserService {
       organization: organization,
     });
     for (let i = 0; i < inviteUserDTO.projects.length; i += 1) {
-      this.organizationProjectUser.create({
+      const project = this.projectModel.findOne({
+        name: inviteUserDTO.projects[i],
+      });
+      if (!project) {
+        throw new BadRequestException('One or more project names are invalid');
+      }
+      this.organizationProjectUserModel.create({
         organization: organization,
         project: inviteUserDTO.projects[i],
         user: user,
