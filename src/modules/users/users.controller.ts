@@ -98,6 +98,8 @@ export class UserController {
   )
   @ApiConsumes('multipart/form-data')
   @Roles(['Admin'])
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard)
   @UseGuards(RolesGuard)
   async invite(
     @Body() inviteUserDTO: InviteUserDTO,
