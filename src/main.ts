@@ -26,7 +26,7 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(webApp, config);
   SwaggerModule.setup('api', webApp, document);
- 
+
   //updated
   // Global Pipes (validation)
   webApp.useGlobalPipes(new ValidationPipe());
@@ -43,7 +43,6 @@ async function bootstrap() {
     credentials: true,
   });
 
-
   // Create microservice with MQTT transport
   const mqttMicroservice = webApp.connectMicroservice<MicroserviceOptions>({
     transport: Transport.MQTT,
@@ -53,28 +52,14 @@ async function bootstrap() {
       password: configService.get<string>('MQTT_PASSWORD'),
     },
   });
- 
 
   // Start the microservice first
   await webApp.startAllMicroservices();
   console.log('Microservice started');
-  SwaggerModule.setup("docs", webApp, document, {
-    customSiteTitle: "Api Docs",
-    customfavIcon: "https://avatars.githubusercontent.com/u/6936373?s=200&v=4",
-    customJs: [
-      "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js",
-      "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.min.js",
-    ],
-    customCssUrl: [
-      "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css",
-      "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.min.css",
-      "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.css",
-    ],
-  });
+
   // Start the web application on port 8000
   await webApp.listen(8000, 'localhost');
   console.log('Web Application started on http://localhost:8000');
-
 }
 
 bootstrap();
