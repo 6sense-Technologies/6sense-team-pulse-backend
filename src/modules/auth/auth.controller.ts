@@ -83,8 +83,6 @@ export class AuthController {
     );
   }
 
-  @UseGuards(AccessTokenGuard)
-  @ApiBearerAuth()
   @Post('register/verify-invite')
   verifyOrganization(@Body() verifyInviteDTO: VerifyInviteDTO) {
     return this.authService.verifyInvite(verifyInviteDTO);
