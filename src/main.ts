@@ -58,7 +58,7 @@ async function bootstrap() {
   console.log('Microservice started');
 
   // Start the web application on port 8000
-  await webApp.listen(8000, 'localhost');
+  await webApp.listen(8000, '0.0.0.0');
   console.log('Web Application started on http://localhost:8000');
 }
 

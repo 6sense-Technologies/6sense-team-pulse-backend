@@ -80,9 +80,11 @@ export class AuthService {
       userObject._id as string,
       userObject.emailAddress,
     );
+    //TODO: CURRENTLY IT IS ASSUMED THAT WHOEVER CREATED THE ORG IS ADMIN. NEED TO FIX THIS BY ADDING INFO IN USERORGANIZATIONROLE MODEL
     const organizations = await this.organizationModel.find({
       createdBy: userObject._id,
     });
+    
     console.log(organizations);
     console.log(userObject);
     if (organizations.length > 0) {
@@ -136,9 +138,12 @@ export class AuthService {
           createdBy: userInfo._id,
         });
         if (organizations.length > 0) {
+          // Todo need to fix this
           userInfo['hasOrganization'] = true;
+          userInfo['role'] = 'admin';
         } else {
           userInfo['hasOrganization'] = false;
+          userInfo['role'] = 'member';
         }
         return {
           userInfo,
