@@ -47,6 +47,7 @@ import { Role } from './schemas/Role.schema';
 import { OrganizationProjectUser } from './schemas/OrganizationProjectUser.schema';
 import { Users } from './schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
+import { Designation } from './enums/user.enum';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -340,6 +341,7 @@ export class UserService {
       dailyPerformance: dailyPerformance[0],
     };
   }
+
   // ----------------------------------------------------------------------------//
   /* istanbul ignore next */
   async createUser(createUserDto: CreateUserDto) {

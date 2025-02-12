@@ -57,7 +57,7 @@ import { JwtService } from '@nestjs/jwt';
       return TrelloModule;
     }),
   ],
-  providers: [UserService, EmailService,JwtService],
+  providers: [UserService, EmailService, JwtService],
   controllers: [UserController],
   exports: [UserService, MongooseModule],
 })
