@@ -134,8 +134,6 @@ export class ProjectsService {
       .populate('projects')
       .lean();
 
-    console.log(orgWithProjects);
-
     if (!orgWithProjects || !orgWithProjects.projects) {
       return [];
     }
