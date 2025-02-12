@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { GitRepo } from '../users/schemas/GitRepo.schema';
-import mongoose, { Model } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { User } from '../users/schemas/user.schema';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -50,14 +50,13 @@ export class GithubService {
     // const today = new Date(date);
     // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
 
-    const user = await this.userModel.findOne({ accountId: userId });
-
-    return this.gitContributionModel
+    const gitContributions = this.gitContributionModel
       .find({
-        user: user._id,
+        user: new Types.ObjectId(userId),
         date: { $gte: dateStart, $lte: dateEnd },
       })
       .populate('gitRepo');
+    return gitContributions;
   }
 
   findOne(id: number) {
