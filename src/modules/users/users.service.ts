@@ -306,7 +306,18 @@ export class UserService {
 
     return user;
   }
-
+  async toggleEnable(userId: string, adminId: string) {
+    const orgUserRole = await this.organizationUserRoleModel.findOne({
+      user: new Types.ObjectId(userId),
+    });
+    orgUserRole.isDisabled = !orgUserRole.isDisabled;
+    await orgUserRole.save();
+    if (orgUserRole.isDisabled) {
+      return { enabled: true };
+    } else {
+      return { enabled: false };
+    }
+  }
   async dailyPerformence(
     userId: string,
     dateTime: string,

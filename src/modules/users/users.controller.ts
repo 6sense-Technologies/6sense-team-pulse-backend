@@ -27,6 +27,8 @@ import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
 import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { InviteUserDTO } from './dto/invite-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('users')
 export class UserController {
@@ -66,6 +68,15 @@ export class UserController {
     return this.userService.dailyPerformence(userId, dateTime, page, limit);
   }
 
+  @Post('toggle-enable')
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Roles(['Admin'])
+  @UseGuards(RolesGuard)
+  async toggleEnable(@Query('userId') userId: string, @Req() req: Request) {
+    return this.userService.toggleEnable(userId, req['user'].userId);
+  }
+
   @Post('invite')
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
@@ -85,8 +96,9 @@ export class UserController {
       },
     }),
   )
-  // @FileToBase64('profilePicture')
   @ApiConsumes('multipart/form-data')
+  @Roles(['Admin'])
+  @UseGuards(RolesGuard)
   async invite(
     @Body() inviteUserDTO: InviteUserDTO,
     @UploadedFile() file: Express.Multer.File,
