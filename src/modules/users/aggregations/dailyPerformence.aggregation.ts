@@ -38,8 +38,8 @@ export const dailyPerformenceAgg = (
       $facet: {
         total: [{ $count: 'total' }],
         data: [
-          { $skip: (Number(page) - 1) * Number(limit) },
-          { $limit: Number(limit) },
+          { $skip: (Number(page) || 1 - 1) * Number(limit) || 10 },
+          { $limit: Number(limit) || 10 },
         ],
       },
     },
