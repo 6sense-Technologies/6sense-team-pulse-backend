@@ -42,6 +42,7 @@ export class InviteUserDTO {
   @Transform(({ value }) => {
     try {
       const values = value.split(','); //split to array
+      console.log(values);
       return values;
     } catch (e) {
       throw new Error('Invalid JSON format for projects');
