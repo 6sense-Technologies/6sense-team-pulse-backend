@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
@@ -33,15 +34,20 @@ export class InviteUserDTO {
 
   @ApiProperty({
     description: 'List of project names the user is invited to',
-    type: [String],
-    example: ['Project Alpha', 'Project Beta'],
-    isArray: true,
+    type: 'string',
+    example: '["Project Alpha", "Project Beta"]', // Send as a JSON string
   })
   @IsArray()
-  @ArrayMinSize(1, { message: 'At least one project must be selected' })
-  @IsString({ each: true })
   @IsOptional()
-  projects: [];
+  @Transform(({ value }) => {
+    try {
+      const values = value.split(','); //split to array
+      return values;
+    } catch (e) {
+      throw new Error('Invalid JSON format for projects');
+    }
+  })
+  projects: string[];
 
   @ApiPropertyOptional({
     description: 'Optional Jira ID associated with the user',
