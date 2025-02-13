@@ -182,6 +182,12 @@ export class AuthService {
           userInfo['hasOrganization'] = false;
           userInfo['role'] = 'member';
         }
+
+        if ('isInvited' in userInfo) {
+          if (userInfo['isInvited'] === true) {
+            userInfo['hasOrganization'] = true;
+          }
+        }
         return {
           userInfo,
           accessToken: accessToken,
