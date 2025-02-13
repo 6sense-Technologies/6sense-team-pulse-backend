@@ -47,7 +47,6 @@ import { Role } from './schemas/Role.schema';
 import { OrganizationProjectUser } from './schemas/OrganizationProjectUser.schema';
 import { Users } from './schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
-import * as FormData from 'form-data';
 import { Designation } from './enums/user.enum';
 import axios from 'axios';
 // import { Comment } from './schemas/Comment.schema';
@@ -56,7 +55,7 @@ import axios from 'axios';
 export class UserService {
   private readonly logger = new Logger(UserService.name);
   private readonly API_URL = 'https://api.imgbb.com/1/upload';
-  private readonly API_KEY = process.env.IMGBB_API_KEY
+  private readonly API_KEY = process.env.IMGBB_API_KEY;
 
   constructor(
     @Inject(forwardRef(() => JiraService))
@@ -231,23 +230,27 @@ export class UserService {
     userId: string,
     file: Express.Multer.File,
   ) {
-    const filebase64 = file.buffer.toString('base64');
-    const formData = new FormData();
-    formData.append('image', filebase64);
     let avatarUrl = 'https://i.ibb.co.com/h6TfyCV/124599.jpg';
+    const base64Image = file.buffer.toString('base64');
+
+    // Build URL-encoded parameters (the API expects the parameter name "image")
+    const params = new URLSearchParams();
+    params.append('image', base64Image);
+  
     try {
       const response = await axios.post(
         `${this.API_URL}?expiration=600&key=${this.API_KEY}`,
-        formData,
+        params.toString(),
         {
           headers: {
-            ...formData.getHeaders(),
+            'Content-Type': 'application/x-www-form-urlencoded'
           },
-        },
+        }
       );
-      avatarUrl=response.data.data.url
+      avatarUrl = response.data.data.url;
+      console.log('Upload successful:', avatarUrl);
     } catch (error) {
-      console.warn('Image upload failed....');
+      console.error('Upload failed:', error.response ? error.response.data : error.message);
     }
 
     const [role, organizationUserRole, existingUser] = await Promise.all([
