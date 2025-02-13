@@ -5,7 +5,9 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
+  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -21,6 +23,8 @@ import {
   validateDate,
   validatePagination,
 } from '../../common/helpers/validation.helper';
+import { FileInterceptor } from '@nestjs/platform-express';
+
 import {
   IAllUsers,
   IUserResponse,
@@ -37,6 +41,13 @@ import { individualStats } from './aggregations/individualStats.aggregation';
 import { monthlyStat } from './aggregations/individualMonthlyPerformence.aggregation';
 import { dailyPerformenceAgg } from './aggregations/dailyPerformence.aggregation';
 import { Organization } from './schemas/Organization.schema';
+import { InviteUserDTO } from './dto/invite-user.dto';
+import { OrganizationUserRole } from './schemas/OrganizationUserRole.schema';
+import { Role } from './schemas/Role.schema';
+import { OrganizationProjectUser } from './schemas/OrganizationProjectUser.schema';
+import { Users } from './schemas/users.schema';
+import { EmailService } from '../email-service/email-service.service';
+import { Designation } from './enums/user.enum';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -58,6 +69,16 @@ export class UserService {
     private readonly userProjectModel: Model<UserProject>,
     @InjectModel(Organization.name)
     private readonly organizationModel: Model<Organization>,
+    @InjectModel(OrganizationUserRole.name)
+    private readonly organizationUserRoleModel: Model<OrganizationUserRole>,
+
+    @InjectModel(Role.name)
+    private readonly roleModel: Model<Role>,
+    @InjectModel(OrganizationProjectUser.name)
+    private readonly organizationProjectUserModel: Model<OrganizationProjectUser>,
+    @InjectModel(Users.name)
+    private readonly newusersModel: Model<Users>,
+    private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {
     //Nothing
@@ -110,6 +131,18 @@ export class UserService {
       currentMonthScore: currentMonth[0]['averageScore'],
       lastMonthScore: lastMonth[0]['averageScore'],
     };
+  }
+  async sendMailInvitationEmail(
+    emailAddress: string,
+    fromUser: string,
+    organizationName: string,
+  ) {
+    const emailSentResponse = await this.emailService.sendInvitationEmail(
+      emailAddress,
+      fromUser,
+      organizationName,
+    );
+    return emailSentResponse;
   }
   async calculateIndividualStats(userId: string, page: number, limit: number) {
     const individualStatAggregation: any = individualStats(userId, page, limit);
@@ -174,7 +207,6 @@ export class UserService {
     const teamMembers = await this.organizationModel.findOne({
       createdBy: new Types.ObjectId(userId),
     });
-    console.log(teamMembers['users']);
     const overViewAggr: any = overView(
       thirtyDaysAgoDate,
       page,
@@ -189,6 +221,103 @@ export class UserService {
     return result[0];
   }
 
+  async inviteUser(
+    inviteUserDTO: InviteUserDTO,
+    userId: string,
+    file: Express.Multer.File,
+  ) {
+    const fileBase64Url = file.buffer.toString('base64');
+    const [role, organizationUserRole, existingUser] = await Promise.all([
+      this.roleModel.findOne({ roleName: inviteUserDTO.role }),
+      this.organizationUserRoleModel
+        .findOne({
+          user: new Types.ObjectId(userId),
+        })
+        .populate('organization')
+        .populate('user')
+        .lean(),
+      this.newusersModel.findOne({ emailAddress: inviteUserDTO.emailAddress }),
+    ]);
+    // console.log(organizationUserRole);
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+    if (!role) {
+      throw new BadRequestException('Invalid role');
+    }
+    if (!organizationUserRole) {
+      throw new InternalServerErrorException('Admin has no organization');
+    }
+
+    const user = await this.newusersModel.create({
+      displayName: inviteUserDTO.displayName,
+      designation: inviteUserDTO.designation,
+      emailAddress: inviteUserDTO.emailAddress,
+      jiraId: inviteUserDTO.jiraId,
+      trelloId: inviteUserDTO.trelloId,
+      githubUserName: inviteUserDTO.githubUserName,
+      avatarUrl: fileBase64Url,
+      isInvited: true,
+      isDisabled: true,
+      isVerified: true,
+    });
+
+    await this.organizationUserRoleModel.create({
+      role: role._id,
+      user: user._id,
+      organization: organizationUserRole._id,
+    });
+    if (!inviteUserDTO.projects) {
+      await this.sendMailInvitationEmail(
+        user.emailAddress,
+        organizationUserRole['user']['displayName'],
+        organizationUserRole['organization']['organizationName'],
+      );
+      return user;
+    }
+    if (inviteUserDTO.projects.length === 0) {
+      await this.sendMailInvitationEmail(
+        user.emailAddress,
+        organizationUserRole['user']['displayName'],
+        organizationUserRole['organization']['organizationName'],
+      );
+      return user;
+    }
+    const projects = await this.projectModel.find({
+      name: { $in: inviteUserDTO.projects },
+    });
+    if (projects.length !== inviteUserDTO.projects.length) {
+      throw new BadRequestException('One or more project names are invalid');
+    }
+
+    const projectUserEntries = projects.map((project) => ({
+      organization: organizationUserRole._id,
+      project: project._id,
+      user: user._id,
+    }));
+
+    await this.organizationProjectUserModel.insertMany(projectUserEntries);
+    console.log('DONE');
+    await this.sendMailInvitationEmail(
+      user.emailAddress,
+      organizationUserRole['user']['displayName'],
+      organizationUserRole['organization']['organizationName'],
+    );
+
+    return user;
+  }
+  async toggleEnable(userId: string, adminId: string) {
+    const orgUserRole = await this.organizationUserRoleModel.findOne({
+      user: new Types.ObjectId(userId),
+    });
+    orgUserRole.isDisabled = !orgUserRole.isDisabled;
+    await orgUserRole.save();
+    if (orgUserRole.isDisabled) {
+      return { enabled: true };
+    } else {
+      return { enabled: false };
+    }
+  }
   async dailyPerformence(
     userId: string,
     dateTime: string,
@@ -211,6 +340,7 @@ export class UserService {
       dailyPerformance: dailyPerformance[0],
     };
   }
+
   // ----------------------------------------------------------------------------//
   /* istanbul ignore next */
   async createUser(createUserDto: CreateUserDto) {

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { Users } from '../users/schemas/users.schema';
 import { EmailTemplate } from './templates/email-template.template';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class EmailService {
@@ -22,6 +23,7 @@ export class EmailService {
     private readonly mailerService: MailerService,
     @InjectModel(Users.name)
     private readonly usersModel: Model<Users>,
+    private readonly jwtService: JwtService,
   ) {}
 
   // Function to generate a 6-digit code
@@ -70,9 +72,41 @@ export class EmailService {
       from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
       to: emailAddress,
       subject: `Please Verify your account for ${emailAddress}`,
-      html: emailTemplate,//updated to for gmail
+      html: emailTemplate, //updated to for gmail
     });
 
+    return response;
+  }
+
+  public async sendInvitationEmail(
+    emailAddress: string,
+    fromUser: string,
+    organizationName: string,
+  ) {
+    console.log('Sending invitation email.....');
+    const user = await this.usersModel.findOne({ emailAddress: emailAddress });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const jwtToken = this.jwtService.sign(
+      { emailAddress: emailAddress },
+      {
+        secret: this.configService.get('INVITE_SECRET'),
+        expiresIn: this.configService.get('JWT_EXPIRE'),
+      },
+    );
+    const emailTemplate = EmailTemplate.invitationEmail(
+      user.displayName,
+      jwtToken,
+      fromUser,
+      organizationName,
+    );
+    const response = await this.mailerService.sendMail({
+      from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
+      to: emailAddress,
+      subject: `Invitation for ${emailAddress}`,
+      html: emailTemplate,
+    });
     return response;
   }
 }

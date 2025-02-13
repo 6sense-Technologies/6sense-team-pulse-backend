@@ -13,6 +13,7 @@ import {
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
   VerifyEmailDto,
+  VerifyInviteDTO,
 } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -21,6 +22,7 @@ import { JwtService } from '@nestjs/jwt';
 import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 import { Organization } from '../users/schemas/Organization.schema';
 import { userInfo } from 'os';
+import { InviteUserDTO } from '../users/dto/invite-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -78,9 +80,11 @@ export class AuthService {
       userObject._id as string,
       userObject.emailAddress,
     );
+    //TODO: CURRENTLY IT IS ASSUMED THAT WHOEVER CREATED THE ORG IS ADMIN. NEED TO FIX THIS BY ADDING INFO IN USERORGANIZATIONROLE MODEL
     const organizations = await this.organizationModel.find({
       createdBy: userObject._id,
     });
+    
     console.log(organizations);
     console.log(userObject);
     if (organizations.length > 0) {
@@ -134,9 +138,12 @@ export class AuthService {
           createdBy: userInfo._id,
         });
         if (organizations.length > 0) {
+          // Todo need to fix this
           userInfo['hasOrganization'] = true;
+          userInfo['role'] = 'admin';
         } else {
           userInfo['hasOrganization'] = false;
+          userInfo['role'] = 'member';
         }
         return {
           userInfo,
@@ -213,5 +220,48 @@ export class AuthService {
         hasOrganization: true,
       };
     }
+  }
+  public async verifyInvite(verifyInviteDTO: VerifyInviteDTO) {
+    try {
+      await this.jwtService.verifyAsync(verifyInviteDTO.jwtToken, {
+        secret: this.configService.get('INVITE_SECRET'),
+      });
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Token has expired');
+      }
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    // If verification fails, decode the token and proceed
+    const decoded = this.jwtService.decode(verifyInviteDTO.jwtToken);
+    const user = await this.userModel.findOne({
+      emailAddress: decoded.emailAddress,
+    });
+    if (user.isDisabled) {
+      user.isDisabled = false;
+    }
+    await user.save();
+    return user;
+  }
+  public async registerInvitedUser(
+    loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO,
+  ) {
+    const user = await this.userModel.findOne({
+      emailAddress: loginUserEmailPasswordDTO.emailAddress,
+    });
+
+    user.password = loginUserEmailPasswordDTO.password;
+    await user.save();
+    const { accessToken, refreshToken } = this.generateTokens(
+      user.id,
+      user.emailAddress,
+    );
+    user['hasOrganization'] = true;
+    return {
+      user,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    };
   }
 }

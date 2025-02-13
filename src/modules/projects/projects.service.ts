@@ -127,6 +127,21 @@ export class ProjectsService {
       data: result?.data || [],
     };
   }
+  async getNames(page: number, limit: number, userId: string) {
+    const orgWithProjects = await this.Organization.findOne({
+      createdBy: userId,
+    })
+      .populate('projects')
+      .lean();
+
+    if (!orgWithProjects || !orgWithProjects.projects) {
+      return [];
+    }
+
+    // Extract project names
+    return orgWithProjects.projects.map((project) => project['name']);
+  }
+
   /* istanbul ignore next */
   findOne(id: string) {
     return this.projectModel.findById(id);
