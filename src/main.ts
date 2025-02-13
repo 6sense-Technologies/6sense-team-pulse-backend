@@ -29,7 +29,11 @@ async function bootstrap() {
 
   //updated
   // Global Pipes (validation)
-  webApp.useGlobalPipes(new ValidationPipe());
+  webApp.useGlobalPipes(
+    new ValidationPipe({
+      transform: true, // Ensures DTO transformations work
+    }),
+  );
 
   // Enable CORS for specific origins
   webApp.enableCors({
