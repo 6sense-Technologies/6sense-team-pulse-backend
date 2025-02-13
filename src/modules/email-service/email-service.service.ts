@@ -92,7 +92,7 @@ export class EmailService {
       { emailAddress: emailAddress },
       {
         secret: this.configService.get('INVITE_SECRET'),
-        expiresIn: this.configService.get('JWT_EXPIRE'),
+        expiresIn: this.configService.get('INVITE_EXPIRE'),
       },
     );
     const emailTemplate = EmailTemplate.invitationEmail(

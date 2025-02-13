@@ -34,6 +34,15 @@ export class GithubController {
     return this.githubService.getContributions(userId, date);
   }
 
+  @Get('git-chart')
+  async getGitChart(
+    @Query('userId') userId:string,
+    @Query('date') date: string,
+
+  ){
+    return await this.githubService.getChart(userId,date)
+  }
+
   @Get('get-commits')
   getCommits(@Query('userId') userId: string) {
     return this.githubService.getCommits(userId);

@@ -28,7 +28,10 @@ export class GithubService {
   ) {
     // Constructor for injecting userModel
   }
-
+  async getChart(userId: string, date: string) {
+    console.log(`UserId: ${userId} Date: ${date}`);
+    return 'To be implemented';
+  }
   create(createGithubDto: CreateGithubDto) {
     return 'This action adds a new github';
   }
