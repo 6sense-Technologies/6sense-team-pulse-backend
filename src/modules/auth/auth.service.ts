@@ -60,9 +60,46 @@ export class AuthService {
     const userExist = await this.userModel.findOne({
       emailAddress: createUserEmailPasswordDTO.emailAddress,
     });
+
     if (userExist) {
-      throw new ConflictException('User already exist');
+      if ('isInvited' in userExist) {
+        if (userExist['isInvited'] === true) {
+          // console.log(userExist);
+          //for handling invited users
+          const hashedPassword = await bcrypt.hash(
+            createUserEmailPasswordDTO.password,
+            10,
+          );
+          if ('password' in userExist) {
+            console.log(`Passowrd: ${userExist['password']}`);
+            if (userExist['password'] !== undefined) {
+              throw new ConflictException('User already exist');
+            }
+          }
+          userExist.password = hashedPassword;
+          const { accessToken, refreshToken } = this.generateTokens(
+            userExist._id as string,
+            userExist.emailAddress,
+          );
+
+          await userExist.save();
+
+          userExist['hasOrganization'] = true;
+          const userExistObject = userExist.toObject();
+          delete userExistObject['password'];
+          return {
+            userInfo: userExistObject,
+            accessToken,
+            refreshToken,
+          };
+        } else {
+          throw new ConflictException('User already exist');
+        }
+      } else {
+        throw new ConflictException('User already exist');
+      }
     }
+
     const hashedPassword = await bcrypt.hash(
       createUserEmailPasswordDTO.password,
       10,
@@ -84,7 +121,7 @@ export class AuthService {
     const organizations = await this.organizationModel.find({
       createdBy: userObject._id,
     });
-    
+
     console.log(organizations);
     console.log(userObject);
     if (organizations.length > 0) {
