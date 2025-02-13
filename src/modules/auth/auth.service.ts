@@ -84,9 +84,9 @@ export class AuthService {
 
           await userExist.save();
 
-          userExist['hasOrganization'] = true;
           const userExistObject = userExist.toObject();
           delete userExistObject['password'];
+          userExistObject['hasOrganization'] = true;
           return {
             userInfo: userExistObject,
             accessToken,
