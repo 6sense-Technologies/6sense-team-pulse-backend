@@ -7,6 +7,7 @@ export const dailyPerformenceAgg = (
   limit: Number,
 ) => {
   const todaysDate = new Date(dateTime);
+  console.log(`${page} - ${limit}`);
   //   //   const todaysDate = new Date();
   //   const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
   //   const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
@@ -38,8 +39,8 @@ export const dailyPerformenceAgg = (
       $facet: {
         total: [{ $count: 'total' }],
         data: [
-          { $skip: (Number(page) || 1 - 1) * Number(limit) || 10 },
-          { $limit: Number(limit) || 10 },
+          { $skip: (Number(page) - 1) * Number(limit) || 0 },
+          { $limit: Number(limit) },
         ],
       },
     },
