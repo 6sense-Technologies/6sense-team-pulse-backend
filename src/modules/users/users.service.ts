@@ -123,8 +123,9 @@ export class UserService {
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls isDisabled');
+    console.log(userData);
     if (!('isDisabled' in userData)) {
-      userData['isDisabled'] = true;
+      userData['isDisabled'] = false;
     }
     if (currentMonth.length == 0) {
       currentMonth.push({ averageScore: 0 });
@@ -189,17 +190,19 @@ export class UserService {
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls isDisabled');
-    if (!('isDisabled' in userData)) {
-      userData['isDisabled'] = false;
-    }
+
     if (currentMonth.length == 0) {
       currentMonth.push({ averageScore: 0 });
     }
     if (lastMonth.length == 0) {
       lastMonth.push({ averageScore: 0 });
     }
+    const userObject = userData.toObject();
+    if (!('isDisabled' in userData)) {
+      userObject['isDisabled'] = false;
+    }
     return {
-      userData: userData,
+      userData: userObject,
       history: result[0] || [],
       currentMonthScore: currentMonth[0]['averageScore'] || 0,
       lastMonthScore: lastMonth[0]['averageScore'] || 0,
