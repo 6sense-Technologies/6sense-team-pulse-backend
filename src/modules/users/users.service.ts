@@ -340,6 +340,9 @@ export class UserService {
     const orgUserRole = await this.organizationUserRoleModel.findOne({
       user: new Types.ObjectId(userId),
     });
+    if (!orgUserRole) {
+      throw new NotFoundException('User not found in any organization');
+    }
     orgUserRole.isDisabled = !orgUserRole.isDisabled;
     await orgUserRole.save();
     if (orgUserRole.isDisabled) {
