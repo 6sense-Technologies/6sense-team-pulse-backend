@@ -122,7 +122,10 @@ export class UserService {
     // console.log(lastMonth);
     const userData = await this.userModel
       .findById(userId)
-      .select('displayName emailAddress designation avatarUrls');
+      .select('displayName emailAddress designation avatarUrls isDisabled');
+    if (!('isDisabled' in userData)) {
+      userData['isDisabled'] = true;
+    }
     if (currentMonth.length == 0) {
       currentMonth.push({ averageScore: 0 });
     }
@@ -185,7 +188,10 @@ export class UserService {
     // console.log(lastMonth);
     const userData = await this.userModel
       .findById(userId)
-      .select('displayName emailAddress designation avatarUrls');
+      .select('displayName emailAddress designation avatarUrls isDisabled');
+    if (!('isDisabled' in userData)) {
+      userData['isDisabled'] = false;
+    }
     if (currentMonth.length == 0) {
       currentMonth.push({ averageScore: 0 });
     }
@@ -195,8 +201,8 @@ export class UserService {
     return {
       userData: userData,
       history: result[0] || [],
-      currentMonthScore: currentMonth[0]['averageScore'],
-      lastMonthScore: lastMonth[0]['averageScore'],
+      currentMonthScore: currentMonth[0]['averageScore'] || 0,
+      lastMonthScore: lastMonth[0]['averageScore'] || 0,
     };
   }
   async calculateOverview(page: Number, limit: Number, userId: string) {
@@ -208,9 +214,18 @@ export class UserService {
     const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
     console.log(`Fetching data ${thirtyDaysAgoDate}`);
 
+    const orgUserRoleModel = await this.organizationUserRoleModel
+      .findOne({
+        user: new Types.ObjectId(userId),
+      })
+      .populate('organization');
+    // console.log(orgUserRoleModel['organization']['createdBy']);
     const teamMembers = await this.organizationModel.findOne({
-      createdBy: new Types.ObjectId(userId),
+      createdBy: new Types.ObjectId(
+        orgUserRoleModel['organization']['createdBy'],
+      ),
     });
+    console.log(teamMembers);
     const overViewAggr: any = overView(
       thirtyDaysAgoDate,
       page,
@@ -364,19 +379,24 @@ export class UserService {
     return user;
   }
   async toggleEnable(userId: string, adminId: string) {
-    const orgUserRole = await this.organizationUserRoleModel.findOne({
-      user: new Types.ObjectId(userId),
-    });
-    if (!orgUserRole) {
-      throw new NotFoundException('User not found in any organization');
-    }
-    orgUserRole.isDisabled = !orgUserRole.isDisabled;
-    await orgUserRole.save();
-    if (orgUserRole.isDisabled) {
-      return { enabled: true };
-    } else {
-      return { enabled: false };
-    }
+    // const orgUserRole = await this.organizationUserRoleModel.findOne({
+    //   user: new Types.ObjectId(userId),
+    // });
+    // if (!orgUserRole) {
+    //   throw new NotFoundException('User not found in any organization');
+    // }
+    // orgUserRole.isDisabled = !orgUserRole.isDisabled;
+    // await orgUserRole.save();
+    // if (orgUserRole.isDisabled) {
+    //   return { enabled: true };
+    // } else {
+    //   return { enabled: false };
+    // }
+
+    const user = await this.newusersModel.findById(userId);
+    user['isDisabled'] = !user['isDisabled'];
+    await user.save();
+    return { isEnabled: user.isDisabled };
   }
   async dailyPerformence(
     userId: string,

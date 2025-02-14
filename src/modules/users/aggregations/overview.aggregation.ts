@@ -289,13 +289,14 @@ export const overView = (
     },
     {
       $project: {
-        displayName: '$userData.displayName',
-        emailAddress: '$userData.emailAddress',
-        designation: '$userData.designation',
-        avatarUrls: '$userData.avatarUrls',
-        role: 'Member',
-        performance: 1,
-      },
+        displayName: "$userData.displayName",
+        emailAddress: "$userData.emailAddress",
+        designation: "$userData.designation",
+        avatarUrls: "$userData.avatarUrls",
+        isDisabled: { $ifNull: ["$userData.isDisabled", false] },
+        role: "Member",
+        performance: 1
+      }
     },
     {
       $sort: {
