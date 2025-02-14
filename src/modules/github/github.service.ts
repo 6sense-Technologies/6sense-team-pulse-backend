@@ -39,7 +39,79 @@ export class GithubService {
   findAll() {
     return `This action returns all github`;
   }
+  async summary(userId:string,date:string,page:number=1,limit:number = 10){
+    const inputDate = new Date(date); // Replace `date` with your input date
+    const dateStart = DateTime.fromJSDate(inputDate, {
+      zone: 'Asia/Dhaka',
+    }).startOf('day');
 
+    const dateEnd = DateTime.fromJSDate(inputDate, {
+      zone: 'Asia/Dhaka',
+    }).endOf('day');
+
+    const results = await this.gitContributionModel.aggregate([
+      {
+        $match: {
+          user: new Types.ObjectId(userId),
+          date: { $gte: dateStart.toJSDate(), $lte: dateEnd.toJSDate() },
+        },
+      },
+      {
+        $facet: {
+          // Sub-pipeline for summarized results (totals)
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalAdditionsSum: {
+                  $sum: '$totalAdditions',
+                },
+                totalDeletionsSum: {
+                  $sum: '$totalDeletions',
+                },
+                totalContributions: {
+                  $sum: '$totalChanges',
+                },
+                totalWrittenSum: {
+                  $sum: '$totalWritten',
+                },
+              },
+            },
+            {
+              $project: {
+                totalAdditionsSum: 1,
+                totalDeletionsSum: 1,
+                totalContributions: 1,
+                totalWrittenSum: 1,
+                codeChurn: {
+                  $cond: [
+                    { $eq: ['$totalWrittenSum', 0] }, // Check if totalWrittenSum is 0
+                    0, // If true, return 0 to avoid division by zero
+                    {
+                      $divide: ['$totalDeletionsSum', '$totalWrittenSum'],
+                    }, // Otherwise, perform the division
+                  ],
+                },
+              },
+            },
+          ],
+          // Sub-pipeline for total count of documents
+          totalCount: [
+            { $count: 'total' }, // Count total number of documents
+          ],
+        },
+      },
+      {
+        $project: {
+          // Extract the first element from the summary array
+          summary: { $arrayElemAt: ['$summary', 0] },
+
+        },
+      },
+    ]);
+
+    return results[0];
+  }
   async getContributions(
     userId: string,
     date: string,
