@@ -194,7 +194,7 @@ export class UserService {
     }
     return {
       userData: userData,
-      history: result[0],
+      history: result[0] || [],
       currentMonthScore: currentMonth[0]['averageScore'],
       lastMonthScore: lastMonth[0]['averageScore'],
     };
@@ -397,7 +397,7 @@ export class UserService {
       await this.issueEntryModel.aggregate(aggdailyPerformence);
     return {
       userData,
-      dailyPerformance: dailyPerformance[0],
+      dailyPerformance: dailyPerformance[0] || [],
     };
   }
 
