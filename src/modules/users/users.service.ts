@@ -231,28 +231,32 @@ export class UserService {
     file: Express.Multer.File,
   ) {
     let avatarUrl = 'https://i.ibb.co.com/h6TfyCV/124599.jpg';
-    const base64Image = file.buffer.toString('base64');
+    if (file) {
+      const base64Image = file.buffer.toString('base64');
 
-    // Build URL-encoded parameters (the API expects the parameter name "image")
-    const params = new URLSearchParams();
-    params.append('image', base64Image);
-  
-    try {
-      const response = await axios.post(
-        `${this.API_URL}?expiration=600&key=${this.API_KEY}`,
-        params.toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
+      // Build URL-encoded parameters (the API expects the parameter name "image")
+      const params = new URLSearchParams();
+      params.append('image', base64Image);
+
+      try {
+        const response = await axios.post(
+          `${this.API_URL}?expiration=600&key=${this.API_KEY}`,
+          params.toString(),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
           },
-        }
-      );
-      avatarUrl = response.data.data.url;
-      console.log('Upload successful:', avatarUrl);
-    } catch (error) {
-      console.error('Upload failed:', error.response ? error.response.data : error.message);
+        );
+        avatarUrl = response.data.data.url;
+        console.log('Upload successful:', avatarUrl);
+      } catch (error) {
+        console.error(
+          'Upload failed:',
+          error.response ? error.response.data : error.message,
+        );
+      }
     }
-
     const [role, organizationUserRole, existingUser] = await Promise.all([
       this.roleModel.findOne({ roleName: inviteUserDTO.role }),
       this.organizationUserRoleModel

@@ -55,16 +55,13 @@ export class GithubService {
       zone: 'Asia/Dhaka',
     }).endOf('day');
 
-    // const today = new Date(date);
-    // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
-
-    const gitContributions = this.gitContributionModel
-      .find({
-        user: new Types.ObjectId(userId),
-        date: { $gte: dateStart, $lte: dateEnd },
-      })
-      .populate('gitRepo');
-    const results = this.gitContributionModel.aggregate([
+    const results = await this.gitContributionModel.aggregate([
+      {
+        $match: {
+          user: new Types.ObjectId(userId),
+          date: { $gte: dateStart.toJSDate(), $lte: dateEnd.toJSDate() },
+        },
+      },
       {
         $facet: {
           // Sub-pipeline for summarized results (totals)
@@ -72,10 +69,18 @@ export class GithubService {
             {
               $group: {
                 _id: null,
-                totalAdditionsSum: { $sum: '$totalAdditions' },
-                totalDeletionsSum: { $sum: '$totalDeletions' },
-                totalContributions: { $sum: '$totalChanges' },
-                totalWrittenSum: { $sum: '$totalWritten' },
+                totalAdditionsSum: {
+                  $sum: '$totalAdditions',
+                },
+                totalDeletionsSum: {
+                  $sum: '$totalDeletions',
+                },
+                totalContributions: {
+                  $sum: '$totalChanges',
+                },
+                totalWrittenSum: {
+                  $sum: '$totalWritten',
+                },
               },
             },
             {
@@ -88,7 +93,9 @@ export class GithubService {
                   $cond: [
                     { $eq: ['$totalWrittenSum', 0] }, // Check if totalWrittenSum is 0
                     0, // If true, return 0 to avoid division by zero
-                    { $divide: ['$totalDeletionsSum', '$totalWrittenSum'] }, // Otherwise, perform the division
+                    {
+                      $divide: ['$totalDeletionsSum', '$totalWrittenSum'],
+                    }, // Otherwise, perform the division
                   ],
                 },
               },
@@ -141,7 +148,8 @@ export class GithubService {
         },
       },
     ]);
-    return results;
+
+    return results[0];
   }
 
   findOne(id: number) {

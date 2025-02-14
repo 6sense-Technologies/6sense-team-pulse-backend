@@ -86,5 +86,6 @@ export class InviteUserDTO {
     type: 'string',
     format: 'binary',
   })
+  @IsOptional()
   profilePicture?: any;
 }
