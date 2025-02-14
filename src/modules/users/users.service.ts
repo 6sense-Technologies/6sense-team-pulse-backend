@@ -219,6 +219,7 @@ export class UserService {
     );
 
     const result = await this.issueEntryModel.aggregate(overViewAggr);
+
     if (result.length === 0) {
       return [{}];
     }
@@ -328,6 +329,32 @@ export class UserService {
 
     await this.organizationProjectUserModel.insertMany(projectUserEntries);
     console.log('DONE');
+    await this.organizationModel.findOneAndUpdate(
+      {
+        organizationName:
+          organizationUserRole['organization']['organizationName'],
+      },
+      { $push: { users: user._id } },
+      { new: true }, // Returns the updated document
+    );
+    await this.issueEntryModel.create({
+      projectUrl: 'http://0.0.0.0',
+      issueId: '00000',
+      accountId: '00000',
+      comment: 'N/A',
+      date: new Date(),
+      issueIdUrl: 'http://0.0.0.0',
+      issueLinkUrl: 'http://0.0.0.0',
+      issueStatus: 'Done',
+      issueSummary: 'Dummy Entry',
+      issueType: 'Dummy Issue',
+      link: 'http://0.0.0.0',
+      planned: false,
+      serialNumber: 0,
+      user: user._id,
+      username: user.displayName || 'N/A',
+    });
+
     await this.sendMailInvitationEmail(
       user.emailAddress,
       organizationUserRole['user']['displayName'],
