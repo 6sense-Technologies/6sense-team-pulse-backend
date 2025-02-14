@@ -198,7 +198,7 @@ export class UserService {
       lastMonth.push({ averageScore: 0 });
     }
     const userObject = userData.toObject();
-    if (!('isDisabled' in userData)) {
+    if (!('isDisabled' in userObject)) {
       userObject['isDisabled'] = false;
     }
     return {
