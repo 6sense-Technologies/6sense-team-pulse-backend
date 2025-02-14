@@ -123,7 +123,7 @@ export class UserService {
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls isDisabled');
-    console.log(userData);
+
     if (!('isDisabled' in userData)) {
       userData['isDisabled'] = false;
     }
