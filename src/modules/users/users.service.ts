@@ -215,25 +215,21 @@ export class UserService {
     const todaysDate = new Date();
     const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
     const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
-    console.log(`Fetching data ${thirtyDaysAgoDate}`);
 
     const orgUserRoleModel = await this.organizationUserRoleModel
       .findOne({
         user: new Types.ObjectId(userId),
       })
       .populate('organization');
+
     // console.log(orgUserRoleModel['organization']['createdBy']);
-    const teamMembers = await this.organizationModel.findOne({
-      createdBy: new Types.ObjectId(
-        orgUserRoleModel['organization']['createdBy'],
-      ),
-    });
-    console.log(teamMembers);
+    const teamMembers = orgUserRoleModel.organization['users'];
+
     const overViewAggr: any = overView(
       thirtyDaysAgoDate,
       page,
       limit,
-      teamMembers['users'],
+      teamMembers,
     );
 
     const result = await this.issueEntryModel.aggregate(overViewAggr);

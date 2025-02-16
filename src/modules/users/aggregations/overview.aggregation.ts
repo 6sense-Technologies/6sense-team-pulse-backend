@@ -18,7 +18,7 @@ export const overView = (
       $match: {
         comment: { $ne: 'holidays/leave' },
         date: { $gte: new Date(date) },
-        // user: { $in: filterIds },
+        user: { $in: filterIds },
       },
     },
     {
@@ -289,14 +289,14 @@ export const overView = (
     },
     {
       $project: {
-        displayName: "$userData.displayName",
-        emailAddress: "$userData.emailAddress",
-        designation: "$userData.designation",
-        avatarUrls: "$userData.avatarUrls",
-        isDisabled: { $ifNull: ["$userData.isDisabled", false] },
-        role: "Member",
-        performance: 1
-      }
+        displayName: '$userData.displayName',
+        emailAddress: '$userData.emailAddress',
+        designation: '$userData.designation',
+        avatarUrls: '$userData.avatarUrls',
+        isDisabled: { $ifNull: ['$userData.isDisabled', false] },
+        role: 'Member',
+        performance: 1,
+      },
     },
     {
       $sort: {
@@ -304,11 +304,11 @@ export const overView = (
         designation: 1,
       },
     },
-    {
-      $match: {
-        _id: { $in: filterIds },
-      },
-    },
+    // {
+    //   $match: {
+    //     _id: { $in: filterIds },
+    //   },
+    // },
     {
       $facet: {
         total: [{ $count: 'total' }],
