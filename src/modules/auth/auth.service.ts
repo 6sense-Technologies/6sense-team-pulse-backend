@@ -281,8 +281,8 @@ export class AuthService {
     const user = await this.userModel.findOne({
       emailAddress: decoded.emailAddress,
     });
-    if (user.isDisabled) {
-      user.isDisabled = false;
+    if (!user.isVerified) {
+      user.isVerified = true;
     }
     await user.save();
     return user;

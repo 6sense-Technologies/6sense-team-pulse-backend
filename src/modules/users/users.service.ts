@@ -123,7 +123,7 @@ export class UserService {
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls isDisabled');
-
+    console.log(userData);
     if (!('isDisabled' in userData)) {
       userData['isDisabled'] = false;
     }
@@ -221,7 +221,7 @@ export class UserService {
         user: new Types.ObjectId(userId),
       })
       .populate('organization');
-
+    console.log(orgUserRoleModel);
     // console.log(orgUserRoleModel['organization']['createdBy']);
     const teamMembers = orgUserRoleModel.organization['users'];
 
@@ -303,14 +303,14 @@ export class UserService {
       githubUserName: inviteUserDTO.githubUserName,
       avatarUrl: avatarUrl,
       isInvited: true,
-      isDisabled: true,
-      isVerified: true,
+      isDisabled: false,
+      isVerified: false,
     });
 
     await this.organizationUserRoleModel.create({
       role: role._id,
       user: user._id,
-      organization: organizationUserRole._id,
+      organization: organizationUserRole.organization._id,
     });
     if (!inviteUserDTO.projects) {
       await this.sendMailInvitationEmail(
