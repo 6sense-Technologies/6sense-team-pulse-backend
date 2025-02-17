@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   Inject,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '../enums/role.enum';
@@ -29,6 +30,9 @@ export class RolesGuard implements CanActivate {
     const roles = this.reflector.get(Roles, context.getHandler());
     // console.log(`Allowed roles: ${roles}`);
     const request = context.switchToHttp().getRequest();
+    if (!request['headers']['authorization']) {
+      throw new UnauthorizedException();
+    }
     const jwtToken = request['headers']['authorization'].split('Bearer ')[1];
     // console.log(`TOKEN: ${jwtToken}`);
     const decodedToken = this.jwtService.decode(jwtToken);

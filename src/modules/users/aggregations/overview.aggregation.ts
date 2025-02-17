@@ -12,7 +12,7 @@ export const overView = (
       $match: {
         comment: { $ne: 'holidays/leave' },
         date: { $gte: new Date(date) },
-        // user: { $in: filterIds },
+        user: { $in: filterIds },
       },
     },
     {
@@ -287,6 +287,7 @@ export const overView = (
         emailAddress: '$userData.emailAddress',
         designation: '$userData.designation',
         avatarUrls: '$userData.avatarUrls',
+        isDisabled: { $ifNull: ['$userData.isDisabled', false] },
         role: 'Member',
         performance: 1,
       },
@@ -297,11 +298,11 @@ export const overView = (
         designation: 1,
       },
     },
-    {
-      $match: {
-        _id: { $in: filterIds },
-      },
-    },
+    // {
+    //   $match: {
+    //     _id: { $in: filterIds },
+    //   },
+    // },
     {
       $facet: {
         total: [{ $count: 'total' }],

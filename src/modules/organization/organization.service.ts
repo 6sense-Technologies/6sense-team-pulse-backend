@@ -92,4 +92,8 @@ export class OrganizationService {
       throw error;
     }
   }
+  async findRoles() {
+    const roles = await this.roleModel.find({});
+    return roles;
+  }
 }

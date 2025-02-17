@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { Designation, Project } from '../enums/user.enum';
-
+//TODO: THIS IS OLD USER SCHEMA N
 export interface IIssueCount {
   Task: number;
   Bug: number;

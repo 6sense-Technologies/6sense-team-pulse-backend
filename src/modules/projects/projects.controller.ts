@@ -22,6 +22,19 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @Controller('projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
+  @UseGuards(RolesGuard)
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Roles(['Admin', 'Member'])
+  @Get('names')
+  findProjectNames(
+    @Req() req: Request,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    console.log(`USERID: ${req['user'].userId}`);
+    return this.projectsService.getNames(+page, +limit, req['user'].userId);
+  }
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @Roles(['Admin'])
