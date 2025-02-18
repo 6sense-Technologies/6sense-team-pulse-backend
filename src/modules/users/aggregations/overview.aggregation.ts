@@ -12,12 +12,16 @@ export const overView = (
     'USER STORIES (Verified In Beta)',
     'USER STORIES (Verified In Test)',
   ];
-  const startDate = new Date(date).toISOString();
+  const startDate = new Date(date.split('T')[0]).toISOString();
+  const currentDate = new Date().toISOString();
+  const endDate = new Date(currentDate.split('T')[0]).toISOString();
+  console.log(`Start date: ${startDate}`);
+  console.log(`End Date: ${endDate}`);
   return [
     {
       $match: {
         comment: { $ne: 'holidays/leave' },
-        date: { $gte: new Date(date) },
+        date: { $gte: new Date(startDate), $lte: new Date(endDate) },
         user: { $in: filterIds },
       },
     },
