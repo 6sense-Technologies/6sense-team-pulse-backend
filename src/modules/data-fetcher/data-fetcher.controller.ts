@@ -4,8 +4,14 @@ import { DataFetcherService } from './data-fetcher.service';
 @Controller('data-fetcher')
 export class DataFetcherController {
   constructor(private readonly dataFetcherService: DataFetcherService) {}
+
   @Post('fetch-for-today')
   async getAllData() {
-    await this.dataFetcherService.fetchDataFromAllToolUrls();
+    // Return response early
+    setTimeout(() => {
+      this.dataFetcherService.fetchDataFromAllToolUrls();
+    }, 0);
+
+    return { message: 'Processing' };
   }
 }

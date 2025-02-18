@@ -5,8 +5,11 @@ import { firstValueFrom } from 'rxjs';
 // import { EnvironmentVariables } from 'src/interfaces/config';
 import { DataFetcherDTO } from './dto/data-fetcher.dto';
 import { Tool } from '../users/schemas/Tool.schema';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { JiraService } from '../jira/jira.service';
+import { IssueEntry } from '../users/schemas/IssueEntry.schema';
+import { Users } from '../users/schemas/users.schema';
 // import * as moment from 'moment';
 @Injectable()
 export class DataFetcherService {
@@ -15,6 +18,10 @@ export class DataFetcherService {
     private readonly httpService: HttpService,
     @InjectModel(Tool.name)
     private readonly toolModel: Model<Tool>,
+    @InjectModel(IssueEntry.name)
+    private readonly issueEntryModel: Model<IssueEntry>,
+    @InjectModel(Users.name)
+    private readonly userModel: Model<Users>,
   ) {}
   private getTime(dateTime) {
     // Parse the input dateTime string into a Date object
@@ -187,27 +194,81 @@ export class DataFetcherService {
       );
     }
   }
+  async saveJirIssueToIssueEntry(rawData: any) {
+    const data = JSON.parse(rawData);
+    console.log('INVOKED');
+    // console.log(data);
+    for (let i = 0; i < data.length; i += 1) {
+      if (data[i] !== null) {
+        if (data[i].accountId) {
+          const user = await this.userModel.findOne({
+            accountId: data[i].accountId,
+          });
+
+          if (user) {
+            const issueDate = new Date(data[i].date);
+            console.log(
+              `Found user inserting issue for  ${user.displayName}-Date: ${issueDate}....`,
+            );
+
+            await this.issueEntryModel.findOneAndUpdate(
+              {
+                issueId: data[i].issueId, // Match by issueId
+                projectUrl: data[i].projectUrl, // Match by projectUrl
+              },
+              {
+                serialNumber: i,
+                issueId: data[i].issueId,
+                issueType: data[i].issueType || '',
+                issueStatus: data[i].issueStatus,
+                issueSummary: data[i].issueSummary,
+                username: user.displayName,
+                planned: data[i].planned,
+                link: data[i].issueLinks || '',
+                accountId: data[i].accountId,
+                projectUrl: data[i].projectUrl,
+                issueIdUrl: data[i].issueIdUrl,
+                issueLinkUrl: data[i].issueLinkUrl,
+                user: new mongoose.Types.ObjectId(user.id),
+                date: issueDate,
+                insight: '',
+              },
+              {
+                upsert: true, // Create a new document if none matches
+                new: true, // Return the updated document
+              },
+            );
+          }
+        }
+      }
+    }
+    console.log('DONE..');
+    return 'DONE';
+  }
   async fetchDataFromAllToolUrls() {
     const tools = await this.toolModel.find({});
     const urls = tools.map((tool) => tool.toolUrl);
     const allData = [];
 
     for (const url of urls) {
-      try {
-        const dataFetcherDto: DataFetcherDTO = {
-          projectUrl: url,
-          date: new Date().toISOString().split('T')[0],
-        };
+      if (url.search('atlassian') >= 0) {
+        try {
+          const dataFetcherDto: DataFetcherDTO = {
+            projectUrl: url,
+            date: new Date().toISOString().split('T')[0],
+          };
 
-        const data = await this.dataFetchFromJIRA(dataFetcherDto);
-        allData.push(...data);
-      } catch (error) {
-        console.error(`Error fetching data from URL: ${url}`, error);
-        // You can choose to continue with the next URL or throw an error
-        // throw error; // Uncomment this line if you want to stop the process on error
+          const data = await this.dataFetchFromJIRA(dataFetcherDto);
+          allData.push(...data);
+        } catch (error) {
+          console.error(`Error fetching data from URL: ${url}`, error);
+          // throw error; // Uncomment this line if you want to stop the process on error
+        }
+      } else {
+        console.log('Not a valid jira board url');
       }
     }
-
-    return allData;
+    const status = await this.saveJirIssueToIssueEntry(JSON.stringify(allData));
+    return status;
   }
 }
