@@ -11,6 +11,7 @@ export const individualStats = (
     'USER STORIES (Verified In Beta)',
     'USER STORIES (Verified In Test)',
   ];
+  const startDate = new Date().toISOString();
   const indiestatAgg = [
     {
       $match: {
@@ -18,6 +19,7 @@ export const individualStats = (
         issueType: {
           $in: ['Task', 'Story', 'Bug'],
         },
+        date: { $lte: new Date(startDate) },
       },
     },
     {

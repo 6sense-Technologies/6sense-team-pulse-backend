@@ -58,13 +58,14 @@ export class JiraService {
   /*EXPERIMENTAL MODIFICATION*/
   public async fetchAndSaveFromJira(rawData: any) {
     console.log('INVOKED');
-    const data = rawData;
+    const data = JSON.parse(rawData);
     // console.log(data);
     for (let i = 0; i < data.length; i += 1) {
       if (data[i].accountId) {
         const user = await this.userModel.findOne({
           accountId: data[i].accountId,
         });
+        
         if (user) {
           const issueDate = new Date(data[i].date);
           console.log(
