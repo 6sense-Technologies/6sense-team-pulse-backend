@@ -1,11 +1,11 @@
-import { Controller, Post } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import { DataFetcherService } from './data-fetcher.service';
 
 @Controller('data-fetcher')
 export class DataFetcherController {
   constructor(private readonly dataFetcherService: DataFetcherService) {}
 
-  @Post('fetch-for-today')
+  @Get('fetch-for-today')
   async getAllData() {
     // Return response early
     setTimeout(() => {
