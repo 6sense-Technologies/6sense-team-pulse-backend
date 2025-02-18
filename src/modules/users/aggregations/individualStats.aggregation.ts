@@ -330,7 +330,27 @@ export const individualStats = (
     },
     {
       $addFields: {
-        insight: 'N/A',
+        insight: {
+          $cond: {
+            if: { $gt: ['$doneTaskCountUnplanned', 0] },
+            then: {
+              $concat: [
+                'Your target was ',
+                { $toString: '$doneTaskCountPlanned' },
+                ' but you completed ',
+                {
+                  $toString: {
+                    $sum: ['$totalDoneTaskCount', '$doneBugCount'],
+                  },
+                },
+                '. ',
+                { $toString: '$doneTaskCountUnplanned' },
+                ' tasks that you completed do not match your target issues.',
+              ],
+            },
+            else: '',
+          },
+        },
         // insight: {
         //   $cond: {
         //     if: {
