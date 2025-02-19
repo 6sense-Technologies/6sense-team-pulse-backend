@@ -98,14 +98,12 @@ export class DataFetcherService {
           this.httpService.post(url, paginatedQuery, { headers }),
         );
         const { issues, total: totalIssues } = response.data;
-
         allIssues.push(...issues);
         total = totalIssues;
 
         startAt += maxResults;
       } while (startAt < total);
       const transformedIssue = allIssues.map((issue) => {
-        // console.log(issue);
         const dueDate = issue.fields.duedate;
         const projectUrl = dataFetcherdto.projectUrl;
         const projectKey = issue['key'];
@@ -149,8 +147,6 @@ export class DataFetcherService {
           isPlanned = true;
           createdDate = createdDate.split('T')[0];
         }
-        // console.log(`Hour: ${hour}, Minute: ${minute}, Planned: ${isPlanned}`);
-
         const issueLinks = issue.fields?.issuelinks || [];
         const transformedIssueLinks = issueLinks.flatMap((link: any) => {
           const outwardId = link?.outwardIssue?.id || null;
@@ -165,20 +161,22 @@ export class DataFetcherService {
           `Created Date: ${new Date(issue.fields?.created.split('T')[0]).toISOString()}`,
         );
         const transformedIssueLinksString = transformedIssueLinks.join(',');
-        return {
-          issueType: issue.fields.issuetype.name,
-          issueId: issue.id,
-          issueSummary: issue.fields.summary,
-          planned: isPlanned,
-          issueStatus: issue.fields.status.name,
-          issueIdUrl: issueIdUrl,
-          link: transformedIssueLinksString,
-          projectUrl: projectUrl,
-          issueLinkUrl: projectUrl + '/browse/' + transformedIssueLinksString,
-          accountId: issue.fields?.assignee?.accountId,
-          date: new Date(createdDate).toISOString(),
-          displayName: issue.fields?.assignee?.displayName,
-        };
+        if (dueDate) {
+          return {
+            issueType: issue.fields.issuetype.name,
+            issueId: issue.id,
+            issueSummary: issue.fields.summary,
+            planned: isPlanned,
+            issueStatus: issue.fields.status.name,
+            issueIdUrl: issueIdUrl,
+            link: transformedIssueLinksString,
+            projectUrl: projectUrl,
+            issueLinkUrl: projectUrl + '/browse/' + transformedIssueLinksString,
+            accountId: issue.fields?.assignee?.accountId,
+            date: new Date(createdDate).toISOString(),
+            displayName: issue.fields?.assignee?.displayName,
+          };
+        }
       });
       console.log('DONE');
 
