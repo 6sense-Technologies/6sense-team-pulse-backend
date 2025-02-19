@@ -194,16 +194,21 @@ export class DataFetcherService {
       );
     }
   }
-  async saveJirIssueToIssueEntry(rawData: any) {
+  async saveJiraIssueToIssueEntry(rawData: any) {
     const data = JSON.parse(rawData);
     console.log('INVOKED');
     // console.log(data);
     for (let i = 0; i < data.length; i += 1) {
       if (data[i] !== null) {
         if (data[i].accountId) {
-          const user = await this.userModel.findOne({
+          let user = await this.userModel.findOne({
             accountId: data[i].accountId,
           });
+          if (!user) {
+            user = await this.userModel.findOne({
+              jiraId: data[i].accountId,
+            });
+          }
 
           if (user) {
             const issueDate = new Date(data[i].date);
@@ -268,7 +273,9 @@ export class DataFetcherService {
         console.log('Not a valid jira board url');
       }
     }
-    const status = await this.saveJirIssueToIssueEntry(JSON.stringify(allData));
+    const status = await this.saveJiraIssueToIssueEntry(
+      JSON.stringify(allData),
+    );
     return status;
   }
 }

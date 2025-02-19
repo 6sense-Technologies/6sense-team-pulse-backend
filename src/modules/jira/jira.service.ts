@@ -60,14 +60,19 @@ export class JiraService {
     console.log('INVOKED');
     // console.log(rawData);
     const data = JSON.parse(rawData);
+    console.log(data);
     // console.log(data);
     for (let i = 0; i < data.length; i += 1) {
       if (data[i] !== null) {
         if (data[i].accountId) {
-          const user = await this.userModel.findOne({
+          let user = await this.userModel.findOne({
             accountId: data[i].accountId,
           });
-
+          if (!user) {
+            user = await this.userModel.findOne({
+              jiraId: data[i].accountId,
+            });
+          }
           if (user) {
             const issueDate = new Date(data[i].date);
             console.log(
