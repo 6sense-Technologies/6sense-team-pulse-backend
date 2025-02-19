@@ -58,58 +58,77 @@ export class JiraService {
   /*EXPERIMENTAL MODIFICATION*/
   public async fetchAndSaveFromJira(rawData: any) {
     console.log('INVOKED');
-    // console.log(rawData);
-    const data = JSON.parse(rawData);
-    console.log(data);
-    // console.log(data);
-    for (let i = 0; i < data.length; i += 1) {
-      if (data[i] !== null) {
-        if (data[i].accountId) {
-          let user = await this.userModel.findOne({
-            accountId: data[i].accountId,
-          });
-          if (!user) {
-            user = await this.userModel.findOne({
-              jiraId: data[i].accountId,
-            });
-          }
-          if (user) {
-            const issueDate = new Date(data[i].date);
-            console.log(
-              `Found user inserting issue for  ${user.displayName}-Date: ${issueDate}....`,
-            );
 
-            await this.issueEntryModel.findOneAndUpdate(
-              {
-                issueId: data[i].issueId, // Match by issueId
-                projectUrl: data[i].projectUrl, // Match by projectUrl
-              },
-              {
-                serialNumber: i,
-                issueId: data[i].issueId,
-                issueType: data[i].issueType || '',
-                issueStatus: data[i].issueStatus,
-                issueSummary: data[i].issueSummary,
-                username: user.displayName,
-                planned: data[i].planned,
-                link: data[i].issueLinks || '',
-                accountId: data[i].accountId,
-                projectUrl: data[i].projectUrl,
-                issueIdUrl: data[i].issueIdUrl,
-                issueLinkUrl: data[i].issueLinkUrl,
-                user: new mongoose.Types.ObjectId(user.id),
-                date: issueDate,
-                insight: '',
-              },
-              {
-                upsert: true, // Create a new document if none matches
-                new: true, // Return the updated document
-              },
-            );
-          }
+    const data = JSON.parse(rawData);
+    // console.log(data);
+
+    for (let i = 0; i < data.length; i += 1) {
+      if (!data[i]) continue;
+
+      const {
+        accountId,
+        issueId,
+        projectUrl,
+        issueIdUrl,
+        issueLinkUrl,
+        issueType,
+        issueStatus,
+        issueSummary,
+        planned,
+        issueLinks,
+        date,
+      } = data[i];
+
+      if (accountId) {
+        // Fetch all users matching accountId or jiraId
+        const users = await this.userModel.find({
+          $or: [{ accountId }, { jiraId: accountId }],
+        });
+        console.log(users);
+        if (!users.length) {
+          console.warn(`No users found for accountId: ${accountId}`);
+          continue;
+        }
+
+        const issueDate = new Date(date);
+
+        for (const user of users) {
+          console.log(
+            `Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`,
+          );
+
+          await this.issueEntryModel.findOneAndUpdate(
+            {
+              issueId, // Match by issueId
+              projectUrl, // Match by projectUrl
+              user: new mongoose.Types.ObjectId(user.id), // Ensure uniqueness per user
+            },
+            {
+              serialNumber: i,
+              issueId,
+              issueType: issueType || '',
+              issueStatus,
+              issueSummary,
+              username: user.displayName,
+              planned,
+              link: issueLinks || '',
+              accountId,
+              projectUrl,
+              issueIdUrl,
+              issueLinkUrl,
+              user: new mongoose.Types.ObjectId(user.id),
+              date: issueDate,
+              insight: '',
+            },
+            {
+              upsert: true, // Create if not found
+              new: true, // Return the updated document
+            },
+          );
         }
       }
     }
+
     console.log('DONE..');
     return 'DONE';
   }

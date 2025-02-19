@@ -18,6 +18,7 @@ export const overView = (
   console.log(`Start date: ${startDate}`);
   console.log(`End Date: ${endDate}`);
   return [
+    // Pipeline 1: Fetch users who match the $match conditions and calculate performance
     {
       $match: {
         comment: { $ne: 'holidays/leave' },
@@ -27,18 +28,13 @@ export const overView = (
     },
     {
       $group: {
-        _id: {
-          user: '$user',
-          date: '$date',
-        },
+        _id: '$user',
         doneTaskCountPlanned: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
                   {
                     $in: [
                       '$issueStatus',
@@ -50,9 +46,7 @@ export const overView = (
                       ],
                     ],
                   },
-                  {
-                    $eq: ['$planned', true],
-                  },
+                  { $eq: ['$planned', true] },
                 ],
               },
               1,
@@ -65,9 +59,7 @@ export const overView = (
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
                   {
                     $in: [
                       '$issueStatus',
@@ -79,10 +71,7 @@ export const overView = (
                       ],
                     ],
                   },
-                  {
-                    $eq: ['$planned', false],
-                  },
-                  // Corrected date filter
+                  { $eq: ['$planned', false] },
                 ],
               },
               1,
@@ -95,9 +84,7 @@ export const overView = (
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
                   {
                     $not: {
                       $in: [
@@ -111,9 +98,7 @@ export const overView = (
                       ],
                     },
                   },
-                  {
-                    $eq: ['$planned', true],
-                  },
+                  { $eq: ['$planned', true] },
                 ],
               },
               1,
@@ -126,9 +111,7 @@ export const overView = (
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
                   {
                     $not: {
                       $in: [
@@ -142,9 +125,7 @@ export const overView = (
                       ],
                     },
                   },
-                  {
-                    $eq: ['$planned', false],
-                  },
+                  { $eq: ['$planned', false] },
                 ],
               },
               1,
@@ -157,9 +138,7 @@ export const overView = (
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Story'],
-                  },
+                  { $eq: ['$issueType', 'Story'] },
                   {
                     $in: [
                       '$issueStatus',
@@ -183,9 +162,7 @@ export const overView = (
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Story'],
-                  },
+                  { $eq: ['$issueType', 'Story'] },
                   {
                     $not: {
                       $in: [
@@ -275,12 +252,6 @@ export const overView = (
       },
     },
     {
-      $group: {
-        _id: '$_id.user',
-        performance: { $avg: '$performance' },
-      },
-    },
-    {
       $lookup: {
         from: 'users',
         localField: '_id',
@@ -293,6 +264,7 @@ export const overView = (
     },
     {
       $project: {
+        _id: '$_id',
         displayName: '$userData.displayName',
         emailAddress: '$userData.emailAddress',
         designation: '$userData.designation',
@@ -302,17 +274,57 @@ export const overView = (
         performance: 1,
       },
     },
+
+    // Combine with Pipeline 2 using $unionWith
+    {
+      $unionWith: {
+        coll: 'users',
+        pipeline: [
+          // Pipeline 2: Fetch all users and set performance to 0
+          {
+            $match: {
+              _id: { $in: filterIds },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              displayName: 1,
+              emailAddress: 1,
+              designation: 1,
+              avatarUrls: 1,
+              isDisabled: { $ifNull: ['$isDisabled', false] },
+              role: 'Member',
+              performance: { $literal: 0 }, // Default performance to 0
+            },
+          },
+        ],
+      },
+    },
+
+    // Deduplicate users: Keep users from Pipeline 1 if they exist, otherwise use Pipeline 2
+    {
+      $group: {
+        _id: '$_id',
+        displayName: { $first: '$displayName' },
+        emailAddress: { $first: '$emailAddress' },
+        designation: { $first: '$designation' },
+        avatarUrls: { $first: '$avatarUrls' },
+        isDisabled: { $first: '$isDisabled' },
+        role: { $first: '$role' },
+        performance: { $max: '$performance' }, // Use the higher performance value
+      },
+    },
+
+    // Sort results
     {
       $sort: {
         displayName: 1,
         designation: 1,
       },
     },
-    // {
-    //   $match: {
-    //     _id: { $in: filterIds },
-    //   },
-    // },
+
+    // Paginate results
     {
       $facet: {
         total: [{ $count: 'total' }],
