@@ -23,6 +23,7 @@ export class DataFetcherService {
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
   ) {}
+  private getHolidays() {}
   private getTime(dateTime) {
     // Parse the input dateTime string into a Date object
     // console.log(`Before Formating: ${dateTime}`);
@@ -120,11 +121,18 @@ export class DataFetcherService {
             console.warn(
               `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
             );
-            if (hour <= 11 && minute <= 15 && amPm === 'AM') {
+            if (
+              (hour >= 12 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
+              (hour >= 1 &&
+                minute >= 0 &&
+                hour <= 11 &&
+                minute <= 15 &&
+                amPm === 'AM')
+            ) {
               isPlanned = true;
               createdDate = dueDate;
             } else if (
-              (hour >= 11 && minute >= 16 && amPm === 'AM') ||
+              (hour >= 11 && minute >= 16 && minute <= 59 && amPm === 'AM') ||
               amPm === 'PM'
             ) {
               console.warn(
@@ -185,10 +193,6 @@ export class DataFetcherService {
       console.error(
         'Error fetching issues from Jira',
         error.response?.data || error.message,
-      );
-      throw new HttpException(
-        error.response?.data || 'Error fetching issues from Jira',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -272,7 +276,6 @@ export class DataFetcherService {
     const tools = await this.toolModel.find({});
     const urls = tools.map((tool) => tool.toolUrl);
     const allData = [];
-
     for (const url of urls) {
       if (url.search('atlassian') >= 0) {
         try {

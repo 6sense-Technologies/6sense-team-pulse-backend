@@ -6,12 +6,6 @@ export const overView = (
 ) => {
   console.log('FILTER IDS: ');
   console.log(filterIds);
-  const doneCondition = [
-    'Done',
-    'In Review',
-    'USER STORIES (Verified In Beta)',
-    'USER STORIES (Verified In Test)',
-  ];
   const startDate = new Date(date.split('T')[0]).toISOString();
   const currentDate = new Date().toISOString();
   const endDate = new Date(currentDate.split('T')[0]).toISOString();
