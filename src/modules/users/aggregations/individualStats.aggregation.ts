@@ -17,7 +17,7 @@ export const individualStats = (
       $match: {
         user: new Types.ObjectId(userId),
         issueType: {
-          $in: ['Task', 'Story', 'Bug'],
+          $in: ['Task', 'Story', 'Bug','Holiday'],
         },
         date: { $lte: new Date(startDate) },
       },
@@ -28,7 +28,7 @@ export const individualStats = (
     {
       $group: {
         _id: '$date',
-        // insight: { $first: '$comment' },
+        comment: { $first: '$comment' },
         // Group by the 'date' field
         doneTaskCountPlanned: {
           $sum: {
@@ -350,7 +350,7 @@ export const individualStats = (
                 ' tasks that you completed do not match your target issues.',
               ],
             },
-            else: '',
+            else: '$comment',
           },
         },
         // insight: {
