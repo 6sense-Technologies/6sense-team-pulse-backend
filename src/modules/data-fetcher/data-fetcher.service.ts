@@ -62,7 +62,7 @@ export class DataFetcherService {
     };
     const todaysDate =
       dataFetcherdto.date || new Date().toISOString().split('T')[0];
-    console.log(`Fetching datas for date: ${todaysDate}`);
+    console.log(`Fetching datas for date greater than equal : ${todaysDate}`);
     // const tempDate = '2024-08-01';
     const jqlQuery = {
       jql: `created >= '${todaysDate}'`,
@@ -289,6 +289,7 @@ export class DataFetcherService {
         urlSet.add(url);
 
         try {
+          console.log(`Fetching data from ${url}`);
           const dataFetcherDto: DataFetcherDTO = {
             projectUrl: url,
             date: new Date().toISOString().split('T')[0],
@@ -300,8 +301,6 @@ export class DataFetcherService {
           console.error(`Error fetching data from URL: ${url}`, error);
           // throw error; // Uncomment this line if you want to stop the process on error
         }
-      } else {
-        console.log('Not a valid jira board url');
       }
     }
     const status = await this.saveJiraIssueToIssueEntry(

@@ -5,12 +5,6 @@ export const individualStats = (
   page: Number,
   limit: Number,
 ) => {
-  const doneCondition = [
-    'Done',
-    'In Review',
-    'USER STORIES (Verified In Beta)',
-    'USER STORIES (Verified In Test)',
-  ];
   const startDate = new Date().toISOString();
   const indiestatAgg = [
     {
@@ -55,7 +49,15 @@ export const individualStats = (
                     $eq: ['$issueType', 'Task'],
                   },
                   {
-                    $in: ['$issueStatus', doneCondition],
+                    $in: [
+                      '$issueStatus',
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                      ],
+                    ],
                   },
                   {
                     $eq: ['$planned', true],
@@ -76,7 +78,15 @@ export const individualStats = (
                     $eq: ['$issueType', 'Task'],
                   },
                   {
-                    $in: ['$issueStatus', doneCondition],
+                    $in: [
+                      '$issueStatus',
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                      ],
+                    ],
                   },
                   {
                     $eq: ['$planned', false],
@@ -98,7 +108,15 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', doneCondition],
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                        ],
+                      ],
                     },
                   },
                   {
@@ -121,7 +139,15 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', doneCondition],
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                        ],
+                      ],
                     },
                   },
                   {
@@ -143,7 +169,15 @@ export const individualStats = (
                     $eq: ['$issueType', 'Story'],
                   },
                   {
-                    $in: ['$issueStatus', doneCondition],
+                    $in: [
+                      '$issueStatus',
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                      ],
+                    ],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -165,7 +199,15 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', doneCondition],
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                        ],
+                      ],
                     },
                   },
                   //   {
@@ -187,7 +229,15 @@ export const individualStats = (
                     $eq: ['$issueType', 'Bug'],
                   },
                   {
-                    $in: ['$issueStatus', doneCondition],
+                    $in: [
+                      '$issueStatus',
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                      ],
+                    ],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -209,7 +259,15 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', doneCondition],
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                        ],
+                      ],
                     },
                   },
                   //   {

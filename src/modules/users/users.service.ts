@@ -301,7 +301,7 @@ export class UserService {
       jiraId: inviteUserDTO.jiraId,
       trelloId: inviteUserDTO.trelloId,
       githubUserName: inviteUserDTO.githubUserName,
-      avatarUrl: avatarUrl,
+      avatarUrls: avatarUrl,
       isInvited: true,
       isDisabled: false,
       isVerified: false,
