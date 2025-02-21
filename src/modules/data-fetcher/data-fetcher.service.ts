@@ -23,37 +23,6 @@ export class DataFetcherService {
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
   ) {}
-  getWeekendsInRange(startDate: string, endDate: string) {
-    let weekends = [];
-
-    let start = new Date(startDate); // Start date
-    let end = new Date(endDate); // End date
-
-    // Create a formatter for Bangladeshi time
-    const formatter = new Intl.DateTimeFormat('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      timeZone: 'Asia/Dhaka',
-    });
-
-    while (start <= end) {
-      let day = start.getDay(); // 0 = Sunday, 6 = Saturday
-      let isoString = start.toISOString(); // Get ISO string format
-
-      if (day === 6) {
-        // Saturday
-        weekends.push(isoString);
-      } else if (day === 0) {
-        // Sunday
-        weekends.push(isoString);
-      }
-
-      start.setDate(start.getDate() + 1); // Move to the next day
-    }
-
-    return weekends;
-  }
   private getTime(dateTime) {
     // Parse the input dateTime string into a Date object
     // console.log(`Before Formating: ${dateTime}`);
@@ -221,37 +190,6 @@ export class DataFetcherService {
         }
       });
       console.log('DONE');
-      const weekDays = this.getWeekendsInRange(
-        todaysDate,
-        new Date().toISOString().split('T')[0],
-      );
-      console.log(weekDays);
-      if (accountIds) {
-        for (const accountId of accountIds) {
-          for (let i = 0; i < weekDays.length; i += 1) {
-            if (accountId) {
-              console.table(
-                `Inserting data for weekDays ${weekDays[i]} for user ${accountId}`,
-              );
-              transformedIssue.push({
-                issueType: 'Holiday',
-                issueId: `DUMMY-${weekDays[i]}-${accountId}`,
-                issueSummary: 'DUMMY',
-                planned: false,
-                issueStatus: 'DONE',
-                issueIdUrl: 'http://0.0.0.0',
-                link: 'http://0.0.0.0',
-                projectUrl: 'http://0.0.0.0',
-                issueLinkUrl: 'http://0.0.0.0',
-                accountId: accountId,
-                date: new Date(weekDays[i]).toISOString(),
-                displayName: 'N/A',
-                comment: 'holidays/leave',
-              });
-            }
-          }
-        }
-      }
       return transformedIssue;
     } catch (error) {
       console.error(

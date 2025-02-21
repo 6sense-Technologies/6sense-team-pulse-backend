@@ -17,9 +17,24 @@ export const individualStats = (
       $match: {
         user: new Types.ObjectId(userId),
         issueType: {
-          $in: ['Task', 'Story', 'Bug','Holiday'],
+          $in: ['Task', 'Story', 'Bug', 'Holiday'],
         },
         date: { $lte: new Date(startDate) },
+      },
+    },
+    {
+      $densify: {
+        field: 'date',
+        range: {
+          bounds: [new Date('2024-08-01'), new Date()],
+          step: 1,
+          unit: 'day',
+        },
+      },
+    },
+    {
+      $set: {
+        hasIssue: { $ifNull: ['$issueId', false] },
       },
     },
     {
@@ -29,6 +44,7 @@ export const individualStats = (
       $group: {
         _id: '$date',
         comment: { $first: '$comment' },
+        hasIssue: { $first: '$hasIssue' },
         // Group by the 'date' field
         doneTaskCountPlanned: {
           $sum: {
@@ -334,23 +350,29 @@ export const individualStats = (
       $addFields: {
         insight: {
           $cond: {
-            if: { $gt: ['$doneTaskCountUnplanned', 0] },
-            then: {
-              $concat: [
-                'Your target was ',
-                { $toString: '$doneTaskCountPlanned' },
-                ' but you completed ',
-                {
-                  $toString: {
-                    $sum: ['$totalDoneTaskCount', '$doneBugCount'],
-                  },
+            if: { $eq: ['$hasIssue', false] },
+            then: 'holidays/leave',
+            else: {
+              $cond: {
+                if: { $gt: ['$doneTaskCountUnplanned', 0] },
+                then: {
+                  $concat: [
+                    'Your target was ',
+                    { $toString: '$doneTaskCountPlanned' },
+                    ' but you completed ',
+                    {
+                      $toString: {
+                        $sum: ['$totalDoneTaskCount', '$doneBugCount'],
+                      },
+                    },
+                    '. ',
+                    { $toString: '$doneTaskCountUnplanned' },
+                    ' tasks that you completed do not match your target issues.',
+                  ],
                 },
-                '. ',
-                { $toString: '$doneTaskCountUnplanned' },
-                ' tasks that you completed do not match your target issues.',
-              ],
+                else: '',
+              },
             },
-            else: '$comment',
           },
         },
         // insight: {

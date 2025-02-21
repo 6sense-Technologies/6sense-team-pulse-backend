@@ -84,7 +84,7 @@ export class JiraService {
         const users = await this.userModel.find({
           $or: [{ accountId }, { jiraId: accountId }],
         });
-        console.log(users);
+        // console.log(users);
         if (!users.length) {
           console.warn(`No users found for accountId: ${accountId}`);
           continue;
