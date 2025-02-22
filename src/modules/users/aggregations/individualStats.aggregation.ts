@@ -9,7 +9,7 @@ export const individualStats = (
     new Date()
       .toLocaleString('sv-SE', { timeZone: 'Asia/Dhaka' })
       .replace(' ', 'T') + '+06:00';
-  console.log(startDate);
+
   const indiestatAgg = [
     {
       $match: {
@@ -17,14 +17,14 @@ export const individualStats = (
         issueType: {
           $in: ['Task', 'Story', 'Bug', 'Holiday'],
         },
-        date: { $lte: new Date(startDate) },
+        date: { $lte: new Date(startDate.split('T')[0]) },
       },
     },
     {
       $densify: {
         field: 'date',
         range: {
-          bounds: [new Date('2024-08-01'), new Date()],
+          bounds: [new Date('2024-08-01'), new Date(startDate.split('T')[0])],
           step: 1,
           unit: 'day',
         },
