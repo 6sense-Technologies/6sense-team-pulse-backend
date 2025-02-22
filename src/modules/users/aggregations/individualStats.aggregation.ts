@@ -5,7 +5,11 @@ export const individualStats = (
   page: Number,
   limit: Number,
 ) => {
-  const startDate = new Date().toISOString();
+  const startDate =
+    new Date()
+      .toLocaleString('sv-SE', { timeZone: 'Asia/Dhaka' })
+      .replace(' ', 'T') + '+06:00';
+  console.log(startDate);
   const indiestatAgg = [
     {
       $match: {
