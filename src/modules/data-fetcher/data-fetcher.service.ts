@@ -60,8 +60,11 @@ export class DataFetcherService {
       ).toString('base64')}`,
       Accept: 'application/json',
     };
+    const now = new Date();
+    const bangladeshOffset = 6 * 60 * 60 * 1000; // UTC+6 in milliseconds
     const todaysDate =
-      dataFetcherdto.date || new Date().toISOString().split('T')[0];
+      dataFetcherdto.date ||
+      new Date(now.getTime() + bangladeshOffset).toISOString().split('T')[0];
     console.log(`Fetching datas for date greater than equal : ${todaysDate}`);
     // const tempDate = '2024-08-01';
     const jqlQuery = {
