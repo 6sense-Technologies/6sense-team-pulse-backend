@@ -8,6 +8,6 @@ export class EmailServiceController {
 
   @Post('send-verfication-email')
   async sendEmail(@Query('emailAddress') emailAddress: string) {
-    return await this.emailService.sendEmail(emailAddress);
+    return this.emailService.sendEmail(emailAddress);
   }
 }
