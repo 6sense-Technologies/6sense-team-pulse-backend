@@ -276,7 +276,7 @@ export const overView = (
     {
       $unwind: {
         path: '$userData',
-        preserveNullAndEmptyArrays: true, // Ensure we keep users even if no match in users collection
+        preserveNullAndEmptyArrays: false, // Ensure we keep users even if no match in users collection
       },
     },
 
