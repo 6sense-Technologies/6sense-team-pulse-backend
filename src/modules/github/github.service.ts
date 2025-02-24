@@ -1,18 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { CreateGithubDto } from './dto/create-github.dto';
-import { UpdateGithubDto } from './dto/update-github.dto';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { GitRepo } from '../users/schemas/GitRepo.schema';
-import mongoose, { Model, Types } from 'mongoose';
-import { User } from '../users/schemas/user.schema';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
-import { GitContribution } from '../users/schemas/GitContribution.schema';
+import { Queue } from 'bullmq';
 import { DateTime } from 'luxon';
+import mongoose, { Model, Types } from 'mongoose';
+import { firstValueFrom } from 'rxjs';
+import { GitContribution } from '../users/schemas/GitContribution.schema';
+import { GitRepo } from '../users/schemas/GitRepo.schema';
+import { User } from '../users/schemas/user.schema';
+import { CreateGithubDto } from './dto/create-github.dto';
+import { UpdateGithubDto } from './dto/update-github.dto';
 
 @Injectable()
 export class GithubService {

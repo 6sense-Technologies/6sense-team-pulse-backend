@@ -1,17 +1,15 @@
-import { ConfigService } from '@nestjs/config';
-import { Model } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
-import { VerifyEmailDto } from './dto/email-service.dto';
-import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 import { MailerService } from '@nestjs-modules/mailer';
 import {
-  BadRequestException,
   Injectable,
-  NotFoundException,
+  NotFoundException
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 import { Users } from '../users/schemas/users.schema';
 import { EmailTemplate } from './templates/email-template.template';
-import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class EmailService {

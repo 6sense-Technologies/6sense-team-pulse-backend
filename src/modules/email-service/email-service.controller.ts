@@ -1,6 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Controller, Post, Query } from '@nestjs/common';
 import { EmailService } from './email-service.service';
-import { VerifyEmailDto } from './dto/email-service.dto';
 
 @Controller('email-service')
 export class EmailServiceController {
