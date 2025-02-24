@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
-import { Project } from './Project.schema';
 import { Users } from './users.schema';
 @Schema({ timestamps: true })
 export class Organization extends Document {

@@ -1,23 +1,22 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Req,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ProjectsService } from './projects.service';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
-import { ApiBearerAuth } from '@nestjs/swagger';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Role } from '../auth/enums/role.enum';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { ProjectsService } from './projects.service';
 
 @Controller('projects')
 export class ProjectsController {

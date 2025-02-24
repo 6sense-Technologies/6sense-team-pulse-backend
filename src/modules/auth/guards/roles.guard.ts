@@ -1,17 +1,15 @@
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
-  Inject,
-  UnauthorizedException,
+  Injectable,
+  UnauthorizedException
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Role } from '../enums/role.enum';
-import { OrganizationProjectUser } from '../../users/schemas/OrganizationProjectUser.schema';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { OrganizationProjectUser } from '../../users/schemas/OrganizationProjectUser.schema';
 import { OrganizationUserRole } from '../../users/schemas/OrganizationUserRole.schema';
-import { JwtService } from '@nestjs/jwt';
 import { Roles } from '../decorators/roles.decorator';
 
 @Injectable()

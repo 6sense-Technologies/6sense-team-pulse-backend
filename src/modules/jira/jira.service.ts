@@ -1,3 +1,4 @@
+import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   ConflictException,
@@ -6,11 +7,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model, Mongoose, Schema, Types } from 'mongoose';
-import { IIssue, User } from '../users/schemas/user.schema';
+import * as dotenv from 'dotenv';
+import mongoose, { Model } from 'mongoose';
+import { firstValueFrom, lastValueFrom } from 'rxjs';
+import { handleError } from '../../common/helpers/error.helper';
+import {
+  validateAccountId,
+  validateDate,
+} from '../../common/helpers/validation.helper';
 import {
   IDailyMetrics,
   IJiraIssue,
@@ -19,17 +24,10 @@ import {
   ISuccessResponse,
 } from '../../common/interfaces/jira.interfaces';
 import { TrelloService } from '../trello/trello.service';
-import { UserService } from '../users/users.service';
-import { firstValueFrom, lastValueFrom } from 'rxjs';
-import { handleError } from '../../common/helpers/error.helper';
 import { Designation, Project } from '../users/enums/user.enum';
-import {
-  validateAccountId,
-  validateDate,
-} from '../../common/helpers/validation.helper';
 import { IssueEntry } from '../users/schemas/IssueEntry.schema';
-import { ClientMqtt } from '@nestjs/microservices';
-import * as moment from 'moment';
+import { IIssue, User } from '../users/schemas/user.schema';
+import { UserService } from '../users/users.service';
 dotenv.config();
 
 @Injectable()

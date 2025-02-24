@@ -5,9 +5,15 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Model, Types } from 'mongoose';
-import { Users } from '../users/schemas/users.schema';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import * as bcrypt from 'bcrypt';
+import { Model } from 'mongoose';
+import { EmailService } from '../email-service/email-service.service';
+import { OTPSecret } from '../users/schemas/OTPSecret.schema';
+import { Organization } from '../users/schemas/Organization.schema';
+import { Users } from '../users/schemas/users.schema';
 import {
   CreateUserEmail,
   CreateUserEmailPasswordDTO,
@@ -15,14 +21,6 @@ import {
   VerifyEmailDto,
   VerifyInviteDTO,
 } from './dto/auth.dto';
-import * as bcrypt from 'bcrypt';
-import { ConfigService } from '@nestjs/config';
-import { EmailService } from '../email-service/email-service.service';
-import { JwtService } from '@nestjs/jwt';
-import { OTPSecret } from '../users/schemas/OTPSecret.schema';
-import { Organization } from '../users/schemas/Organization.schema';
-import { userInfo } from 'os';
-import { InviteUserDTO } from '../users/dto/invite-user.dto';
 
 @Injectable()
 export class AuthService {

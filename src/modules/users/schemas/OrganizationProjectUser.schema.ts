@@ -1,9 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
-import { Types } from 'mongoose';
-import { User } from '../../users/schemas/user.schema';
-import { Project } from './Project.schema';
+import { HydratedDocument, Types } from 'mongoose';
 import { Organization } from './Organization.schema';
+import { Project } from './Project.schema';
 import { Users } from './users.schema';
 
 

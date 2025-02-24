@@ -1,3 +1,4 @@
+import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   ConflictException,
@@ -5,27 +6,26 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import * as dotenv from 'dotenv';
-import { IIssue, User } from '../users/schemas/user.schema';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
+import * as dotenv from 'dotenv';
 import { Model } from 'mongoose';
+import { firstValueFrom } from 'rxjs';
+import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
+import { handleError } from '../../common/helpers/error.helper';
+import {
+  validateAccountId,
+  validateDate,
+} from '../../common/helpers/validation.helper';
+import { Designation, Project } from '../users/enums/user.enum';
+import { IIssue, User } from '../users/schemas/user.schema';
+import { UserService } from '../users/users.service';
 import {
   ITrelloBoard,
   ITrelloCard,
   ITrelloCredentials,
   ITrelloUsers,
 } from './interfaces/trello.interfaces';
-import { firstValueFrom } from 'rxjs';
-import { handleError } from '../../common/helpers/error.helper';
-import {
-  validateAccountId,
-  validateDate,
-} from '../../common/helpers/validation.helper';
-import { UserService } from '../users/users.service';
-import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
-import { Designation, Project } from '../users/enums/user.enum';
-import { ConfigService } from '@nestjs/config';
 
 dotenv.config();
 

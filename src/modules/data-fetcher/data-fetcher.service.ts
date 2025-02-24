@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 // import { EnvironmentVariables } from 'src/interfaces/config';
@@ -7,7 +7,6 @@ import { DataFetcherDTO } from './dto/data-fetcher.dto';
 import { Tool } from '../users/schemas/Tool.schema';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { JiraService } from '../jira/jira.service';
 import { IssueEntry } from '../users/schemas/IssueEntry.schema';
 import { Users } from '../users/schemas/users.schema';
 // import * as moment from 'moment';
