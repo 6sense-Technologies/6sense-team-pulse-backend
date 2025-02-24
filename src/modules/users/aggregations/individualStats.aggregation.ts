@@ -5,19 +5,34 @@ export const individualStats = (
   page: Number,
   limit: Number,
 ) => {
-  const doneCondition = [
-    'Done',
-    'In Review',
-    'USER STORIES (Verified In Beta)',
-    'USER STORIES (Verified In Test)',
-  ];
+  const startDate =
+    new Date()
+      .toLocaleString('sv-SE', { timeZone: 'Asia/Dhaka' })
+      .replace(' ', 'T') + '+06:00';
+
   const indiestatAgg = [
     {
       $match: {
         user: new Types.ObjectId(userId),
         issueType: {
-          $in: ['Task', 'Story', 'Bug'],
+          $in: ['Task', 'Story', 'Bug', 'Holiday'],
         },
+        date: { $lte: new Date(startDate.split('T')[0]) },
+      },
+    },
+    {
+      $densify: {
+        field: 'date',
+        range: {
+          bounds: [new Date('2024-08-01'), new Date(startDate.split('T')[0])],
+          step: 1,
+          unit: 'day',
+        },
+      },
+    },
+    {
+      $set: {
+        hasIssue: { $ifNull: ['$issueId', false] },
       },
     },
     {
@@ -26,7 +41,8 @@ export const individualStats = (
     {
       $group: {
         _id: '$date',
-        // insight: { $first: '$comment' },
+        comment: { $first: '$comment' },
+        hasIssue: { $first: '$hasIssue' },
         // Group by the 'date' field
         doneTaskCountPlanned: {
           $sum: {
@@ -37,7 +53,15 @@ export const individualStats = (
                     $eq: ['$issueType', 'Task'],
                   },
                   {
-                    $in: ['$issueStatus', doneCondition],
+                    $in: [
+                      '$issueStatus',
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                      ],
+                    ],
                   },
                   {
                     $eq: ['$planned', true],
@@ -58,7 +82,15 @@ export const individualStats = (
                     $eq: ['$issueType', 'Task'],
                   },
                   {
-                    $in: ['$issueStatus', doneCondition],
+                    $in: [
+                      '$issueStatus',
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                      ],
+                    ],
                   },
                   {
                     $eq: ['$planned', false],
@@ -80,7 +112,15 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', doneCondition],
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                        ],
+                      ],
                     },
                   },
                   {
@@ -103,7 +143,15 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', doneCondition],
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                        ],
+                      ],
                     },
                   },
                   {
@@ -125,7 +173,15 @@ export const individualStats = (
                     $eq: ['$issueType', 'Story'],
                   },
                   {
-                    $in: ['$issueStatus', doneCondition],
+                    $in: [
+                      '$issueStatus',
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                      ],
+                    ],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -147,7 +203,15 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', doneCondition],
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                        ],
+                      ],
                     },
                   },
                   //   {
@@ -169,7 +233,15 @@ export const individualStats = (
                     $eq: ['$issueType', 'Bug'],
                   },
                   {
-                    $in: ['$issueStatus', doneCondition],
+                    $in: [
+                      '$issueStatus',
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                      ],
+                    ],
                   },
                   //   {
                   //     $eq: ['$planned', true],
@@ -191,7 +263,15 @@ export const individualStats = (
                   },
                   {
                     $not: {
-                      $in: ['$issueStatus', doneCondition],
+                      $in: [
+                        '$issueStatus',
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                        ],
+                      ],
                     },
                   },
                   //   {
@@ -332,13 +412,7 @@ export const individualStats = (
       $addFields: {
         insight: {
           $cond: {
-            if: {
-              $and: [
-                { $eq: ['$totalTaskPlanned', 0] },
-                { $eq: ['$totalBugCount', 0] },
-                { $eq: ['$totalStoryCount', 0] },
-              ],
-            },
+            if: { $eq: ['$hasIssue', false] },
             then: 'holidays/leave',
             else: {
               $cond: {
@@ -363,6 +437,39 @@ export const individualStats = (
             },
           },
         },
+        // insight: {
+        //   $cond: {
+        //     if: {
+        //       $and: [
+        //         { $eq: ['$totalTaskPlanned', 0] },
+        //         { $eq: ['$totalBugCount', 0] },
+        //         { $eq: ['$totalStoryCount', 0] },
+        //       ],
+        //     },
+        //     then: 'holidays/leave',
+        //     else: {
+        //       $cond: {
+        //         if: { $gt: ['$doneTaskCountUnplanned', 0] },
+        //         then: {
+        //           $concat: [
+        //             'Your target was ',
+        //             { $toString: '$doneTaskCountPlanned' },
+        //             ' but you completed ',
+        //             {
+        //               $toString: {
+        //                 $sum: ['$totalDoneTaskCount', '$doneBugCount'],
+        //               },
+        //             },
+        //             '. ',
+        //             { $toString: '$doneTaskCountUnplanned' },
+        //             ' tasks that you completed do not match your target issues.',
+        //           ],
+        //         },
+        //         else: '',
+        //       },
+        //     },
+        //   },
+        // },
       },
     },
     {

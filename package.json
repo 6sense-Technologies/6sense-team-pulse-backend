@@ -106,7 +106,8 @@
     "collectCoverageFrom": [
       "modules/auth/**/*.service.ts",
       "modules/email-service/**/*.service.ts",
-      "modules/projects/**/*.service.ts"
+      "modules/projects/**/*.service.ts",
+      "modules/data-fetcher/**/*.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",

@@ -21,6 +21,7 @@ import { EmailServiceModule } from './modules/email-service/email-service.module
 import { MailerModule } from '@nestjs-modules/mailer';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { ToolModule } from './modules/tool/tool.module';
+import { DataFetcherModule } from './modules/data-fetcher/data-fetcher.module';
 
 dotenv.config();
 
@@ -79,6 +80,7 @@ dotenv.config();
     EmailServiceModule,
     OrganizationModule,
     ToolModule,
+    DataFetcherModule,
   ],
   providers: [
     {
