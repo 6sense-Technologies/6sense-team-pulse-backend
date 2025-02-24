@@ -5,42 +5,55 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
-  NotFoundException,
+  NotFoundException
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model, Mongoose, Types } from 'mongoose';
-import { User } from './schemas/user.schema';
-import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
-import { IssueHistory } from './schemas/IssueHistory.schems';
-import { IssueEntry } from './schemas/IssueEntry.schema';
 import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { handleError } from '../../common/helpers/error.helper';
 import {
   validateAccountId,
   validateDate,
   validatePagination,
 } from '../../common/helpers/validation.helper';
-import {
-  IAllUsers,
-  IUserResponse,
-  IUserIssuesByDate,
-  IUserWithPagination,
-} from './interfaces/users.interfaces';
-import { Project } from './schemas/Project.schema';
-import { CreateUserDto } from './dto/create-user.dto';
+import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
+import { IssueEntry } from './schemas/IssueEntry.schema';
+import { IssueHistory } from './schemas/IssueHistory.schems';
+import { User } from './schemas/user.schema';
+
+import axios from 'axios';
+import { EmailService } from '../email-service/email-service.service';
 import { JiraService } from '../jira/jira.service';
 import { TrelloService } from '../trello/trello.service';
-import { UserProject } from './schemas/UserProject.schema';
-import { overView } from './aggregations/overview.aggregation';
-import { individualStats } from './aggregations/individualStats.aggregation';
-import { monthlyStat } from './aggregations/individualMonthlyPerformence.aggregation';
 import { dailyPerformenceAgg } from './aggregations/dailyPerformence.aggregation';
+import { monthlyStat } from './aggregations/individualMonthlyPerformence.aggregation';
+import { individualStats } from './aggregations/individualStats.aggregation';
+import { overView } from './aggregations/overview.aggregation';
+import { CreateUserDto } from './dto/create-user.dto';
+import { InviteUserDTO } from './dto/invite-user.dto';
+import {
+  IAllUsers,
+  IUserIssuesByDate,
+  IUserResponse,
+  IUserWithPagination,
+} from './interfaces/users.interfaces';
+import { Organization } from './schemas/Organization.schema';
+import { OrganizationProjectUser } from './schemas/OrganizationProjectUser.schema';
+import { OrganizationUserRole } from './schemas/OrganizationUserRole.schema';
+import { Project } from './schemas/Project.schema';
+import { Role } from './schemas/Role.schema';
+import { UserProject } from './schemas/UserProject.schema';
+import { Users } from './schemas/users.schema';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
+  private readonly API_URL = 'https://api.imgbb.com/1/upload';
+  private readonly API_KEY = process.env.IMGBB_API_KEY;
+
   constructor(
     @Inject(forwardRef(() => JiraService))
     private readonly jiraService: JiraService,
@@ -55,17 +68,29 @@ export class UserService {
     private readonly projectModel: Model<Project>,
     @InjectModel(UserProject.name)
     private readonly userProjectModel: Model<UserProject>,
+    @InjectModel(Organization.name)
+    private readonly organizationModel: Model<Organization>,
+    @InjectModel(OrganizationUserRole.name)
+    private readonly organizationUserRoleModel: Model<OrganizationUserRole>,
+
+    @InjectModel(Role.name)
+    private readonly roleModel: Model<Role>,
+    @InjectModel(OrganizationProjectUser.name)
+    private readonly organizationProjectUserModel: Model<OrganizationProjectUser>,
+    @InjectModel(Users.name)
+    private readonly newusersModel: Model<Users>,
+    private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {
     //Nothing
   }
 
   /// EXPERIMENTAL MODIFICATION
-  async calculateIndividualStats(userId: string, page: number, limit: number) {
-    const individualStatAggregation: any = individualStats(userId, page, limit);
-    const result = await this.issueEntryModel.aggregate(
-      individualStatAggregation,
-    );
+  async getUserInfo(userId: string): Promise<{
+    userData: any;
+    currentMonthScore: number;
+    lastMonthScore: number;
+  }> {
     let today = new Date();
 
     // Current month start date
@@ -98,34 +123,268 @@ export class UserService {
     // console.log(lastMonth);
     const userData = await this.userModel
       .findById(userId)
-      .select('displayName emailAddress designation avatarUrls');
+      .select('displayName emailAddress designation avatarUrls isDisabled');
+    console.log(userData);
+    if (!('isDisabled' in userData)) {
+      userData['isDisabled'] = false;
+    }
     if (currentMonth.length == 0) {
       currentMonth.push({ averageScore: 0 });
     }
     if (lastMonth.length == 0) {
       lastMonth.push({ averageScore: 0 });
     }
+
     return {
       userData: userData,
-      history: result[0],
       currentMonthScore: currentMonth[0]['averageScore'],
       lastMonthScore: lastMonth[0]['averageScore'],
     };
   }
-  async calculateOverview(page: Number, limit: Number) {
+  async sendMailInvitationEmail(
+    emailAddress: string,
+    fromUser: string,
+    organizationName: string,
+  ) {
+    const emailSentResponse = await this.emailService.sendInvitationEmail(
+      emailAddress,
+      fromUser,
+      organizationName,
+    );
+    return emailSentResponse;
+  }
+  async calculateIndividualStats(userId: string, page: number, limit: number) {
+    const individualStatAggregation: any = individualStats(userId, page, limit);
+    const result = await this.issueEntryModel.aggregate(
+      individualStatAggregation,
+    );
+    let today = new Date();
+    /// TODO: remove duplicate codes created seperate api for getUserInfo so current month performance and last month performance is not needed
+    // Current month start date
+    let currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1,
+    ).toISOString();
+
+    // Last month start date
+    let lastMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth() - 1,
+      1,
+    ).toISOString();
+
+    // Last month end date
+    let lastMonthEnd = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      0,
+    ).toISOString();
+
+    const currentMonthAgg: any = monthlyStat(userId, currentMonthStart);
+    const currentMonth = await this.issueEntryModel.aggregate(currentMonthAgg);
+
+    const lastMonthAgg: any = monthlyStat(userId, lastMonthStart, lastMonthEnd);
+    const lastMonth = await this.issueEntryModel.aggregate(lastMonthAgg);
+    // console.log(currentMonth);
+    // console.log(lastMonth);
+    const userData = await this.userModel
+      .findById(userId)
+      .select('displayName emailAddress designation avatarUrls isDisabled');
+
+    if (currentMonth.length == 0) {
+      currentMonth.push({ averageScore: 0 });
+    }
+    if (lastMonth.length == 0) {
+      lastMonth.push({ averageScore: 0 });
+    }
+    const userObject = userData.toObject();
+    if (!('isDisabled' in userObject)) {
+      userObject['isDisabled'] = false;
+    }
+    return {
+      userData: userObject,
+      history: result[0] || [],
+      currentMonthScore: currentMonth[0]['averageScore'] || 0,
+      lastMonthScore: lastMonth[0]['averageScore'] || 0,
+    };
+  }
+  async calculateOverview(
+    page: Number,
+    limit: Number,
+    userId: string,
+  ): Promise<any[]> {
     // const count = await this.userModel.countDocuments();
     console.log(`${page}--${limit}`);
     // Get the current date and subtract 30 days
     const todaysDate = new Date();
     const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
     const thirtyDaysAgoDate = new Date(thirtyDaysAgo).toISOString();
-    console.log(`Fetching data ${thirtyDaysAgoDate}`);
-    const overViewAggr: any = overView(thirtyDaysAgoDate, page, limit);
+
+    const orgUserRoleModel = await this.organizationUserRoleModel
+      .findOne({
+        user: new Types.ObjectId(userId),
+      })
+      .populate('organization');
+    console.log(orgUserRoleModel);
+    // console.log(orgUserRoleModel['organization']['createdBy']);
+    const teamMembers = orgUserRoleModel.organization['users'];
+
+    const overViewAggr: any = overView(
+      thirtyDaysAgoDate,
+      page,
+      limit,
+      teamMembers,
+    );
+
     const result = await this.issueEntryModel.aggregate(overViewAggr);
 
+    if (result.length === 0) {
+      return [{}];
+    }
     return result[0];
   }
 
+  async inviteUser(
+    inviteUserDTO: InviteUserDTO,
+    userId: string,
+    file: Express.Multer.File,
+  ) {
+    let avatarUrl = 'https://i.ibb.co.com/h6TfyCV/124599.jpg';
+    if (file) {
+      const base64Image = file.buffer.toString('base64');
+
+      // Build URL-encoded parameters (the API expects the parameter name "image")
+      const params = new URLSearchParams();
+      params.append('image', base64Image);
+
+      try {
+        const response = await axios.post(
+          `${this.API_URL}?expiration=600&key=${this.API_KEY}`,
+          params.toString(),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          },
+        );
+        avatarUrl = response.data.data.url;
+        console.log('Upload successful:', avatarUrl);
+      } catch (error) {
+        console.error(
+          'Upload failed:',
+          error.response ? error.response.data : error.message,
+        );
+      }
+    }
+    const [role, organizationUserRole, existingUser] = await Promise.all([
+      this.roleModel.findOne({ roleName: inviteUserDTO.role }),
+      this.organizationUserRoleModel
+        .findOne({
+          user: new Types.ObjectId(userId),
+        })
+        .populate('organization')
+        .populate('user')
+        .lean(),
+      this.newusersModel.findOne({ emailAddress: inviteUserDTO.emailAddress }),
+    ]);
+    // console.log(organizationUserRole);
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+    if (!role) {
+      throw new BadRequestException('Invalid role');
+    }
+    if (!organizationUserRole) {
+      throw new InternalServerErrorException('Admin has no organization');
+    }
+
+    const user = await this.newusersModel.create({
+      displayName: inviteUserDTO.displayName,
+      designation: inviteUserDTO.designation,
+      emailAddress: inviteUserDTO.emailAddress,
+      jiraId: inviteUserDTO.jiraId,
+      trelloId: inviteUserDTO.trelloId,
+      githubUserName: inviteUserDTO.githubUserName,
+      avatarUrls: avatarUrl,
+      isInvited: true,
+      isDisabled: false,
+      isVerified: false,
+    });
+
+    await this.organizationUserRoleModel.create({
+      role: role._id,
+      user: user._id,
+      organization: organizationUserRole.organization._id,
+    });
+    if (!inviteUserDTO.projects) {
+      await this.sendMailInvitationEmail(
+        user.emailAddress,
+        organizationUserRole['user']['displayName'],
+        organizationUserRole['organization']['organizationName'],
+      );
+      return user;
+    }
+    if (inviteUserDTO.projects.length === 0) {
+      await this.sendMailInvitationEmail(
+        user.emailAddress,
+        organizationUserRole['user']['displayName'],
+        organizationUserRole['organization']['organizationName'],
+      );
+      return user;
+    }
+    const projects = await this.projectModel.find({
+      name: { $in: inviteUserDTO.projects },
+    });
+    if (projects.length !== inviteUserDTO.projects.length) {
+      throw new BadRequestException('One or more project names are invalid');
+    }
+
+    const projectUserEntries = projects.map((project) => ({
+      organization: organizationUserRole._id,
+      project: project._id,
+      user: user._id,
+    }));
+
+    await this.organizationProjectUserModel.insertMany(projectUserEntries);
+    console.log('DONE');
+    await this.organizationModel.findOneAndUpdate(
+      {
+        organizationName:
+          organizationUserRole['organization']['organizationName'],
+      },
+      { $push: { users: user._id } },
+      { new: true }, // Returns the updated document
+    );
+
+    await this.sendMailInvitationEmail(
+      user.emailAddress,
+      organizationUserRole['user']['displayName'],
+      organizationUserRole['organization']['organizationName'],
+    );
+
+    return user;
+  }
+  async toggleEnable(userId: string, adminId: string) {
+    // const orgUserRole = await this.organizationUserRoleModel.findOne({
+    //   user: new Types.ObjectId(userId),
+    // });
+    // if (!orgUserRole) {
+    //   throw new NotFoundException('User not found in any organization');
+    // }
+    // orgUserRole.isDisabled = !orgUserRole.isDisabled;
+    // await orgUserRole.save();
+    // if (orgUserRole.isDisabled) {
+    //   return { enabled: true };
+    // } else {
+    //   return { enabled: false };
+    // }
+
+    const user = await this.newusersModel.findById(userId);
+    user['isDisabled'] = !user['isDisabled'];
+    await user.save();
+    return { isEnabled: user.isDisabled };
+  }
   async dailyPerformence(
     userId: string,
     dateTime: string,
@@ -145,9 +404,10 @@ export class UserService {
       await this.issueEntryModel.aggregate(aggdailyPerformence);
     return {
       userData,
-      dailyPerformance: dailyPerformance[0],
+      dailyPerformance: dailyPerformance[0] || [],
     };
   }
+
   // ----------------------------------------------------------------------------//
   /* istanbul ignore next */
   async createUser(createUserDto: CreateUserDto) {

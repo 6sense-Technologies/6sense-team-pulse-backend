@@ -1,3 +1,4 @@
+import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   ConflictException,
@@ -6,11 +7,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model, Mongoose, Schema, Types } from 'mongoose';
-import { IIssue, User } from '../users/schemas/user.schema';
+import * as dotenv from 'dotenv';
+import mongoose, { Model } from 'mongoose';
+import { firstValueFrom, lastValueFrom } from 'rxjs';
+import { handleError } from '../../common/helpers/error.helper';
+import {
+  validateAccountId,
+  validateDate,
+} from '../../common/helpers/validation.helper';
 import {
   IDailyMetrics,
   IJiraIssue,
@@ -19,17 +24,10 @@ import {
   ISuccessResponse,
 } from '../../common/interfaces/jira.interfaces';
 import { TrelloService } from '../trello/trello.service';
-import { UserService } from '../users/users.service';
-import { firstValueFrom, lastValueFrom } from 'rxjs';
-import { handleError } from '../../common/helpers/error.helper';
 import { Designation, Project } from '../users/enums/user.enum';
-import {
-  validateAccountId,
-  validateDate,
-} from '../../common/helpers/validation.helper';
 import { IssueEntry } from '../users/schemas/IssueEntry.schema';
-import { ClientMqtt } from '@nestjs/microservices';
-import * as moment from 'moment';
+import { IIssue, User } from '../users/schemas/user.schema';
+import { UserService } from '../users/users.service';
 dotenv.config();
 
 @Injectable()
@@ -57,38 +55,80 @@ export class JiraService {
   }
   /*EXPERIMENTAL MODIFICATION*/
   public async fetchAndSaveFromJira(rawData: any) {
+    console.log('INVOKED');
+
     const data = JSON.parse(rawData);
-    console.log(data);
+    // console.log(data);
+
     for (let i = 0; i < data.length; i += 1) {
-      if (data[i].accountId) {
-        const user = await this.userModel.findOne({
-          accountId: data[i].accountId,
+      if (!data[i]) continue;
+
+      const {
+        accountId,
+        issueId,
+        projectUrl,
+        issueIdUrl,
+        issueLinkUrl,
+        issueType,
+        issueStatus,
+        issueSummary,
+        planned,
+        issueLinks,
+        date,
+      } = data[i];
+
+      if (accountId) {
+        // Fetch all users matching accountId or jiraId
+        const users = await this.userModel.find({
+          $or: [{ accountId }, { jiraId: accountId }],
         });
-        if (user) {
+        // console.log(users);
+        if (!users.length) {
+          console.warn(`No users found for accountId: ${accountId}`);
+          continue;
+        }
+
+        const issueDate = new Date(date);
+
+        for (const user of users) {
           console.log(
-            `Found user issue entry for  ${user.displayName} saving...`,
+            `Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`,
           );
-          await this.issueEntryModel.create({
-            serialNumber: i,
-            issueId: data[i].issueId,
-            issueType: data[i].issueType || '',
-            issueStatus: data[i].issueStatus,
-            issueSummary: data[i].issueSummary,
-            username: user.displayName,
-            planned: data[i].planned,
-            link: data[i].issueLinks || '',
-            accountId: data[i].accountId,
-            projectUrl: data[i].projectUrl,
-            issueIdUrl: data[i].issueIdUrl,
-            issueLinkUrl: data[i].issueLinkUrl,
-            user: new mongoose.Types.ObjectId(user.id),
-            date: moment.utc(),
-            insight: '',
-          });
+
+          await this.issueEntryModel.findOneAndUpdate(
+            {
+              issueId, // Match by issueId
+              projectUrl, // Match by projectUrl
+              user: new mongoose.Types.ObjectId(user.id), // Ensure uniqueness per user
+            },
+            {
+              serialNumber: i,
+              issueId,
+              issueType: issueType || '',
+              issueStatus,
+              issueSummary,
+              username: user.displayName,
+              planned,
+              link: issueLinks || '',
+              accountId,
+              projectUrl,
+              issueIdUrl,
+              issueLinkUrl,
+              user: new mongoose.Types.ObjectId(user.id),
+              date: issueDate,
+              insight: '',
+            },
+            {
+              upsert: true, // Create if not found
+              new: true, // Return the updated document
+            },
+          );
         }
       }
     }
+
     console.log('DONE..');
+    return 'DONE';
   }
 
   ///----------------------------///

@@ -36,6 +36,14 @@ export class JiraController {
   @MessagePattern('job.result')
   async getResult(@Payload() data: any) {
     this.jiraService.fetchAndSaveFromJira(data);
+    // return 'disabled';
+  }
+
+  @Post('job-result')
+  async saveResult(@Body() data: any) {
+    console.log(data);
+    this.jiraService.fetchAndSaveFromJira(data);
+    return 'Done';
   }
   //---------------------------/
   @Get(':accountId')

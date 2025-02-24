@@ -12,7 +12,6 @@ import { Tool } from '../users/schemas/Tool.schema';
 import { ProjectTool } from '../users/schemas/ProjectTool.schema';
 import { Organization } from '../users/schemas/Organization.schema';
 import { OrganizationProjectUser } from '../users/schemas/OrganizationProjectUser.schema';
-import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class ProjectsService {
@@ -125,6 +124,21 @@ export class ProjectsService {
       data: result?.data || [],
     };
   }
+  async getNames(page: number, limit: number, userId: string) {
+    const orgWithProjects = await this.Organization.findOne({
+      createdBy: userId,
+    })
+      .populate('projects')
+      .lean();
+
+    if (!orgWithProjects || !orgWithProjects.projects) {
+      return [];
+    }
+
+    // Extract project names
+    return orgWithProjects.projects.map((project) => project['name']);
+  }
+
   /* istanbul ignore next */
   findOne(id: string) {
     return this.projectModel.findById(id);

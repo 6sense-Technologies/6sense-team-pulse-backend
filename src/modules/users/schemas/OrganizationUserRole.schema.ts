@@ -20,8 +20,11 @@ export class OrganizationUserRole {
   @Prop({ type: Types.ObjectId, ref: Role.name, required: true })
   role: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: User.name }) // Tracks who assigned the user
+  @Prop({ type: Types.ObjectId, ref: User.name })
   createdBy: Types.ObjectId;
+
+  @Prop({ type: Boolean, default: false })
+  isDisabled: boolean;
 }
 
 export const OrganizationUserRoleSchema =

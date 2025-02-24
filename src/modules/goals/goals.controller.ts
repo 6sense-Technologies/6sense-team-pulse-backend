@@ -1,17 +1,16 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
 } from '@nestjs/common';
-import { GoalsService } from './goals.service';
-import { CreateGoalDto } from './dto/create-goal.dto';
-import { UpdateGoalDto } from './dto/update-goal.dto';
 import { CreateGoalActionDto } from './dto/create-goal-action.dto';
+import { CreateGoalDto } from './dto/create-goal.dto';
+import { GoalsService } from './goals.service';
 
 @Controller('goals')
 export class GoalsController {

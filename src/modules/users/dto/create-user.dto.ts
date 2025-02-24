@@ -2,8 +2,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsOptional,
-  IsString,
-  Length,
+  IsString
 } from 'class-validator';
 
 export class CreateUserDto {

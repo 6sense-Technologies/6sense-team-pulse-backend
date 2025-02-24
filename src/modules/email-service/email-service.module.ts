@@ -1,17 +1,21 @@
 import { Module } from '@nestjs/common';
-import { EmailService } from './email-service.service';
 import { EmailServiceController } from './email-service.controller';
+import { EmailService } from './email-service.service';
 
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { UserService } from '../users/users.service';
+import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from '../auth/auth.module';
-import { UserModule } from '../users/users.module';
 import { OTPSecret, OTPSecretSchema } from '../users/schemas/OTPSecret.schema';
 import { Users, UsersSchema } from '../users/schemas/users.schema';
+import { UserModule } from '../users/users.module';
 
 @Module({
   imports: [
+    JwtModule.register({
+      secret: process.env.INVITE_SECRET,
+      signOptions: { expiresIn: '24 hours' },
+    }),
     MongooseModule.forFeature([
       { name: Users.name, schema: UsersSchema },
       { name: OTPSecret.name, schema: OTPSecretSchema },

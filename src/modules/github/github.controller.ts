@@ -26,12 +26,32 @@ export class GithubController {
     return this.githubService.findAll();
   }
 
+  @Get('summary')
+  getSummary(
+    @Query('userId') userId: string,
+    @Query('date') date: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    return this.githubService.summary(userId, date, +page, +limit);
+  }
+
   @Get('get-contributions')
   getContributions(
     @Query('userId') userId: string,
     @Query('date') date: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
   ) {
-    return this.githubService.getContributions(userId, date);
+    return this.githubService.getContributions(userId, date, +page, +limit);
+  }
+
+  @Get('git-chart')
+  async getGitChart(
+    @Query('userId') userId: string,
+    @Query('date') date: string,
+  ) {
+    return await this.githubService.getChart(userId, date);
   }
 
   @Get('get-commits')

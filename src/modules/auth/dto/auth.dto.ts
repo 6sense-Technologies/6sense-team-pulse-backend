@@ -1,13 +1,10 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  ValidateIf,
   IsEmail,
-  IsIn,
-  IsStrongPassword,
+  IsNotEmpty,
+  IsString,
+  IsStrongPassword
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserEmailPasswordDTO {
   @ApiProperty({
@@ -125,4 +122,13 @@ export class VerifyEmailDto {
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty({ message: 'Email should not be empty' })
   email: string;
+}
+
+export class VerifyInviteDTO {
+  @ApiProperty({
+    description: 'JWT Token for invitation',
+    example: 'dfdff08131089u108d01jd0j1wd',
+    type: String,
+  })
+  jwtToken: string;
 }

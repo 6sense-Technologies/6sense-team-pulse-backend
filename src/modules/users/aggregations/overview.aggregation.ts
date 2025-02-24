@@ -1,32 +1,40 @@
-export const overView = (date: string, page: Number, limit: Number) => {
-  const doneCondition = [
-    'Done',
-    'In Review',
-    'USER STORIES (Verified In Beta)',
-    'USER STORIES (Verified In Test)',
-  ];
+export const overView = (
+  date: string,
+  page: Number,
+  limit: Number,
+  filterIds: any[],
+
+) => {
+  console.log('FILTER IDS: ', filterIds);
+  const startDate = new Date(date.split('T')[0]).toISOString();
+  const currentDate = new Date().toISOString();
+  const endDate = new Date(currentDate.split('T')[0]).toISOString();
+  console.log(`Start date: ${startDate}`);
+  console.log(`End Date: ${endDate}`);
 
   return [
+    // Initial match for date range and user IDs
     {
       $match: {
-        comment: { $ne: 'holidays/leave' },
-        date: { $gte: new Date(date) },
+        date: { $gte: new Date(startDate), $lte: new Date(endDate) },
+        user: { $in: filterIds },
       },
     },
+
+    // Group by date and user to get daily metrics
     {
       $group: {
         _id: {
+          date: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
           user: '$user',
-          date: '$date',
         },
-        doneTaskCountPlanned: {
+        dailyDoneTaskPlanned: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
+                  { $eq: ['$planned', true] },
                   {
                     $in: [
                       '$issueStatus',
@@ -38,9 +46,6 @@ export const overView = (date: string, page: Number, limit: Number) => {
                       ],
                     ],
                   },
-                  {
-                    $eq: ['$planned', true],
-                  },
                 ],
               },
               1,
@@ -48,14 +53,13 @@ export const overView = (date: string, page: Number, limit: Number) => {
             ],
           },
         },
-        doneTaskCountUnplanned: {
+        dailyDoneTaskUnplanned: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
+                  { $eq: ['$planned', false] },
                   {
                     $in: [
                       '$issueStatus',
@@ -67,9 +71,6 @@ export const overView = (date: string, page: Number, limit: Number) => {
                       ],
                     ],
                   },
-                  {
-                    $eq: ['$planned', false],
-                  },
                 ],
               },
               1,
@@ -77,14 +78,13 @@ export const overView = (date: string, page: Number, limit: Number) => {
             ],
           },
         },
-        notDoneTaskCountPlanned: {
+        dailyNotDoneTaskPlanned: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
+                  { $eq: ['$planned', true] },
                   {
                     $not: {
                       $in: [
@@ -98,9 +98,6 @@ export const overView = (date: string, page: Number, limit: Number) => {
                       ],
                     },
                   },
-                  {
-                    $eq: ['$planned', true],
-                  },
                 ],
               },
               1,
@@ -108,14 +105,13 @@ export const overView = (date: string, page: Number, limit: Number) => {
             ],
           },
         },
-        notDoneTaskCountUnplanned: {
+        dailyNotDoneTaskUnplanned: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Task'],
-                  },
+                  { $eq: ['$issueType', 'Task'] },
+                  { $eq: ['$planned', false] },
                   {
                     $not: {
                       $in: [
@@ -129,9 +125,6 @@ export const overView = (date: string, page: Number, limit: Number) => {
                       ],
                     },
                   },
-                  {
-                    $eq: ['$planned', false],
-                  },
                 ],
               },
               1,
@@ -139,14 +132,12 @@ export const overView = (date: string, page: Number, limit: Number) => {
             ],
           },
         },
-        doneStoryCount: {
+        dailyDoneStories: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Story'],
-                  },
+                  { $eq: ['$issueType', 'Story'] },
                   {
                     $in: [
                       '$issueStatus',
@@ -165,14 +156,12 @@ export const overView = (date: string, page: Number, limit: Number) => {
             ],
           },
         },
-        notDoneStoryCount: {
+        dailyNotDoneStories: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  {
-                    $eq: ['$issueType', 'Story'],
-                  },
+                  { $eq: ['$issueType', 'Story'] },
                   {
                     $not: {
                       $in: [
@@ -195,50 +184,56 @@ export const overView = (date: string, page: Number, limit: Number) => {
         },
       },
     },
+
+    // Calculate daily totals and rates
     {
       $addFields: {
-        totalTaskCount: {
+        totalTasks: {
           $sum: [
-            '$doneTaskCountPlanned',
-            '$doneTaskCountUnplanned',
-            '$notDoneTaskCountPlanned',
-            '$notDoneTaskCountUnplanned',
+            '$dailyDoneTaskPlanned',
+            '$dailyDoneTaskUnplanned',
+            '$dailyNotDoneTaskPlanned',
+            '$dailyNotDoneTaskUnplanned',
           ],
         },
-        totalDoneTaskCount: {
-          $sum: ['$doneTaskCountPlanned', '$doneTaskCountUnplanned'],
+        totalDoneTasks: {
+          $sum: ['$dailyDoneTaskPlanned', '$dailyDoneTaskUnplanned'],
         },
-        totalStoryCount: { $sum: ['$doneStoryCount', '$notDoneStoryCount'] },
+        totalStories: {
+          $sum: ['$dailyDoneStories', '$dailyNotDoneStories'],
+        },
       },
     },
     {
       $addFields: {
         taskCompletionRate: {
           $cond: [
-            { $eq: ['$totalTaskCount', 0] },
+            { $eq: ['$totalTasks', 0] },
             0,
-            { $divide: ['$totalDoneTaskCount', '$totalTaskCount'] },
+            { $divide: ['$totalDoneTasks', '$totalTasks'] },
           ],
         },
         storyCompletionRate: {
           $cond: [
-            { $eq: ['$totalStoryCount', 0] },
+            { $eq: ['$totalStories', 0] },
             0,
-            { $divide: ['$doneStoryCount', '$totalStoryCount'] },
+            { $divide: ['$dailyDoneStories', '$totalStories'] },
           ],
         },
       },
     },
+
+    // Calculate daily performance
     {
       $addFields: {
-        performance: {
+        dailyPerformance: {
           $multiply: [
             {
               $cond: [
-                { $gt: ['$totalTaskCount', 0] },
+                { $gt: ['$totalTasks', 0] },
                 {
                   $cond: [
-                    { $eq: ['$totalStoryCount', 0] },
+                    { $eq: ['$totalStories', 0] },
                     '$taskCompletionRate',
                     {
                       $divide: [
@@ -261,12 +256,16 @@ export const overView = (date: string, page: Number, limit: Number) => {
         },
       },
     },
+
+    // Group by user to get average performance
     {
       $group: {
         _id: '$_id.user',
-        performance: { $avg: '$performance' },
+        avgPerformance: { $avg: '$dailyPerformance' },
       },
     },
+
+    // Lookup user details
     {
       $lookup: {
         from: 'users',
@@ -276,18 +275,84 @@ export const overView = (date: string, page: Number, limit: Number) => {
       },
     },
     {
-      $unwind: '$userData',
-    },
-    {
-      $project: {
-        displayName: '$userData.displayName',
-        emailAddress: '$userData.emailAddress',
-        designation: '$userData.designation',
-        avatarUrls: '$userData.avatarUrls',
-        role: 'Member',
-        performance: 1,
+      $unwind: {
+        path: '$userData',
+        preserveNullAndEmptyArrays: false, // Ensure we keep users even if no match in users collection
       },
     },
+
+    // Project to ensure user details are included
+    {
+      $project: {
+        _id: 1,
+        performance: '$avgPerformance',
+        displayName: { $ifNull: ['$userData.displayName', null] },
+        emailAddress: { $ifNull: ['$userData.emailAddress', null] },
+        designation: { $ifNull: ['$userData.designation', null] },
+        avatarUrls: { $ifNull: ['$userData.avatarUrls', null] },
+        isDisabled: { $ifNull: ['$userData.isDisabled', false] },
+        role: { $literal: 'Member' },
+      },
+    },
+
+    // Union with users who have no activity
+    {
+      $unionWith: {
+        coll: 'users',
+        pipeline: [
+          {
+            $match: {
+              _id: { $in: filterIds },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              displayName: 1,
+              emailAddress: 1,
+              designation: 1,
+              avatarUrls: 1,
+              avatarUrl: 1,
+              isDisabled: { $ifNull: ['$isDisabled', false] },
+              role: 'Member',
+              performance: { $literal: 0 }, // Changed from avgPerformance to performance for consistency
+            },
+          },
+        ],
+      },
+    },
+
+    // Deduplicate and ensure first non-null values are kept
+    {
+      $group: {
+        _id: '$_id',
+        displayName: {
+          $first: {
+            $cond: [{ $ne: ['$displayName', null] }, '$displayName', null],
+          },
+        },
+        emailAddress: {
+          $first: {
+            $cond: [{ $ne: ['$emailAddress', null] }, '$emailAddress', null],
+          },
+        },
+        designation: {
+          $first: {
+            $cond: [{ $ne: ['$designation', null] }, '$designation', null],
+          },
+        },
+        avatarUrls: {
+          $first: {
+            $cond: [{ $ne: ['$avatarUrls', null] }, '$avatarUrls', null],
+          },
+        },
+        isDisabled: { $first: '$isDisabled' },
+        role: { $first: '$role' },
+        performance: { $max: '$performance' },
+      },
+    },
+
+    // Sort and paginate
     {
       $sort: {
         displayName: 1,

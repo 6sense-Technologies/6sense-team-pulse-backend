@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { OrganizationService } from './organization.service';
 import { CreateOrganizationDTO } from './dto/organization.dto';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
@@ -19,5 +19,9 @@ export class OrganizationController {
       createOrganizationDTO,
       req['user']?.userId,
     );
+  }
+  @Get('roles')
+  async getRoles() {
+    return this.organizationService.findRoles();
   }
 }
