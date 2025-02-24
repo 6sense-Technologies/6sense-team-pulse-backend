@@ -37,7 +37,11 @@ export class UserController {
   }
   // Experimental Modification
   @Get('user-info')
-  async getUserInfo(@Query('userId') userId: string) {
+  async getUserInfo(@Query('userId') userId: string): Promise<{
+    userData: any;
+    currentMonthScore: number;
+    lastMonthScore: number;
+  }> {
     return this.userService.getUserInfo(userId);
   }
   @Get('individual')
@@ -55,7 +59,7 @@ export class UserController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Req() req: Request,
-  ) {
+  ): Promise<any[]> {
     return this.userService.calculateOverview(page, limit, req['user'].userId);
   }
   @Get('daily-performance')
