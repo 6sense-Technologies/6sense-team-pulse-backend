@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
-import { Goal } from '../../goals/entities/goal.entity'
+import { Goal } from '../../goals/entities/goal.entity';
 @Schema({ timestamps: true })
 export class GoalAction extends Document {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Goal' })

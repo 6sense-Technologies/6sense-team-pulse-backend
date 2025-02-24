@@ -1,0 +1,501 @@
+diff --git a/src/modules/jira/jira.module.ts b/src/modules/jira/jira.module.ts
+--- a/src/modules/jira/jira.module.ts
++++ b/src/modules/jira/jira.module.ts
+@@ -18,1 +18,1 @@
+-          password: process.env.MQTT_PASSWORD
++          password: process.env.MQTT_PASSWORD,
+diff --git a/src/modules/users/schemas/Permission.schema.ts b/src/modules/users/schemas/Permission.schema.ts
+--- a/src/modules/users/schemas/Permission.schema.ts
++++ b/src/modules/users/schemas/Permission.schema.ts
+@@ -1,1 +1,1 @@
+-import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose'
++import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+@@ -10,1 +10,1 @@
+-  createdBy: MongooseSchema.Types.ObjectId
++  createdBy: MongooseSchema.Types.ObjectId;
+diff --git a/src/modules/users/aggregations/individualMonthlyPerformence.aggregation.ts b/src/modules/users/aggregations/individualMonthlyPerformence.aggregation.ts
+--- a/src/modules/users/aggregations/individualMonthlyPerformence.aggregation.ts
++++ b/src/modules/users/aggregations/individualMonthlyPerformence.aggregation.ts
+@@ -1,1 +1,1 @@
+-import mongoose, { Types } from 'mongoose';
++import { Types } from 'mongoose';
+diff --git a/src/modules/users/schemas/GoalAction.schema.ts b/src/modules/users/schemas/GoalAction.schema.ts
+--- a/src/modules/users/schemas/GoalAction.schema.ts
++++ b/src/modules/users/schemas/GoalAction.schema.ts
+@@ -3,1 +3,1 @@
+-import { Goal } from '../../goals/entities/goal.entity'
++import { Goal } from '../../goals/entities/goal.entity';
+diff --git a/src/modules/users/aggregations/dailyPerformence.aggregation.ts b/src/modules/users/aggregations/dailyPerformence.aggregation.ts
+--- a/src/modules/users/aggregations/dailyPerformence.aggregation.ts
++++ b/src/modules/users/aggregations/dailyPerformence.aggregation.ts
+@@ -6,1 +6,1 @@
+-  page: Number,
++  page: number,
+@@ -7,1 +7,1 @@
+-  limit: Number,
++  limit: number,
+diff --git a/src/modules/users/dto/invite-user.dto.ts b/src/modules/users/dto/invite-user.dto.ts
+--- a/src/modules/users/dto/invite-user.dto.ts
++++ b/src/modules/users/dto/invite-user.dto.ts
+@@ -4,1 +4,1 @@
+-  ArrayMinSize,
++  IsArray,
+@@ -9,1 +9,1 @@
+-  Length,
++} from 'class-validator';
+diff --git a/src/modules/data-fetcher/data-fetcher.controller.ts b/src/modules/data-fetcher/data-fetcher.controller.ts
+--- a/src/modules/data-fetcher/data-fetcher.controller.ts
++++ b/src/modules/data-fetcher/data-fetcher.controller.ts
+@@ -1,1 +1,1 @@
+-import { Controller, Get, Post } from '@nestjs/common';
++import { Controller, Get } from '@nestjs/common';
+diff --git a/src/modules/users/schemas/Tool.schema.ts b/src/modules/users/schemas/Tool.schema.ts
+--- a/src/modules/users/schemas/Tool.schema.ts
++++ b/src/modules/users/schemas/Tool.schema.ts
+@@ -12,1 +12,1 @@
+-  @Prop({ 
++  @Prop({
+@@ -13,1 +13,1 @@
+-    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'ProjectTool' }]
++    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'ProjectTool' }],
+diff --git a/src/modules/jira/jira.service.ts b/src/modules/jira/jira.service.ts
+--- a/src/modules/jira/jira.service.ts
++++ b/src/modules/jira/jira.service.ts
+@@ -12,1 +12,1 @@
+-import mongoose, { Model, Mongoose, Schema, Types } from 'mongoose';
++import mongoose, { Model, Schema, Types } from 'mongoose';
+@@ -31,1 +31,1 @@
+-import { ClientMqtt } from '@nestjs/microservices';
++
+@@ -32,1 +32,1 @@
+-import * as moment from 'moment';
++dotenv.config();
+@@ -50,1 +50,1 @@
+-    @Inject(forwardRef(() => UserService))
++    @Inject(forwardRef(() => {return UserService}))
+diff --git a/src/modules/users/users.controller.ts b/src/modules/users/users.controller.ts
+--- a/src/modules/users/users.controller.ts
++++ b/src/modules/users/users.controller.ts
+@@ -24,1 +24,1 @@
+-import { Designation, Project } from './enums/user.enum';
++import { Designation } from './enums/user.enum';
+@@ -27,1 +27,1 @@
+-import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
++import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+@@ -50,1 +50,1 @@
+-    @Query('page') page: number = 1,
++    @Query('page') page = 1,
+@@ -51,1 +51,1 @@
+-    @Query('limit') limit: number = 10,
++    @Query('limit') limit = 10,
+@@ -69,1 +69,1 @@
+-    @Query('Page') page: number = 1,
++    @Query('Page') page = 1,
+diff --git a/src/modules/auth/auth.service.ts b/src/modules/auth/auth.service.ts
+--- a/src/modules/auth/auth.service.ts
++++ b/src/modules/auth/auth.service.ts
+@@ -8,1 +8,1 @@
+-import { Model, Types } from 'mongoose';
++import { Model } from 'mongoose';
+@@ -24,1 +24,1 @@
+-import { userInfo } from 'os';
++
+@@ -25,1 +25,1 @@
+-import { InviteUserDTO } from '../users/dto/invite-user.dto';
++
+diff --git a/src/modules/users/aggregations/overview.aggregation.ts b/src/modules/users/aggregations/overview.aggregation.ts
+--- a/src/modules/users/aggregations/overview.aggregation.ts
++++ b/src/modules/users/aggregations/overview.aggregation.ts
+@@ -3,1 +3,1 @@
+-  page: Number,
++  page: number,
+@@ -4,1 +4,1 @@
+-  limit: Number,
++  limit: number,
+diff --git a/src/modules/auth/guards/roles.guard.ts b/src/modules/auth/guards/roles.guard.ts
+--- a/src/modules/auth/guards/roles.guard.ts
++++ b/src/modules/auth/guards/roles.guard.ts
+@@ -5,1 +5,1 @@
+-  Inject,
++} from '@nestjs/common';
+@@ -9,1 +9,1 @@
+-import { Role } from '../enums/role.enum';
++import { OrganizationProjectUser } from '../../users/schemas/OrganizationProjectUser.schema';
+diff --git a/src/modules/trello/trello.service.ts b/src/modules/trello/trello.service.ts
+--- a/src/modules/trello/trello.service.ts
++++ b/src/modules/trello/trello.service.ts
+@@ -43,1 +43,1 @@
+-    @Inject(forwardRef(() => UserService))
++    @Inject(forwardRef(() => {return UserService}))
+@@ -495,1 +495,1 @@
+-        user?.issueHistory.find((entry) => entry.date === date)
++        user?.issueHistory.find((entry) => {return entry.date === date})
+diff --git a/src/modules/users/schemas/ToolName.schema.ts b/src/modules/users/schemas/ToolName.schema.ts
+--- a/src/modules/users/schemas/ToolName.schema.ts
++++ b/src/modules/users/schemas/ToolName.schema.ts
+@@ -2,1 +2,1 @@
+-import { Document, Schema as MongooseSchema } from 'mongoose';
++import { Document } from 'mongoose';
+diff --git a/src/modules/projects/projects.module.ts b/src/modules/projects/projects.module.ts
+--- a/src/modules/projects/projects.module.ts
++++ b/src/modules/projects/projects.module.ts
+@@ -31,1 +31,1 @@
+-  OrganizationUserRoleSchema
++  OrganizationUserRoleSchema,
+@@ -32,1 +32,1 @@
+-} from '../users/schemas/OrganizationUserRole.schema'
++} from '../users/schemas/OrganizationUserRole.schema';
+@@ -51,1 +51,1 @@
+-        schema: OrganizationUserRoleSchema
++        schema: OrganizationUserRoleSchema,
+@@ -52,1 +52,1 @@
+-      }
++      },
+@@ -56,1 +56,1 @@
+-  providers: [ProjectsService,JwtService],
++  providers: [ProjectsService, JwtService],
+diff --git a/src/modules/goals/goals.service.ts b/src/modules/goals/goals.service.ts
+--- a/src/modules/goals/goals.service.ts
++++ b/src/modules/goals/goals.service.ts
+@@ -3,1 +3,1 @@
+-import { UpdateGoalDto } from './dto/update-goal.dto';
++import { Goal } from './entities/goal.entity';
+@@ -25,1 +25,1 @@
+-  async findAll(userId: string, page: number = 1, limit: number = 10) {
++  async findAll(userId: string, page = 1, limit: number = 10) {
+@@ -43,1 +43,1 @@
+-    let data = {};
++    const data = {};
+@@ -68,1 +68,1 @@
+-  async findAllAction(id: string, page: number = 1, limit: number = 10) {
++  async findAllAction(id: string, page = 1, limit: number = 10) {
+diff --git a/src/modules/users/schemas/Organization.schema.ts b/src/modules/users/schemas/Organization.schema.ts
+--- a/src/modules/users/schemas/Organization.schema.ts
++++ b/src/modules/users/schemas/Organization.schema.ts
+@@ -3,1 +3,1 @@
+-import { Project } from './Project.schema';
++import { User } from './user.schema';
+diff --git a/src/modules/users/aggregations/pagination.aggregation.ts b/src/modules/users/aggregations/pagination.aggregation.ts
+--- a/src/modules/users/aggregations/pagination.aggregation.ts
++++ b/src/modules/users/aggregations/pagination.aggregation.ts
+@@ -1,1 +1,1 @@
+-export const pagination = (page: Number, limit: Number) => {
++export const pagination = (page: number, limit: Number) => {
+diff --git a/src/modules/users/users.service.ts b/src/modules/users/users.service.ts
+--- a/src/modules/users/users.service.ts
++++ b/src/modules/users/users.service.ts
+@@ -10,1 +10,1 @@
+-  NotAcceptableException,
++  NotFoundException,
+@@ -14,1 +14,1 @@
+-import mongoose, { Model, Mongoose, Types } from 'mongoose';
++import mongoose, { Model, Types } from 'mongoose';
+@@ -26,1 +26,1 @@
+-import { FileInterceptor } from '@nestjs/platform-express';
++
+@@ -50,1 +50,1 @@
+-import { Designation } from './enums/user.enum';
++// import { Comment } from './schemas/Comment.schema';
+@@ -61,1 +61,1 @@
+-    @Inject(forwardRef(() => JiraService))
++    @Inject(forwardRef(() => {return JiraService}))
+@@ -63,1 +63,1 @@
+-    @Inject(forwardRef(() => TrelloService))
++    @Inject(forwardRef(() => {return TrelloService}))
+@@ -97,1 +97,1 @@
+-    let today = new Date();
++    const today = new Date();
+@@ -100,1 +100,1 @@
+-    let currentMonthStart = new Date(
++    const currentMonthStart = new Date(
+@@ -107,1 +107,1 @@
+-    let lastMonthStart = new Date(
++    const lastMonthStart = new Date(
+@@ -114,1 +114,1 @@
+-    let lastMonthEnd = new Date(
++    const lastMonthEnd = new Date(
+@@ -216,1 +216,1 @@
+-    page: Number,
++    page: number,
+@@ -217,1 +217,1 @@
+-    limit: Number,
++    limit: number,
+@@ -420,1 +420,1 @@
+-    let userToSave = {
++    const userToSave = {
+@@ -513,1 +513,1 @@
+-    let orQuery = [];
++    const orQuery = [];
+@@ -523,1 +523,1 @@
+-    let userProjects = [];
++    const userProjects = [];
+diff --git a/src/modules/auth/auth.service.spec.ts b/src/modules/auth/auth.service.spec.ts
+--- a/src/modules/auth/auth.service.spec.ts
++++ b/src/modules/auth/auth.service.spec.ts
+@@ -11,1 +11,1 @@
+-import { ConflictException, BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
++import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+@@ -81,1 +81,1 @@
+-                'JWT_SECRET': 'secret',
++                JWT_SECRET: 'secret',
+@@ -82,1 +82,1 @@
+-                'JWT_EXPIRE': '1h',
++                JWT_EXPIRE: '1h',
+@@ -83,1 +83,1 @@
+-                'JWT_REFRESH_SECRET': 'refresh-secret',
++                JWT_REFRESH_SECRET: 'refresh-secret',
+@@ -84,1 +84,1 @@
+-                'JWT_EXPIRE_REFRESH_TOKEN': '7d',
++                JWT_EXPIRE_REFRESH_TOKEN: '7d',
+@@ -85,1 +85,1 @@
+-                'INVITE_SECRET': 'invite-secret'
++                INVITE_SECRET: 'invite-secret',
+@@ -142,1 +142,1 @@
+-      
++
+diff --git a/src/modules/email-service/email-service.controller.ts b/src/modules/email-service/email-service.controller.ts
+--- a/src/modules/email-service/email-service.controller.ts
++++ b/src/modules/email-service/email-service.controller.ts
+@@ -1,1 +1,1 @@
+-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
++import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+@@ -3,1 +3,1 @@
+-import { VerifyEmailDto } from './dto/email-service.dto';
++
+diff --git a/src/modules/users/dto/create-user.dto.ts b/src/modules/users/dto/create-user.dto.ts
+--- a/src/modules/users/dto/create-user.dto.ts
++++ b/src/modules/users/dto/create-user.dto.ts
+@@ -6,1 +6,1 @@
+-  Length,
++} from 'class-validator';
+diff --git a/src/modules/users/schemas/Goal.schema.ts b/src/modules/users/schemas/Goal.schema.ts
+--- a/src/modules/users/schemas/Goal.schema.ts
++++ b/src/modules/users/schemas/Goal.schema.ts
+@@ -4,1 +4,1 @@
+-import { Project } from './Project.schema';
++
+diff --git a/src/modules/email-service/email-service.service.ts b/src/modules/email-service/email-service.service.ts
+--- a/src/modules/email-service/email-service.service.ts
++++ b/src/modules/email-service/email-service.service.ts
+@@ -4,1 +4,1 @@
+-import { VerifyEmailDto } from './dto/email-service.dto';
++import { OTPSecret } from '../users/schemas/OTPSecret.schema';
+@@ -8,1 +8,1 @@
+-  BadRequestException,
++  Injectable,
+diff --git a/src/modules/auth/dto/auth.dto.ts b/src/modules/auth/dto/auth.dto.ts
+--- a/src/modules/auth/dto/auth.dto.ts
++++ b/src/modules/auth/dto/auth.dto.ts
+@@ -4,1 +4,1 @@
+-  IsOptional,
++  ValidateIf,
+@@ -5,1 +5,1 @@
+-  ValidateIf,
++  IsEmail,
+@@ -7,1 +7,1 @@
+-  IsIn,
++  IsStrongPassword,
+@@ -10,1 +10,1 @@
+-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
++import { ApiProperty } from '@nestjs/swagger';
+diff --git a/src/modules/users/schemas/ProjectTool.schema.ts b/src/modules/users/schemas/ProjectTool.schema.ts
+--- a/src/modules/users/schemas/ProjectTool.schema.ts
++++ b/src/modules/users/schemas/ProjectTool.schema.ts
+@@ -3,1 +3,1 @@
+-import { Project } from './Project.schema'
++import { Project } from './Project.schema';
+@@ -4,1 +4,1 @@
+-import { Tool } from './Tool.schema'
++import { Tool } from './Tool.schema';
+diff --git a/src/modules/tool/tool.controller.ts b/src/modules/tool/tool.controller.ts
+--- a/src/modules/tool/tool.controller.ts
++++ b/src/modules/tool/tool.controller.ts
+@@ -3,1 +3,1 @@
+-import { ToolName } from '../users/schemas/ToolName.schema';
++import { ToolNameDTO } from './dto/tool.dto';
+diff --git a/src/modules/users/schemas/OrganizationProjectUser.schema.ts b/src/modules/users/schemas/OrganizationProjectUser.schema.ts
+--- a/src/modules/users/schemas/OrganizationProjectUser.schema.ts
++++ b/src/modules/users/schemas/OrganizationProjectUser.schema.ts
+@@ -4,1 +4,1 @@
+-import { User } from '../../users/schemas/user.schema';
++import { Project } from './Project.schema';
+diff --git a/src/modules/organization/organization.service.ts b/src/modules/organization/organization.service.ts
+--- a/src/modules/organization/organization.service.ts
++++ b/src/modules/organization/organization.service.ts
+@@ -2,1 +2,1 @@
+-  BadRequestException,
++  Body,
+@@ -3,1 +3,1 @@
+-  Body,
++  ConflictException,
+@@ -9,1 +9,1 @@
+-import { Connection, Model, Mongoose, Types } from 'mongoose';
++import { Connection, Model, Types } from 'mongoose';
+@@ -15,1 +15,1 @@
+-import { AuthService } from '../auth/auth.service';
++
+diff --git a/src/modules/git-repo/git-repo.service.ts b/src/modules/git-repo/git-repo.service.ts
+--- a/src/modules/git-repo/git-repo.service.ts
++++ b/src/modules/git-repo/git-repo.service.ts
+@@ -26,1 +26,1 @@
+-  findAll(page: number = 1, limit: number = 10) {
++  findAll(page = 1, limit: number = 10) {
+@@ -38,1 +38,1 @@
+-    let data = {};
++    const data = {};
+diff --git a/src/modules/github/github.controller.ts b/src/modules/github/github.controller.ts
+--- a/src/modules/github/github.controller.ts
++++ b/src/modules/github/github.controller.ts
+@@ -33,1 +33,1 @@
+-    @Query('page') page: string = '1',
++    @Query('page') page = '1',
+@@ -34,1 +34,1 @@
+-    @Query('limit') limit: string = '10',
++    @Query('limit') limit = '10',
+diff --git a/src/modules/organization/organization.module.ts b/src/modules/organization/organization.module.ts
+--- a/src/modules/organization/organization.module.ts
++++ b/src/modules/organization/organization.module.ts
+@@ -16,1 +16,1 @@
+-import { AuthService } from '../auth/auth.service';
++
+diff --git a/src/modules/auth/auth.module.ts b/src/modules/auth/auth.module.ts
+--- a/src/modules/auth/auth.module.ts
++++ b/src/modules/auth/auth.module.ts
+@@ -22,1 +22,1 @@
+-import { APP_GUARD } from '@nestjs/core';
++import { RolesGuard } from './guards/roles.guard';
+@@ -23,1 +23,1 @@
+-import { RolesGuard } from './guards/roles.guard';
++import {
+diff --git a/src/modules/auth/auth.controller.ts b/src/modules/auth/auth.controller.ts
+--- a/src/modules/auth/auth.controller.ts
++++ b/src/modules/auth/auth.controller.ts
+@@ -22,1 +22,1 @@
+-import { Organization } from '../users/schemas/Organization.schema';
++import { OrganizationService } from '../organization/organization.service';
+@@ -24,1 +24,1 @@
+-import { InviteUserDTO } from '../users/dto/invite-user.dto';
++
+diff --git a/src/modules/users/aggregations/individualStats.aggregation.ts b/src/modules/users/aggregations/individualStats.aggregation.ts
+--- a/src/modules/users/aggregations/individualStats.aggregation.ts
++++ b/src/modules/users/aggregations/individualStats.aggregation.ts
+@@ -1,1 +1,1 @@
+-import mongoose, { Types } from 'mongoose';
++import { Types } from 'mongoose';
+@@ -5,1 +5,1 @@
+-  page: Number,
++  page: number,
+@@ -6,1 +6,1 @@
+-  limit: Number,
++  limit: number,
+diff --git a/src/modules/projects/projects.controller.ts b/src/modules/projects/projects.controller.ts
+--- a/src/modules/projects/projects.controller.ts
++++ b/src/modules/projects/projects.controller.ts
+@@ -19,1 +19,1 @@
+-import { Role } from '../auth/enums/role.enum';
++import { Roles } from '../auth/decorators/roles.decorator';
+@@ -32,1 +32,1 @@
+-    @Query('page') page: number=1,
++    @Query('page') page=1,
+@@ -33,1 +33,1 @@
+-    @Query('limit') limit: number=10,
++    @Query('limit') limit=10,
+diff --git a/src/modules/data-fetcher/data-fetcher.service.ts b/src/modules/data-fetcher/data-fetcher.service.ts
+--- a/src/modules/data-fetcher/data-fetcher.service.ts
++++ b/src/modules/data-fetcher/data-fetcher.service.ts
+@@ -2,1 +2,1 @@
+-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
++import { HttpStatus, Injectable } from '@nestjs/common';
+@@ -10,1 +10,1 @@
+-import { JiraService } from '../jira/jira.service';
++import { IssueEntry } from '../users/schemas/IssueEntry.schema';
+@@ -115,1 +115,1 @@
+-        const issueIdUrl = projectUrl + '/browse/' + projectKey;
++        const issueIdUrl = `${projectUrl  }/browse/${  projectKey}`;
+@@ -187,1 +187,1 @@
+-          issueLinkUrl: projectUrl + '/browse/' + transformedIssueLinksString,
++          issueLinkUrl: `${projectUrl  }/browse/${  transformedIssueLinksString}`,
+@@ -283,1 +283,1 @@
+-    const urls = tools.map((tool) => tool.toolUrl);
++    const urls = tools.map((tool) => {return tool.toolUrl});
+diff --git a/src/modules/email-service/dto/email-service.dto.ts b/src/modules/email-service/dto/email-service.dto.ts
+--- a/src/modules/email-service/dto/email-service.dto.ts
++++ b/src/modules/email-service/dto/email-service.dto.ts
+@@ -1,1 +1,1 @@
+-import { IsString, IsEmail, IsNotEmpty, MaxLength, MinLength } from 'class-validator';
++import { IsString, IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+diff --git a/src/modules/goals/goals.controller.ts b/src/modules/goals/goals.controller.ts
+--- a/src/modules/goals/goals.controller.ts
++++ b/src/modules/goals/goals.controller.ts
+@@ -13,1 +13,1 @@
+-import { UpdateGoalDto } from './dto/update-goal.dto';
++import { CreateGoalActionDto } from './dto/create-goal-action.dto';
+diff --git a/src/modules/projects/projects.service.ts b/src/modules/projects/projects.service.ts
+--- a/src/modules/projects/projects.service.ts
++++ b/src/modules/projects/projects.service.ts
+@@ -139,1 +139,1 @@
+-    return orgWithProjects.projects.map((project) => project['name']);
++    return orgWithProjects.projects.map((project) => {return project['name']});
+diff --git a/src/modules/auth/enums/role.enum.ts b/src/modules/auth/enums/role.enum.ts
+--- a/src/modules/auth/enums/role.enum.ts
++++ b/src/modules/auth/enums/role.enum.ts
+@@ -3,1 +3,1 @@
+-  Member = 'member'
++  Member = 'member',
+diff --git a/src/modules/projects/dto/create-project.dto.ts b/src/modules/projects/dto/create-project.dto.ts
+--- a/src/modules/projects/dto/create-project.dto.ts
++++ b/src/modules/projects/dto/create-project.dto.ts
+@@ -9,1 +9,1 @@
+-    example: 'VSCode',  // Example value for toolName
++    example: 'VSCode', // Example value for toolName
+@@ -18,1 +18,1 @@
+-    example: 'https://code.visualstudio.com/',  // Example value for toolUrl
++    example: 'https://code.visualstudio.com/', // Example value for toolUrl
+@@ -30,1 +30,1 @@
+-    example: 'My Awesome Project',  // Example value for project name
++    example: 'My Awesome Project', // Example value for project name
+@@ -42,1 +42,1 @@
+-        toolUrl: 'https://code.visualstudio.com/'
++        toolUrl: 'https://code.visualstudio.com/',
+@@ -46,1 +46,1 @@
+-        toolUrl: 'https://github.com/'
++        toolUrl: 'https://github.com/',
+@@ -47,1 +47,1 @@
+-      }
++      },
+@@ -48,1 +48,1 @@
+-    ],  // Example value for tools array
++    ], // Example value for tools array
+@@ -53,1 +53,1 @@
+-  @Type(() => ToolDto) // Transform array items into ToolDto instances
++  @Type(() => {return ToolDto}) // Transform array items into ToolDto instances
+diff --git a/src/modules/users/schemas/Project.schema.ts b/src/modules/users/schemas/Project.schema.ts
+--- a/src/modules/users/schemas/Project.schema.ts
++++ b/src/modules/users/schemas/Project.schema.ts
+@@ -19,1 +19,1 @@
+-      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }], // Reference to the User schema
++    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }], // Reference to the User schema
+@@ -20,1 +20,1 @@
+-      default: [],
++    default: [],
+@@ -21,1 +21,1 @@
+-    })
++  })
+diff --git a/src/modules/email-service/email-service.module.ts b/src/modules/email-service/email-service.module.ts
+--- a/src/modules/email-service/email-service.module.ts
++++ b/src/modules/email-service/email-service.module.ts
+@@ -7,1 +7,1 @@
+-import { UserService } from '../users/users.service';
++import { AuthModule } from '../auth/auth.module';
+diff --git a/src/modules/github/github.service.ts b/src/modules/github/github.service.ts
+--- a/src/modules/github/github.service.ts
++++ b/src/modules/github/github.service.ts
+@@ -42,1 +42,1 @@
+-  async summary(userId:string,date:string,page:number=1,limit:number = 10){
++  async summary(userId:string,date:string,page=1,limit:number = 10){
+@@ -118,1 +118,1 @@
+-    page: number = 1,
++    page = 1,
+@@ -119,1 +119,1 @@
+-    limit: number = 10,
++    limit = 10,
