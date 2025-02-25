@@ -234,7 +234,8 @@ export class UserService {
 
     // console.log(orgUserRoleModel['organization']['createdBy']);
     const teamMembers = orgUserRoleModel.organization['users'];
-
+    const organizationId = orgUserRoleModel.organization.id.toString();
+    console.log(`Organization Id : ${organizationId}`);
     const overViewAggr: any = overView(
       thirtyDaysAgoDate,
       page,
@@ -242,7 +243,7 @@ export class UserService {
       teamMembers,
     );
     const roles: any = await this.organizationUserRoleModel.aggregate(
-      getRoles(teamMembers, orgUserRoleModel.id),
+      getRoles(teamMembers, organizationId),
     );
     const roleMap = roles.reduce((map, { user, roleName }) => {
       map[user.toString()] = roleName; // Convert ObjectId to string for key
@@ -254,7 +255,7 @@ export class UserService {
     if (result.length === 0) {
       return [{}];
     }
-    // console.log(roleMap);
+    console.log(roleMap);
     for (let i = 0; i < result[0]['data'].length; i += 1) {
       const roleName = roleMap[result[0]['data'][i]._id.toString()];
       let roleNameUpper = '';
