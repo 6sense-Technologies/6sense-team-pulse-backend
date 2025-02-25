@@ -49,6 +49,7 @@ import { Users } from './schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
 import { Designation } from './enums/user.enum';
 import axios from 'axios';
+import { getRoles } from './aggregations/organizationuserRole.aggregation';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -222,6 +223,7 @@ export class UserService {
       })
       .populate('organization');
     console.log(orgUserRoleModel);
+
     // console.log(orgUserRoleModel['organization']['createdBy']);
     const teamMembers = orgUserRoleModel.organization['users'];
 
@@ -231,11 +233,31 @@ export class UserService {
       limit,
       teamMembers,
     );
+    const roles: any = await this.organizationUserRoleModel.aggregate(
+      getRoles(teamMembers, orgUserRoleModel.id),
+    );
+    const roleMap = roles.reduce((map, { user, roleName }) => {
+      map[user.toString()] = roleName; // Convert ObjectId to string for key
+      return map;
+    }, {});
 
     const result = await this.issueEntryModel.aggregate(overViewAggr);
 
     if (result.length === 0) {
       return [{}];
+    }
+    // console.log(roleMap);
+    for (let i = 0; i < result[0]['data'].length; i += 1) {
+      const roleName = roleMap[result[0]['data'][i]._id.toString()];
+      let roleNameUpper = '';
+      if (roleName) {
+        roleNameUpper =
+          String(roleName[0]).toUpperCase() + String(roleName).slice(1);
+      }
+      if (!roleName) {
+        roleNameUpper = 'Member';
+      }
+      result[0]['data'][i]['role'] = roleNameUpper || 'Member';
     }
     return result[0];
   }
