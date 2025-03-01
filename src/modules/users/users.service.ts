@@ -248,7 +248,6 @@ export class UserService {
       map[user.toString()] = roleName; // Convert ObjectId to string for key
       return map;
     }, {});
-
     const result = await this.issueEntryModel.aggregate(overViewAggr);
 
     if (result.length === 0) {
