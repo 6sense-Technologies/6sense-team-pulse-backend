@@ -202,16 +202,16 @@ export class DataFetcherService {
       );
     }
   }
-  async dataFetchFromTrello() {
+  async dataFetchFromTrello(dataFetcherDto: DataFetcherDTO) {
     try {
+      console.log(`Fetching data from trello.....`);
       const API_KEY = this.configService.get('TRELLO_API_KEY');
-      const TOKEN = this.configService.get('TRELLO_TOKEN');
+      const TOKEN = this.configService.get('TRELLO_SECRET_KEY');
       const BASE_URL = 'https://api.trello.com/1';
-      const START_DATE = '2024-08-01T00:00:00.000Z'; // Change this as needed
-      const TODAY = new Date().toISOString(); // Current date in ISO format
-
+      const START_DATE = new Date().toISOString();
+      const TODAY = new Date().toISOString();
       const { data: boards } = await firstValueFrom(
-        this.httpService.get(`https://api.trello.com/members/me/boards`, {
+        this.httpService.get(`${BASE_URL}/members/me/boards`, {
           params: { key: API_KEY, token: TOKEN, fields: 'id,name' },
         }),
       );
@@ -221,7 +221,7 @@ export class DataFetcherService {
       for (const board of boards) {
         console.log(`📌 Fetching lists for board: ${board.name} (${board.id})`);
         const projectUrl = `trello.com/boards/${board.id}/lists`;
-        const { data: lists } = await await firstValueFrom(
+        const { data: lists } = await firstValueFrom(
           this.httpService.get(`${BASE_URL}/boards/${board.id}/lists`, {
             params: { key: API_KEY, token: TOKEN, fields: 'id,name' },
           }),
@@ -276,7 +276,7 @@ export class DataFetcherService {
                   (hour === 11 && minute <= 15 && amPm === 'AM')
                 ) {
                   isPlanned = true;
-                  createdDate = dueDate;
+                  createdDate = dueDate.split('T')[0];
                 } else if (
                   (hour === 11 &&
                     minute >= 16 &&
@@ -298,7 +298,7 @@ export class DataFetcherService {
                   `Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`,
                 );
                 isPlanned = true;
-                createdDate = dueDate;
+                createdDate = dueDate.split('T')[0];
               }
             } else {
               isPlanned = true;
@@ -307,24 +307,23 @@ export class DataFetcherService {
 
             return {
               issueId: card.id,
-              issueSummary: card.desc,
+              issueSummary: card.name,
               issueStatus: listMap[card.idList] || 'Unknown',
               issueType: 'Task',
+              issueIdUrl: card.shortUrl,
               name: card.name,
               planned: isPlanned,
               projectUrl: projectUrl,
               issueLinkUrl: card.shortUrl,
               date: createdDate,
               projectName: board.name,
-              trelloId: card.idMemberCreator,
+              accountId: card.idMemberCreator,
             };
           });
 
         allCards.push(...processedCards);
       }
-
-      console.log(`✅ Total cards found: ${allCards.length}`);
-      console.log(allCards);
+      return allCards;
     } catch (error) {
       console.error(
         ' Error fetching data from trello:',
@@ -337,7 +336,6 @@ export class DataFetcherService {
     console.log('INVOKED');
 
     const data = JSON.parse(rawData);
-    // console.log(data);
 
     for (let i = 0; i < data.length; i += 1) {
       if (!data[i]) continue;
@@ -410,10 +408,94 @@ export class DataFetcherService {
     console.log('DONE..');
     return 'DONE';
   }
+  async saveTrelloIssueToEntry(rawData: any) {
+    console.log('INVOKED');
+
+    const data = JSON.parse(rawData);
+    // console.log(data);
+    // console.log(data[0]);
+    // return;
+    for (let i = 0; i < data.length; i += 1) {
+      if (!data[i]) continue;
+
+      const {
+        accountId,
+        issueId,
+        projectUrl,
+        issueIdUrl,
+        issueLinkUrl,
+        issueType,
+        issueStatus,
+        issueSummary,
+        planned,
+        issueLinks,
+        date,
+        comment,
+      } = data[i];
+
+      if (accountId) {
+        // Fetch all users matching accountId or jiraId
+        const users = await this.userModel.find({
+          $or: [{ accountId }, { trelloId: accountId }],
+        });
+        // console.log(users);
+        if (!users.length) {
+          console.warn(`No users found for accountId: ${accountId}`);
+          continue;
+        }
+        let issueDate = new Date(date);
+        if (issueDate.toString() === 'Invalid Date') {
+          issueDate = new Date('2024-08-01');
+        }
+
+        /// for handling corner case same user for multiple organization
+        for (const user of users) {
+          console.log(
+            `Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`,
+          );
+
+          await this.issueEntryModel.findOneAndUpdate(
+            {
+              issueId, // Match by issueId
+              projectUrl, // Match by projectUrl
+              user: new mongoose.Types.ObjectId(user.id), // Ensure uniqueness per user
+            },
+            {
+              serialNumber: i,
+              issueId,
+              issueType: issueType || '',
+              issueStatus,
+              issueSummary,
+              username: user.displayName,
+              planned,
+              link: '',
+              accountId,
+              projectUrl,
+              issueIdUrl,
+              issueLinkUrl: '',
+              user: new mongoose.Types.ObjectId(user.id),
+              date: issueDate,
+              comment: comment,
+            },
+            {
+              upsert: true, // Create if not found
+              new: true, // Return the updated document
+            },
+          );
+        }
+      } else {
+        console.log(`No trello id matches id: ${accountId} `);
+      }
+    }
+
+    console.log('DONE..');
+    return 'DONE';
+  }
   async fetchDataFromAllToolUrls() {
     const tools = await this.toolModel.find({});
     const urls = tools.map((tool) => tool.toolUrl);
-    const allData = [];
+    const allDataJIRA = [];
+    const allDataTrello = [];
     const urlSet = new Set();
     for (const url of urls) {
       if (url.search('atlassian') >= 0) {
@@ -431,18 +513,32 @@ export class DataFetcherService {
           };
 
           const data = await this.dataFetchFromJIRA(dataFetcherDto);
-          allData.push(...data);
+          allDataJIRA.push(...data);
         } catch (error) {
           console.error(`Error fetching data from URL: ${url}`, error);
-          // throw error; // Uncomment this line if you want to stop the process on error
         }
-      } else if (url.search('trello') >= 0) {
-        console.log(`Trello board url found`);
       }
     }
-    const status = await this.saveJiraIssueToIssueEntry(
-      JSON.stringify(allData),
+
+    const jiraStatus = await this.saveJiraIssueToIssueEntry(
+      JSON.stringify(allDataJIRA),
     );
-    return status;
+    try {
+      allDataTrello.push(
+        await this.dataFetchFromTrello({
+          projectUrl: '',
+          date: new Date().toISOString().split('T')[0],
+        }),
+      );
+    } catch (error) {
+      console.error(`Error fetching data from trello`);
+    }
+    const trelloStatus = await this.saveTrelloIssueToEntry(
+      JSON.stringify(allDataTrello[0]),
+    );
+    return {
+      jiraStatus: jiraStatus,
+      trelloStatus: trelloStatus,
+    };
   }
 }
