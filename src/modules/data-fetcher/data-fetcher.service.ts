@@ -125,6 +125,7 @@ export class DataFetcherService {
             console.warn(
               `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
             );
+
             if (
               (hour >= 12 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
               (hour >= 1 &&
@@ -253,13 +254,12 @@ export class DataFetcherService {
             const first8Hex = card.id.substr(0, 8);
             const epochDate = parseInt(first8Hex, 16);
             let dueDate = card.due;
-            let createdDate = new Date(epochDate * 1000).toDateString();
+            let createdDate = new Date(epochDate * 1000).toISOString();
             const { hour, minute, amPm } = this.getTime(createdDate);
-            console.log(createdDate);
-            console.log(dueDate);
             let isPlanned = true;
             if (dueDate) {
               if (createdDate.split('T')[0] === dueDate.split('T')[0]) {
+                console.log(`${hour}-${minute}-${amPm}`);
                 console.warn(
                   `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
                 );
@@ -314,7 +314,7 @@ export class DataFetcherService {
               name: card.name,
               planned: isPlanned,
               projectUrl: projectUrl,
-              issueLinkUrl: card.shortUrl,
+              issueLinkUrl: '',
               date: createdDate,
               projectName: board.name,
               accountId: card.idMemberCreator,
