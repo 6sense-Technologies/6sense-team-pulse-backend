@@ -205,11 +205,13 @@ export class DataFetcherService {
   }
   async dataFetchFromTrello(dataFetcherDto: DataFetcherDTO) {
     try {
-      console.log(`Fetching data from trello.....`);
+      console.log(dataFetcherDto.projectUrl);
       const API_KEY = this.configService.get('TRELLO_API_KEY');
       const TOKEN = this.configService.get('TRELLO_SECRET_KEY');
       const BASE_URL = 'https://api.trello.com/1';
-      const START_DATE = new Date().toISOString();
+      const START_DATE = new Date(
+        new Date().setDate(new Date().getDate() - 1),
+      ).toISOString();
       const TODAY = new Date().toISOString();
       const { data: boards } = await firstValueFrom(
         this.httpService.get(`${BASE_URL}/members/me/boards`, {
@@ -220,109 +222,120 @@ export class DataFetcherService {
       let allCards = [];
 
       for (const board of boards) {
-        console.log(`📌 Fetching lists for board: ${board.name} (${board.id})`);
-        const projectUrl = `trello.com/boards/${board.id}/lists`;
-        const { data: lists } = await firstValueFrom(
-          this.httpService.get(`${BASE_URL}/boards/${board.id}/lists`, {
-            params: { key: API_KEY, token: TOKEN, fields: 'id,name' },
-          }),
-        );
-        const listMap = lists.reduce(
-          (acc, list) => ((acc[list.id] = list.name), acc),
-          {},
-        );
+        let boardNameModified = board.name.toLowerCase().replace(/\s+/g, '-');
 
-        console.log(
-          `📌 Fetching cards from board: ${board.name} (${board.id})`,
-        );
-        const { data: cards } = await firstValueFrom(
-          this.httpService.get(`${BASE_URL}/boards/${board.id}/cards`, {
-            params: {
-              key: API_KEY,
-              token: TOKEN,
-              fields:
-                'id,name,dateLastActivity,desc,labels,idList,shortUrl,due,dateCreated,start,idMemberCreator',
-              since: START_DATE,
-            },
-          }),
-        );
+        if (dataFetcherDto.projectUrl.search(boardNameModified) >= 0) {
+          console.log(
+            `📌 Fetching lists for board: ${board.name} (${board.id})`,
+          );
+          const projectUrl = `trello.com/boards/${board.id}/lists`;
+          const { data: lists } = await firstValueFrom(
+            this.httpService.get(`${BASE_URL}/boards/${board.id}/lists`, {
+              params: { key: API_KEY, token: TOKEN, fields: 'id,name' },
+            }),
+          );
+          const listMap = lists.reduce(
+            (acc, list) => ((acc[list.id] = list.name), acc),
+            {},
+          );
 
-        // Process cards and collect member IDs
-        const processedCards = cards
-          .filter((card) => new Date(card.dateLastActivity) <= new Date(TODAY))
-          .map((card) => {
-            const first8Hex = card.id.substr(0, 8);
-            const epochDate = parseInt(first8Hex, 16);
-            let dueDate = card.due;
-            let createdDate = new Date(epochDate * 1000).toISOString();
-            const { hour, minute, amPm } = this.getTime(createdDate);
-            let isPlanned = true;
-            if (dueDate) {
-              if (createdDate.split('T')[0] === dueDate.split('T')[0]) {
-                console.log(`${hour}-${minute}-${amPm}`);
-                console.warn(
-                  `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
-                );
-                if (
-                  (hour >= 12 &&
-                    minute >= 0 &&
-                    minute <= 59 &&
-                    amPm === 'AM') ||
-                  (hour >= 1 &&
-                    hour <= 10 &&
-                    minute >= 0 &&
-                    minute <= 59 &&
-                    amPm === 'AM') ||
-                  (hour === 11 && minute <= 15 && amPm === 'AM')
-                ) {
+          console.log(
+            `📌 Fetching cards from board: ${board.name} (${board.id})`,
+          );
+          const { data: cards } = await firstValueFrom(
+            this.httpService.get(`${BASE_URL}/boards/${board.id}/cards`, {
+              params: {
+                key: API_KEY,
+                token: TOKEN,
+                fields:
+                  'id,name,dateLastActivity,desc,labels,idList,shortUrl,due,dateCreated,start,idMemberCreator',
+                since: START_DATE,
+              },
+            }),
+          );
+
+          // Process cards and collect member IDs
+          const processedCards = cards
+            .filter(
+              (card) => new Date(card.dateLastActivity) <= new Date(TODAY),
+            )
+            .map((card) => {
+              const first8Hex = card.id.substr(0, 8);
+              const epochDate = parseInt(first8Hex, 16);
+              let dueDate = card.due;
+              let createdDate = new Date(epochDate * 1000).toISOString();
+              const { hour, minute, amPm } = this.getTime(createdDate);
+              let isPlanned = true;
+              if (dueDate) {
+                if (createdDate.split('T')[0] === dueDate.split('T')[0]) {
+                  console.warn(
+                    `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
+                  );
+                  if (
+                    (hour >= 12 &&
+                      minute >= 0 &&
+                      minute <= 59 &&
+                      amPm === 'AM') ||
+                    (hour >= 1 &&
+                      hour <= 10 &&
+                      minute >= 0 &&
+                      minute <= 59 &&
+                      amPm === 'AM') ||
+                    (hour === 11 && minute <= 15 && amPm === 'AM')
+                  ) {
+                    isPlanned = true;
+                    createdDate = dueDate.split('T')[0];
+                  } else if (
+                    (hour === 11 &&
+                      minute >= 16 &&
+                      minute <= 59 &&
+                      amPm === 'AM') ||
+                    amPm === 'PM'
+                  ) {
+                    console.warn(
+                      `Unplanned issue found: ${createdDate} Due Date: ${dueDate}`,
+                    );
+                    isPlanned = false;
+                    createdDate = createdDate.split('T')[0];
+                  } else {
+                    isPlanned = true;
+                    createdDate = createdDate.split('T')[0];
+                  }
+                } else {
+                  console.log(
+                    `Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`,
+                  );
                   isPlanned = true;
                   createdDate = dueDate.split('T')[0];
-                } else if (
-                  (hour === 11 &&
-                    minute >= 16 &&
-                    minute <= 59 &&
-                    amPm === 'AM') ||
-                  amPm === 'PM'
-                ) {
-                  console.warn(
-                    `Unplanned issue found: ${createdDate} Due Date: ${dueDate}`,
-                  );
-                  isPlanned = false;
-                  createdDate = createdDate.split('T')[0];
-                } else {
-                  isPlanned = true;
-                  createdDate = createdDate.split('T')[0];
                 }
               } else {
-                console.log(
-                  `Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`,
-                );
                 isPlanned = true;
-                createdDate = dueDate.split('T')[0];
+                createdDate = createdDate.split('T')[0];
               }
-            } else {
-              isPlanned = true;
-              createdDate = createdDate.split('T')[0];
-            }
+              let issueStatusModified = listMap[card.idList];
+              if (issueStatusModified.toLowerCase() === 'done') {
+                issueStatusModified = 'Done';
+              }
+              return {
+                issueId: card.id,
+                issueSummary: card.name,
+                issueStatus: issueStatusModified || 'Unknown',
+                issueType: 'Task',
+                issueIdUrl: card.shortUrl,
+                name: card.name,
+                planned: isPlanned,
+                projectUrl: projectUrl,
+                issueLinkUrl: '',
+                date: createdDate,
+                projectName: board.name,
+                accountId: card.idMemberCreator,
+              };
+            });
 
-            return {
-              issueId: card.id,
-              issueSummary: card.name,
-              issueStatus: listMap[card.idList] || 'Unknown',
-              issueType: 'Task',
-              issueIdUrl: card.shortUrl,
-              name: card.name,
-              planned: isPlanned,
-              projectUrl: projectUrl,
-              issueLinkUrl: '',
-              date: createdDate,
-              projectName: board.name,
-              accountId: card.idMemberCreator,
-            };
-          });
-
-        allCards.push(...processedCards);
+          allCards.push(...processedCards);
+        }
       }
+      console.log(allCards);
       return allCards;
     } catch (error) {
       console.error(
@@ -412,12 +425,9 @@ export class DataFetcherService {
     console.log('INVOKED');
 
     const data = JSON.parse(rawData);
-    // console.log(data);
-    // console.log(data[0]);
-    // return;
+    console.log('Saving trello issues..');
     for (let i = 0; i < data.length; i += 1) {
       if (!data[i]) continue;
-
       const {
         accountId,
         issueId,
@@ -432,7 +442,7 @@ export class DataFetcherService {
         date,
         comment,
       } = data[i];
-
+      console.log(accountId);
       if (accountId) {
         // Fetch all users matching accountId or jiraId
         const users = await this.userModel.find({
@@ -497,6 +507,7 @@ export class DataFetcherService {
     const allDataJIRA = [];
     const allDataTrello = [];
     const urlSet = new Set();
+    console.log(`Fetching data from jira...`);
     for (const url of urls) {
       if (url.search('atlassian') >= 0) {
         if (urlSet.has(url)) {
@@ -524,17 +535,28 @@ export class DataFetcherService {
       JSON.stringify(allDataJIRA),
     );
     try {
-      allDataTrello.push(
-        await this.dataFetchFromTrello({
-          projectUrl: '',
-          date: new Date().toISOString().split('T')[0],
-        }),
-      );
+      console.log(`Fetching data from trello...`);
+      for (const url of urls) {
+        if (url.search('trello') >= 0) {
+          let trelloIssues = await this.dataFetchFromTrello({
+            projectUrl: url,
+            date: new Date().toISOString().split('T')[0],
+          });
+          if (
+            trelloIssues.length > 0 ||
+            trelloIssues !== undefined ||
+            trelloIssues !== null
+          ) {
+            allDataTrello.push(...trelloIssues);
+          }
+        }
+      }
     } catch (error) {
       console.error(`Error fetching data from trello`);
     }
+
     const trelloStatus = await this.saveTrelloIssueToEntry(
-      JSON.stringify(allDataTrello[0]),
+      JSON.stringify(allDataTrello),
     );
     return {
       jiraStatus: jiraStatus,
