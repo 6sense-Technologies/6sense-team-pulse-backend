@@ -205,6 +205,7 @@ export class DataFetcherService {
   }
   async dataFetchFromTrello(dataFetcherDto: DataFetcherDTO) {
     try {
+      console.log('Fetching data from....');
       console.log(dataFetcherDto.projectUrl);
       const API_KEY = this.configService.get('TRELLO_API_KEY');
       const TOKEN = this.configService.get('TRELLO_SECRET_KEY');
@@ -216,16 +217,16 @@ export class DataFetcherService {
       const TODAY = new Date().toISOString();
       const { data: boards } = await firstValueFrom(
         this.httpService.get(`${BASE_URL}/members/me/boards`, {
-          params: { key: API_KEY, token: TOKEN, fields: 'id,name' },
+          params: { key: API_KEY, token: TOKEN, fields: 'id,name,url' },
         }),
       );
 
       let allCards = [];
 
       for (const board of boards) {
-        let boardNameModified = board.name.toLowerCase().replace(/\s+/g, '-');
+        // console.log(`${dataFetcherDto.projectUrl} - ${board.url}`);
 
-        if (dataFetcherDto.projectUrl.search(boardNameModified) >= 0) {
+        if (dataFetcherDto.projectUrl === board.url) {
           console.log(
             `📌 Fetching lists for board: ${board.name} (${board.id})`,
           );
@@ -338,7 +339,6 @@ export class DataFetcherService {
           allCards.push(...processedCards);
         }
       }
-      console.log(allCards);
       return allCards;
     } catch (error) {
       console.error(
