@@ -212,7 +212,7 @@ export class DataFetcherService {
       // const START_DATE = new Date(
       //   new Date().setDate(new Date().getDate() - 1),
       // ).toISOString();
-      const START_DATE = new Date('2024-08-01').toISOString().split('T')[0];
+      const START_DATE = new Date().toISOString().split('T')[0];
       const TODAY = new Date().toISOString();
       const { data: boards } = await firstValueFrom(
         this.httpService.get(`${BASE_URL}/members/me/boards`, {
