@@ -320,20 +320,24 @@ export class DataFetcherService {
               } else if (issueStatusModified.toLowerCase() === 'in review') {
                 issueStatusModified = 'In Review';
               }
-              return {
-                issueId: card.id,
-                issueSummary: card.name,
-                issueStatus: issueStatusModified || 'Unknown',
-                issueType: 'Task',
-                issueIdUrl: card.shortUrl,
-                name: card.name,
-                planned: isPlanned,
-                projectUrl: projectUrl,
-                issueLinkUrl: '',
-                date: createdDate,
-                projectName: board.name,
-                accountId: card.idMemberCreator,
-              };
+              if (dueDate) {
+                return {
+                  issueId: card.id,
+                  issueSummary: card.name,
+                  issueStatus: issueStatusModified || 'Unknown',
+                  issueType: 'Task',
+                  issueIdUrl: card.shortUrl,
+                  name: card.name,
+                  planned: isPlanned,
+                  projectUrl: projectUrl,
+                  issueLinkUrl: '',
+                  date: createdDate,
+                  projectName: board.name,
+                  accountId: card.idMemberCreator,
+                };
+              } else {
+                console.log(`Found task without due date ${card.issueSummary}`);
+              }
             });
 
           allCards.push(...processedCards);
