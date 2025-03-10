@@ -68,7 +68,7 @@ export class DataFetcherService {
     console.log(`Fetching datas for date greater than equal : ${todaysDate}`);
     // const tempDate = '2024-08-01';
     const jqlQuery = {
-      jql: `created >= '${todaysDate}'`,
+      jql: `created >= '${todaysDate}' AND due >= '${todaysDate}'`,
       fields: [
         'id',
         'key',
@@ -252,6 +252,7 @@ export class DataFetcherService {
                 fields:
                   'id,name,dateLastActivity,desc,labels,idList,shortUrl,due,dateCreated,start,idMemberCreator',
                 since: START_DATE,
+                due: 'today'
               },
             }),
           );
