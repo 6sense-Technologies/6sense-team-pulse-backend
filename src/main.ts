@@ -37,11 +37,6 @@ async function bootstrap() {
 
   // Enable CORS for specific origins
   webApp.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'https://o4t-under-development.vercel.app',
-      'https://o4t-under-development-for-tester.vercel.app',
-    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });
