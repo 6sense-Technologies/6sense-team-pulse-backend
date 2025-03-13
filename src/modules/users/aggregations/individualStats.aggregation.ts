@@ -323,7 +323,7 @@ export const individualStats = (
             {
               $eq: ['$totalTaskCount', 0],
             },
-            1,
+            0,
             {
               $multiply: [
                 {
