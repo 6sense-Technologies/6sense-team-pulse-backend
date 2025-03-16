@@ -128,7 +128,7 @@ export class UserService {
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls isDisabled');
-    console.log(userData);
+    // console.log(userData);
     if (!('isDisabled' in userData)) {
       userData['isDisabled'] = false;
     }
@@ -219,7 +219,7 @@ export class UserService {
     userId: string,
   ): Promise<any[]> {
     // const count = await this.userModel.countDocuments();
-    console.log(`${page}--${limit}`);
+    // console.log(`${page}--${limit}`);
     // Get the current date and subtract 30 days
     const todaysDate = new Date();
     const thirtyDaysAgo = todaysDate.setDate(todaysDate.getDate() - 30);
@@ -230,7 +230,7 @@ export class UserService {
         user: new Types.ObjectId(userId),
       })
       .populate('organization');
-    console.log(orgUserRoleModel);
+    // console.log(orgUserRoleModel);
 
     // console.log(orgUserRoleModel['organization']['createdBy']);
     const teamMembers = orgUserRoleModel.organization['users'];
@@ -275,7 +275,7 @@ export class UserService {
     userId: string,
     file: Express.Multer.File,
   ) {
-    let avatarUrl = 'https://i.ibb.co.com/h6TfyCV/124599.jpg';
+    let avatarUrl = 'https://i.ibb.co/6J1Tn7Xc/user-8664801.png';
     if (file) {
       const base64Image = file.buffer.toString('base64');
 

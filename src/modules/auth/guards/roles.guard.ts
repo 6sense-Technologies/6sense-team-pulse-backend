@@ -42,6 +42,7 @@ export class RolesGuard implements CanActivate {
     })
       .populate('role')
       .populate('organization');
+
     for (let i = 0; i < roles.length; i += 1) {
       if (roles[i].toLowerCase() === orgRole['role']['roleName']) {
         // console.log(`Found Role: ${roles[i]}`);

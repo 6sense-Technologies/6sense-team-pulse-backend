@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
+  ChooseOrganization,
   CreateUserEmail,
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
@@ -98,5 +99,17 @@ export class AuthController {
   @Get('user-status')
   checkStatus(@Query('email') emailAddress: string) {
     return this.authService.checkStatus(emailAddress);
+  }
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Get('list-organizations')
+  listOrganizations(@Req() req: Request) {
+    return this.authService.listOrganizations(req['user'].userId);
+  }
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Post('choose-organization')
+  selectOrganization(@Body() chooseOrg: ChooseOrganization) {
+    return this.authService.chooseOrganization(chooseOrg);
   }
 }

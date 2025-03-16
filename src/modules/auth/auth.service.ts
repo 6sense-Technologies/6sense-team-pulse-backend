@@ -9,6 +9,7 @@ import { Model, Types } from 'mongoose';
 import { Users } from '../users/schemas/users.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import {
+  ChooseOrganization,
   CreateUserEmail,
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
@@ -23,6 +24,7 @@ import { OTPSecret } from '../users/schemas/OTPSecret.schema';
 import { Organization } from '../users/schemas/Organization.schema';
 import { userInfo } from 'os';
 import { InviteUserDTO } from '../users/dto/invite-user.dto';
+import { OrganizationUserRole } from '../users/schemas/OrganizationUserRole.schema';
 
 @Injectable()
 export class AuthService {
@@ -33,6 +35,8 @@ export class AuthService {
     private readonly otpSecretModel: Model<OTPSecret>,
     @InjectModel(Organization.name)
     private readonly organizationModel: Model<Organization>,
+    @InjectModel(OrganizationUserRole.name)
+    private readonly organizationUserRole: Model<OrganizationUserRole>,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
@@ -198,6 +202,31 @@ export class AuthService {
       throw new NotFoundException('User does not exists');
     }
   }
+  public async chooseOrganization(chooseOrg: ChooseOrganization) {
+    console.log(chooseOrg.organizationId);
+    const orgnization = await this.organizationModel.findOne({
+      _id: new Types.ObjectId(chooseOrg.organizationId),
+    });
+    if (orgnization) {
+      return {
+        organizationId: orgnization._id.toString(),
+      };
+    } else {
+      throw new NotFoundException('Organization Not found');
+    }
+  }
+  public async listOrganizations(userId: string) {
+    const organizations = await this.organizationModel.find({
+      users: { $in: [userId] },
+    });
+
+    const orgNames = organizations.map((org) => {
+      return { id: org._id.toString(), name: org.organizationName };
+    });
+
+    return orgNames;
+  }
+
   public async generateRefreshTokens(refreshToken: string) {
     if (
       !(await this.jwtService.verify(refreshToken, {

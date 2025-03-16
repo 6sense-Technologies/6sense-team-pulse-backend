@@ -33,28 +33,27 @@ export class ProjectsService {
     if (project) {
       throw new ConflictException('Project with this name already exists');
     }
-    const organization = await this.Organization.aggregate([
-      {
-        $match: {
-          createdBy: new Types.ObjectId(userId),
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-        },
-      },
-    ]);
+    const organization = await this.Organization.find({
+      users: { $in: [userId] },
+    });
     if (organization.length === 0) {
       throw new NotFoundException('No organization found for the user');
     }
     const tools = await this.toolModel.insertMany(createProjectDto.tools);
-    const projectModel = await this.projectModel.create({
-      name: createProjectDto.name,
-      tools: tools,
-      createdBy: new Types.ObjectId(userId),
-      assignedUsers: [new Types.ObjectId(userId)],
-    });
+    const projectModel = await this.projectModel.findOneAndUpdate(
+      { name: createProjectDto.name }, // Find project by name (or another unique field)
+      {
+        $set: {
+          tools: tools, // Always update tools
+        },
+        $setOnInsert: {
+          name: createProjectDto.name,
+          createdBy: new Types.ObjectId(userId),
+        },
+        $push: { assignedUsers: new Types.ObjectId(userId) }, // Avoid conflict with $setOnInsert
+      },
+      { new: true, upsert: true }, // `upsert: true` creates if not exists
+    );
     await this.Organization.updateOne(
       { _id: organization[0]._id },
       { $push: { projects: projectModel } },
@@ -70,10 +69,16 @@ export class ProjectsService {
   async findAll(page: number, limit: number, userId: string) {
     const skip = (page - 1) * limit;
 
+    const orgProjectsUsers = await this.OrganizationProjectUser.find({
+      user: new Types.ObjectId(userId),
+    });
+    // console.log(orgProjectsUsers);
+    const projectIds = orgProjectsUsers.map((opu) => opu.project);
+
     const [result] = await this.projectModel.aggregate([
       {
         $match: {
-          createdBy: new Types.ObjectId(userId),
+          _id: { $in: projectIds },
         },
       },
       {
@@ -85,8 +90,16 @@ export class ProjectsService {
         },
       },
       {
+        $lookup: {
+          from: 'organizationprojectusers', // Reference the OrganizationProjectUser collection
+          localField: '_id', // Match project _id with the project field in organizationprojectusers
+          foreignField: 'project',
+          as: 'projectUsers',
+        },
+      },
+      {
         $addFields: {
-          teamSize: { $size: '$assignedUsers' },
+          teamSize: { $size: '$projectUsers' }, // Count the number of users per project
         },
       },
       {
@@ -125,18 +138,18 @@ export class ProjectsService {
     };
   }
   async getNames(page: number, limit: number, userId: string) {
-    const orgWithProjects = await this.Organization.findOne({
-      createdBy: userId,
-    })
-      .populate('projects')
-      .lean();
-
-    if (!orgWithProjects || !orgWithProjects.projects) {
+    // console.log(organizations);
+    const orgProjectsUsers = await this.OrganizationProjectUser.find({
+      user: new Types.ObjectId(userId),
+    });
+    const projectIds = orgProjectsUsers.map((opu) => opu.project);
+    const projects = await this.projectModel.find({ _id: projectIds });
+    if (!projectIds || projectIds.length === 0) {
       return [];
     }
-
+    console.log(projects);
     // Extract project names
-    return orgWithProjects.projects.map((project) => project['name']);
+    return projects.map((project) => project['name']);
   }
 
   /* istanbul ignore next */
