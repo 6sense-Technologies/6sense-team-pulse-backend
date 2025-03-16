@@ -249,7 +249,7 @@ export const monthlyStat = (
             {
               $eq: ['$totalTaskCount', 0],
             },
-            1,
+            0,
             {
               $multiply: [
                 {
