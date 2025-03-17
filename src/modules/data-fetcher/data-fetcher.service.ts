@@ -213,7 +213,7 @@ export class DataFetcherService {
       // const START_DATE = new Date(
       //   new Date().setDate(new Date().getDate() - 1),
       // ).toISOString();
-      const START_DATE = new Date().toISOString().split('T')[0];
+      const START_DATE = dataFetcherDto.date;
       const TODAY = new Date().toISOString();
       const { data: boards } = await firstValueFrom(
         this.httpService.get(`${BASE_URL}/members/me/boards`, {
@@ -252,7 +252,7 @@ export class DataFetcherService {
                 fields:
                   'id,name,dateLastActivity,desc,labels,idList,shortUrl,due,dateCreated,start,idMemberCreator',
                 since: START_DATE,
-                due: 'today'
+                due: 'today',
               },
             }),
           );
@@ -509,13 +509,20 @@ export class DataFetcherService {
     console.log('DONE..');
     return 'DONE';
   }
-  async fetchDataFromAllToolUrls() {
+  async fetchDataFromAllToolUrls(verdict: boolean = false) {
     const tools = await this.toolModel.find({});
     const urls = tools.map((tool) => tool.toolUrl);
     const allDataJIRA = [];
     const allDataTrello = [];
     const urlSet = new Set();
     console.log(`Fetching data from jira...`);
+    let newDate = new Date().toISOString().split('T')[0];
+
+    if (verdict === true) {
+      let lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7); // Subtract 7 days
+      newDate = lastWeek.toISOString().split('T')[0]; // Format to YYYY-MM-DD
+    }
     for (const url of urls) {
       if (url.search('atlassian') >= 0) {
         if (urlSet.has(url)) {
@@ -526,9 +533,10 @@ export class DataFetcherService {
 
         try {
           console.log(`Fetching data from ${url}`);
+
           const dataFetcherDto: DataFetcherDTO = {
             projectUrl: url,
-            date: new Date().toISOString().split('T')[0],
+            date: newDate,
           };
 
           const data = await this.dataFetchFromJIRA(dataFetcherDto);
@@ -548,7 +556,7 @@ export class DataFetcherService {
         if (url.search('trello') >= 0) {
           let trelloIssues = await this.dataFetchFromTrello({
             projectUrl: url,
-            date: new Date().toISOString().split('T')[0],
+            date: newDate,
           });
           if (
             trelloIssues.length > 0 ||

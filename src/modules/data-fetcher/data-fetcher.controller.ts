@@ -14,4 +14,12 @@ export class DataFetcherController {
 
     return { message: 'Processing' };
   }
+
+  @Get('fetch-for-last-week')
+  async getLastWeekData() {
+    setTimeout(() => {
+      this.dataFetcherService.fetchDataFromAllToolUrls(true);
+    });
+    return { message: 'Processing' };
+  }
 }
