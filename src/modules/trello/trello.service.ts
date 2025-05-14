@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
-import { IIssue, User } from '../users/schemas/user.schema';
+import { IIssue, User } from '../../schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {

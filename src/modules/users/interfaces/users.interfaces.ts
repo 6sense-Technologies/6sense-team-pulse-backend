@@ -1,5 +1,5 @@
 import { IComment } from '../../../common/interfaces/jira.interfaces';
-import { IUser, User } from '../schemas/user.schema';
+import { IUser, User } from '../../../schemas/user.schema';
 
 export interface IAllUsers {
   message: string;

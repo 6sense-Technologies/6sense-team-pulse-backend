@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
   Query,
+  Headers,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -18,6 +19,8 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Role } from '../auth/enums/role.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequestMetadata }  from 'src/common/request-metadata/request-metadata.decorator';
+import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
 
 @Controller('projects')
 export class ProjectsController {
@@ -55,6 +58,21 @@ export class ProjectsController {
   ) {
     return this.projectsService.findAll(+page, +limit, req['user'].userId);
   }
+
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Get('get-user-projects-by-organization')
+  async getUserProjectsByOrganization(
+    @Req() req: Request,
+    @RequestMetadata() metadata: RequestMetadataDto,
+    // @Headers('Organization-Id') organizationUserId: string,
+  ) {
+    return await this.projectsService.getUserProjectsByOrganization(
+      req['user'].userId,
+      metadata.organizationId,
+    ); 
+  }
+
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
@@ -74,4 +92,7 @@ export class ProjectsController {
   remove(@Param('id') id: string) {
     return this.projectsService.remove(id);
   }
+
+  
+
 }

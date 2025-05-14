@@ -3,9 +3,9 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
 import { DataFetcherService } from './data-fetcher.service';
-import { Tool } from '../users/schemas/Tool.schema';
-import { IssueEntry } from '../users/schemas/IssueEntry.schema';
-import { Users } from '../users/schemas/users.schema';
+import { Tool } from '../../schemas/Tool.schema';
+import { IssueEntry } from '../../schemas/IssueEntry.schema';
+import { Users } from '../../schemas/users.schema';
 import { of } from 'rxjs';
 import mongoose from 'mongoose';
 

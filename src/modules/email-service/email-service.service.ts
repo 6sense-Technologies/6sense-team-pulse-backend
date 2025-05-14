@@ -2,14 +2,14 @@ import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { VerifyEmailDto } from './dto/email-service.dto';
-import { OTPSecret } from '../users/schemas/OTPSecret.schema';
+import { OTPSecret } from '../../schemas/OTPSecret.schema';
 import { MailerService } from '@nestjs-modules/mailer';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Users } from '../users/schemas/users.schema';
+import { Users } from '../../schemas/users.schema';
 import { EmailTemplate } from './templates/email-template.template';
 import { JwtService } from '@nestjs/jwt';
 

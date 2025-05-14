@@ -3,11 +3,11 @@ import { ProjectsService } from './projects.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { Model } from 'mongoose';
-import { Project } from '../users/schemas/Project.schema';
-import { Tool } from '../users/schemas/Tool.schema';
-import { ProjectTool } from '../users/schemas/ProjectTool.schema';
-import { Organization } from '../users/schemas/Organization.schema';
-import { OrganizationProjectUser } from '../users/schemas/OrganizationProjectUser.schema';
+import { Project } from '../../schemas/Project.schema';
+import { Tool } from '../../schemas/Tool.schema';
+import { ProjectTool } from '../../schemas/ProjectTool.schema';
+import { Organization } from '../../schemas/Organization.schema';
+import { OrganizationProjectUser } from '../../schemas/OrganizationProjectUser.schema';
 import { Types } from 'mongoose';
 import { UpdateProjectDto } from './dto/update-project.dto';
 

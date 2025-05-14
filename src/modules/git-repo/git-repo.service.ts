@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateGitRepoDto } from './dto/create-git-repo.dto';
 import { UpdateGitRepoDto } from './dto/update-git-repo.dto';
-import { GitRepo } from '../users/schemas/GitRepo.schema';
+import { GitRepo } from '../../schemas/GitRepo.schema';
 import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 

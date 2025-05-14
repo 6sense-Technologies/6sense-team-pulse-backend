@@ -2,29 +2,29 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Users, UsersSchema } from '../users/schemas/users.schema';
+import { Users, UsersSchema } from '../../schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { OTPSecret, OTPSecretSchema } from '../users/schemas/OTPSecret.schema';
+import { OTPSecret, OTPSecretSchema } from '../../schemas/OTPSecret.schema';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { JWTRefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
 import { OrganizationService } from '../organization/organization.service';
 import {
   Organization,
   OrganizationSchema,
-} from '../users/schemas/Organization.schema';
+} from '../../schemas/Organization.schema';
 import {
   OrganizationUserRole,
   OrganizationUserRoleSchema,
-} from '../users/schemas/OrganizationUserRole.schema';
-import { Role, RoleSchema } from '../users/schemas/Role.schema';
+} from '../../schemas/OrganizationUserRole.schema';
+import { Role, RoleSchema } from '../../schemas/Role.schema';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './guards/roles.guard';
 import {
   OrganizationProjectUser,
   OrganizationProjectUserSchema,
-} from '../users/schemas/OrganizationProjectUser.schema';
+} from '../../schemas/OrganizationProjectUser.schema';
 
 @Module({
   imports: [

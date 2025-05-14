@@ -5,13 +5,13 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { GitRepo } from '../users/schemas/GitRepo.schema';
+import { GitRepo } from '../../schemas/GitRepo.schema';
 import mongoose, { Model, Types } from 'mongoose';
-import { User } from '../users/schemas/user.schema';
+import { User } from '../../schemas/user.schema';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
-import { GitContribution } from '../users/schemas/GitContribution.schema';
+import { GitContribution } from '../../schemas/GitContribution.schema';
 import { DateTime } from 'luxon';
 
 @Injectable()

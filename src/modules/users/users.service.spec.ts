@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './users.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { User } from './schemas/user.schema';
-import { IssueHistory } from './schemas/IssueHistory.schems';
-import { IssueEntry } from './schemas/IssueEntry.schema';
+import { User } from '../../schemas/user.schema';
+import { IssueHistory } from '../../schemas/IssueHistory.schems';
+import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { JiraService } from '../jira/jira.service';
 import { TrelloService } from '../trello/trello.service';
 

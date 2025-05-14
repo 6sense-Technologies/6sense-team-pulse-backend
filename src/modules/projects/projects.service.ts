@@ -1,17 +1,19 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Project } from '../users/schemas/Project.schema';
-import { Model, Types } from 'mongoose';
-import { Tool } from '../users/schemas/Tool.schema';
-import { ProjectTool } from '../users/schemas/ProjectTool.schema';
-import { Organization } from '../users/schemas/Organization.schema';
-import { OrganizationProjectUser } from '../users/schemas/OrganizationProjectUser.schema';
+import { Project } from '../../schemas/Project.schema';
+import { isValidObjectId, Model, Types } from 'mongoose';
+import { Tool } from '../../schemas/Tool.schema';
+import { ProjectTool } from '../../schemas/ProjectTool.schema';
+import { Organization } from '../../schemas/Organization.schema';
+import { OrganizationProjectUser } from '../../schemas/OrganizationProjectUser.schema';
 
 @Injectable()
 export class ProjectsService {
@@ -151,6 +153,66 @@ export class ProjectsService {
     // Extract project names
     return projects.map((project) => project['name']);
   }
+
+  async getUserProjectsByOrganization(userId: string, organizationId: string) {
+    try {
+      // if (!isValidObjectId(userId)) {
+      //   throw new BadRequestException('Invalid userId');
+      // }
+  
+      // if (!isValidObjectId(organizationId)) {
+      //   throw new BadRequestException('Invalid organizationId');
+      // }
+
+      // console.log('User ID:', userId);
+      // console.log('Organization ID:', organizationId);
+  
+      const userObjectId = new Types.ObjectId(userId);
+      const orgObjectId = new Types.ObjectId(organizationId);
+
+      // const organization = await this.Organization.findOne({ _id: orgObjectId });
+      // if (!organization) {
+      //   throw new NotFoundException('Organization not found');
+      // }
+  
+      const projects = await this.OrganizationProjectUser.aggregate([
+        {
+          $match: {
+            user: userObjectId,
+            organization: orgObjectId,
+          },
+        },
+        {
+          $lookup: {
+            from: 'projects',
+            localField: 'project',
+            foreignField: '_id',
+            as: 'projectData',
+          },
+        },
+        {
+          $unwind: '$projectData',
+        },
+        {
+          $replaceRoot: { newRoot: '$projectData' },
+        },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+          },
+        },
+      ]);
+  
+      return projects;
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException('Failed to retrieve user projects');
+    }
+  }
+  
+  
 
   /* istanbul ignore next */
   findOne(id: string) {

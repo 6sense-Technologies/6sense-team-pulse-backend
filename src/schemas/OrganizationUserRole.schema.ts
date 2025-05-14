@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Types } from 'mongoose';
-import { User } from '../../users/schemas/user.schema';
+import { User } from './user.schema';
 import { Organization } from './Organization.schema';
 import { Role } from './Role.schema';
 import { Users } from './users.schema';

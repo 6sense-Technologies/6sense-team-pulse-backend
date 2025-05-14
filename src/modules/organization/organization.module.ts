@@ -5,13 +5,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import {
   Organization,
   OrganizationSchema,
-} from '../users/schemas/Organization.schema';
-import { Users, UsersSchema } from '../users/schemas/users.schema';
+} from '../../schemas/Organization.schema';
+import { Users, UsersSchema } from '../../schemas/users.schema';
 import {
   OrganizationUserRole,
   OrganizationUserRoleSchema,
-} from '../users/schemas/OrganizationUserRole.schema';
-import { Role, RoleSchema } from '../users/schemas/Role.schema';
+} from '../../schemas/OrganizationUserRole.schema';
+import { Role, RoleSchema } from '../../schemas/Role.schema';
 import { UserModule } from '../users/users.module';
 import { AuthService } from '../auth/auth.service';
 
@@ -39,5 +39,6 @@ import { AuthService } from '../auth/auth.service';
   ],
   providers: [MongooseModule, OrganizationService],
   controllers: [OrganizationController],
+  exports: [OrganizationService],
 })
 export class OrganizationModule {}

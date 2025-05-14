@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmailService } from './email-service.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { OTPSecret } from '../users/schemas/OTPSecret.schema';
-import { Users } from '../users/schemas/users.schema';
+import { OTPSecret } from '../../schemas/OTPSecret.schema';
+import { Users } from '../../schemas/users.schema';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';

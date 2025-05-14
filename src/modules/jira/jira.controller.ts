@@ -16,28 +16,28 @@ import {
   ISuccessResponse,
 } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/enums/user.enum';
-import { ClientMqtt, MessagePattern, Payload } from '@nestjs/microservices';
+// import { ClientMqtt, MessagePattern, Payload } from '@nestjs/microservices';
 
 @Controller('jira')
 export class JiraController {
   constructor(
     private readonly jiraService: JiraService,
-    @Inject('DATA_FETCHER_SERVICE') private client: ClientMqtt,
+    // @Inject('DATA_FETCHER_SERVICE') private client: ClientMqtt,
   ) {
     // Constructor for injecting JiraService
   }
 
   /*Experimental Modification*/
 
-  async onApplicationBootstrap() {
-    await this.client.connect();
-  }
+  // async onApplicationBootstrap() {
+  //   await this.client.connect();
+  // }
 
-  @MessagePattern('job.result')
-  async getResult(@Payload() data: any) {
-    this.jiraService.fetchAndSaveFromJira(data);
-    // return 'disabled';
-  }
+  // @MessagePattern('job.result')
+  // async getResult(@Payload() data: any) {
+  //   this.jiraService.fetchAndSaveFromJira(data);
+  //   // return 'disabled';
+  // }
 
   @Post('job-result')
   async saveResult(@Body() data: any) {

@@ -38,22 +38,22 @@ async function bootstrap() {
   // Enable CORS for specific origins
   webApp.enableCors({
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    allowedHeaders: 'Content-Type, Accept, Authorization, X-Timezone-Offset, Organization-Id',
   });
 
   // Create microservice with MQTT transport
-  const mqttMicroservice = webApp.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.MQTT,
-    options: {
-      url: configService.get<string>('MQTT_BROKER_URL'),
-      username: configService.get<string>('MQTT_USERNAME'),
-      password: configService.get<string>('MQTT_PASSWORD'),
-    },
-  });
+  // const mqttMicroservice = webApp.connectMicroservice<MicroserviceOptions>({
+  //   transport: Transport.MQTT,
+  //   options: {
+  //     url: configService.get<string>('MQTT_BROKER_URL'),
+  //     username: configService.get<string>('MQTT_USERNAME'),
+  //     password: configService.get<string>('MQTT_PASSWORD'),
+  //   },
+  // });
 
-  // Start the microservice first
-  await webApp.startAllMicroservices();
-  console.log('Microservice started');
+  // // Start the microservice first
+  // await webApp.startAllMicroservices();
+  // console.log('Microservice started');
 
   // Start the web application on port 8000
   await webApp.listen(8000, '0.0.0.0');

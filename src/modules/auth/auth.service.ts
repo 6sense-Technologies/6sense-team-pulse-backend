@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
-import { Users } from '../users/schemas/users.schema';
+import { Users } from '../../schemas/users.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   ChooseOrganization,
@@ -20,11 +20,11 @@ import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email-service/email-service.service';
 import { JwtService } from '@nestjs/jwt';
-import { OTPSecret } from '../users/schemas/OTPSecret.schema';
-import { Organization } from '../users/schemas/Organization.schema';
+import { OTPSecret } from '../../schemas/OTPSecret.schema';
+import { Organization } from '../../schemas/Organization.schema';
 import { userInfo } from 'os';
 import { InviteUserDTO } from '../users/dto/invite-user.dto';
-import { OrganizationUserRole } from '../users/schemas/OrganizationUserRole.schema';
+import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema';
 
 @Injectable()
 export class AuthService {

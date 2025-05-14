@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { OrganizationService } from './organization.service';
-import { Organization } from '../users/schemas/Organization.schema';
-import { Users } from '../users/schemas/users.schema';
+import { Organization } from '../../schemas/Organization.schema';
+import { Users } from '../../schemas/users.schema';
 import { ConflictException } from '@nestjs/common';
 
 const mockOrganizationModel = {

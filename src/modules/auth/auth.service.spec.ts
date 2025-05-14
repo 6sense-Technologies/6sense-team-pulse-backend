@@ -5,9 +5,9 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Users } from '../users/schemas/users.schema';
-import { OTPSecret } from '../users/schemas/OTPSecret.schema';
-import { Organization } from '../users/schemas/Organization.schema';
+import { Users } from '../../schemas/users.schema';
+import { OTPSecret } from '../../schemas/OTPSecret.schema';
+import { Organization } from '../../schemas/Organization.schema';
 import { ConflictException, BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 

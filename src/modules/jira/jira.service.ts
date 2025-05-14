@@ -10,7 +10,7 @@ import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, Mongoose, Schema, Types } from 'mongoose';
-import { IIssue, User } from '../users/schemas/user.schema';
+import { IIssue, User } from '../../schemas/user.schema';
 import {
   IDailyMetrics,
   IJiraIssue,
@@ -27,7 +27,7 @@ import {
   validateAccountId,
   validateDate,
 } from '../../common/helpers/validation.helper';
-import { IssueEntry } from '../users/schemas/IssueEntry.schema';
+import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { ClientMqtt } from '@nestjs/microservices';
 import * as moment from 'moment';
 dotenv.config();

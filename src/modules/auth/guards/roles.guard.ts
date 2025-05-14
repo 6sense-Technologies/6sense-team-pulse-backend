@@ -7,10 +7,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '../enums/role.enum';
-import { OrganizationProjectUser } from '../../users/schemas/OrganizationProjectUser.schema';
+import { OrganizationProjectUser } from '../../../schemas/OrganizationProjectUser.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { OrganizationUserRole } from '../../users/schemas/OrganizationUserRole.schema';
+import { OrganizationUserRole } from '../../../schemas/OrganizationUserRole.schema';
 import { JwtService } from '@nestjs/jwt';
 import { Roles } from '../decorators/roles.decorator';
 

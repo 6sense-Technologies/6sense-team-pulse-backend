@@ -22,6 +22,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { ToolModule } from './modules/tool/tool.module';
 import { DataFetcherModule } from './modules/data-fetcher/data-fetcher.module';
+import { TrackerModule } from './modules/tracker/tracker.module';
 
 dotenv.config();
 
@@ -36,9 +37,10 @@ dotenv.config();
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         connection: {
-          url: configService.get<string>('REDIS_URL'),
-          // host: configService.get<string>('REDIS_HOST'),
-          // port: configService.get<number>('REDIS_PORT'),
+          // url: configService.get<string>('REDIS_URL'),
+          host: configService.get<string>('REDIS_HOST'),
+          port: configService.get<number>('REDIS_PORT'),
+          maxRetriesPerRequest: null,
         },
       }),
       inject: [ConfigService],
@@ -81,6 +83,7 @@ dotenv.config();
     OrganizationModule,
     ToolModule,
     DataFetcherModule,
+    TrackerModule,
   ],
   providers: [
     {

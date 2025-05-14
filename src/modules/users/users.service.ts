@@ -12,10 +12,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, Mongoose, Types } from 'mongoose';
-import { User } from './schemas/user.schema';
+import { User } from '../../schemas/user.schema';
 import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
-import { IssueHistory } from './schemas/IssueHistory.schems';
-import { IssueEntry } from './schemas/IssueEntry.schema';
+import { IssueHistory } from '../../schemas/IssueHistory.schems';
+import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { ConfigService } from '@nestjs/config';
 import { handleError } from '../../common/helpers/error.helper';
 import {
@@ -31,21 +31,21 @@ import {
   IUserIssuesByDate,
   IUserWithPagination,
 } from './interfaces/users.interfaces';
-import { Project } from './schemas/Project.schema';
+import { Project } from '../../schemas/Project.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { JiraService } from '../jira/jira.service';
 import { TrelloService } from '../trello/trello.service';
-import { UserProject } from './schemas/UserProject.schema';
+import { UserProject } from '../../schemas/UserProject.schema';
 import { overView } from './aggregations/overview.aggregation';
 import { individualStats } from './aggregations/individualStats.aggregation';
 import { monthlyStat } from './aggregations/individualMonthlyPerformence.aggregation';
 import { dailyPerformenceAgg } from './aggregations/dailyPerformence.aggregation';
-import { Organization } from './schemas/Organization.schema';
+import { Organization } from '../../schemas/Organization.schema';
 import { InviteUserDTO } from './dto/invite-user.dto';
-import { OrganizationUserRole } from './schemas/OrganizationUserRole.schema';
-import { Role } from './schemas/Role.schema';
-import { OrganizationProjectUser } from './schemas/OrganizationProjectUser.schema';
-import { Users } from './schemas/users.schema';
+import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema';
+import { Role } from '../../schemas/Role.schema';
+import { OrganizationProjectUser } from '../../schemas/OrganizationProjectUser.schema';
+import { Users } from '../../schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
 import { Designation } from './enums/user.enum';
 import axios from 'axios';

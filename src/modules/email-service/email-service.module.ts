@@ -7,8 +7,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserService } from '../users/users.service';
 import { AuthModule } from '../auth/auth.module';
 import { UserModule } from '../users/users.module';
-import { OTPSecret, OTPSecretSchema } from '../users/schemas/OTPSecret.schema';
-import { Users, UsersSchema } from '../users/schemas/users.schema';
+import { OTPSecret, OTPSecretSchema } from '../../schemas/OTPSecret.schema';
+import { Users, UsersSchema } from '../../schemas/users.schema';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({

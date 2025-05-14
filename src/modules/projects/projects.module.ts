@@ -2,34 +2,34 @@ import { Module } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { ProjectsController } from './projects.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from '../users/schemas/user.schema';
+import { User, UserSchema } from '../../schemas/user.schema';
 import {
   IssueHistory,
   IssueHistorySchema,
-} from '../users/schemas/IssueHistory.schems';
+} from '../../schemas/IssueHistory.schems';
 import {
   IssueEntry,
   IssueEntrySchema,
-} from '../users/schemas/IssueEntry.schema';
-import { GitRepo, GitRepoSchema } from '../users/schemas/GitRepo.schema';
-import { Project, ProjectSchema } from '../users/schemas/Project.schema';
-import { Tool, ToolSchema } from '../users/schemas/Tool.schema';
+} from '../../schemas/IssueEntry.schema';
+import { GitRepo, GitRepoSchema } from '../../schemas/GitRepo.schema';
+import { Project, ProjectSchema } from '../../schemas/Project.schema';
+import { Tool, ToolSchema } from '../../schemas/Tool.schema';
 import {
   ProjectTool,
   ProjectToolSchema,
-} from '../users/schemas/ProjectTool.schema';
+} from '../../schemas/ProjectTool.schema';
 import {
   Organization,
   OrganizationSchema,
-} from '../users/schemas/Organization.schema';
+} from '../../schemas/Organization.schema';
 import {
   OrganizationProjectUser,
   OrganizationProjectUserSchema,
-} from '../users/schemas/OrganizationProjectUser.schema';
+} from '../../schemas/OrganizationProjectUser.schema';
 import {
   OrganizationUserRole,
   OrganizationUserRoleSchema
-} from '../users/schemas/OrganizationUserRole.schema'
+} from '../../schemas/OrganizationUserRole.schema'
 import { JwtService } from '@nestjs/jwt';
 @Module({
   imports: [

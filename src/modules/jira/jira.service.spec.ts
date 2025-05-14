@@ -3,8 +3,8 @@ import { getModelToken } from '@nestjs/mongoose';
 import { JiraService } from './jira.service';
 import { HttpService } from '@nestjs/axios';
 import { UserService } from '../users/users.service';
-import { User } from '../users/schemas/user.schema';
-import { IssueEntry } from '../users/schemas/IssueEntry.schema';
+import { User } from '../../schemas/user.schema';
+import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { Model } from 'mongoose';
 import { TrelloService } from '../trello/trello.service'; // Import TrelloService
 

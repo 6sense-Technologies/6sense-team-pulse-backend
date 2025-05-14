@@ -20,7 +20,7 @@ import { AccessTokenGuard } from './guards/accessToken.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { RefreshTokenGuard } from './guards/refreshToken.guard';
 import { CreateOrganizationDTO } from '../organization/dto/organization.dto';
-import { Organization } from '../users/schemas/Organization.schema';
+import { Organization } from '../../schemas/Organization.schema';
 import { OrganizationService } from '../organization/organization.service';
 import { InviteUserDTO } from '../users/dto/invite-user.dto';
 

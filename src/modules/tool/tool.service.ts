@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Tool } from '../users/schemas/Tool.schema';
+import { Tool } from '../../schemas/Tool.schema';
 import { Model } from 'mongoose';
-import { ToolName } from '../users/schemas/ToolName.schema';
+import { ToolName } from '../../schemas/ToolName.schema';
 import { ToolNameDTO } from './dto/tool.dto';
 
 @Injectable()

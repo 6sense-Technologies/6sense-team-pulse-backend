@@ -3,11 +3,11 @@ import { GoalsService } from './goals.service';
 import { GoalsController } from './goals.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Goal } from './entities/goal.entity';
-import { GoalSchema } from '../users/schemas/Goal.schema';
+import { GoalSchema } from '../../schemas/Goal.schema';
 import {
   GoalAction,
   GoalActionSchema,
-} from '../users/schemas/GoalAction.schema';
+} from '../../schemas/GoalAction.schema';
 
 @Module({
   imports: [

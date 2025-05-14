@@ -4,20 +4,20 @@ import { GitConsumer } from './queue.processor';
 import { GithubService } from '../github/github.service';
 import { HttpModule } from '@nestjs/axios';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from '../users/schemas/user.schema';
+import { User, UserSchema } from '../../schemas/user.schema';
 import {
   IssueHistory,
   IssueHistorySchema,
-} from '../users/schemas/IssueHistory.schems';
+} from '../../schemas/IssueHistory.schems';
 import {
   IssueEntry,
   IssueEntrySchema,
-} from '../users/schemas/IssueEntry.schema';
-import { GitRepo, GitRepoSchema } from '../users/schemas/GitRepo.schema';
+} from '../../schemas/IssueEntry.schema';
+import { GitRepo, GitRepoSchema } from '../../schemas/GitRepo.schema';
 import {
   GitContribution,
   GitContributionSchema,
-} from '../users/schemas/GitContribution.schema';
+} from '../../schemas/GitContribution.schema';
 
 @Global()
 @Module({
