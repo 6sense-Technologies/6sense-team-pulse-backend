@@ -14,7 +14,10 @@ import {
   IssueEntrySchema,
 } from '../users/schemas/IssueEntry.schema';
 import { GitRepo, GitRepoSchema } from '../users/schemas/GitRepo.schema';
-import { GitContribution, GitContributionSchema } from '../users/schemas/GitContribution.schema';
+import {
+  GitContribution,
+  GitContributionSchema,
+} from '../users/schemas/GitContribution.schema';
 
 @Global()
 @Module({

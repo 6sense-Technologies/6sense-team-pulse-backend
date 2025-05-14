@@ -14,6 +14,14 @@ import { GithubModule } from './modules/github/github.module';
 import { GitRepoModule } from './modules/git-repo/git-repo.module';
 import { BullModule } from '@nestjs/bullmq';
 import { QueueHandlerModule } from './modules/queue-handler/queue-handler.module';
+import { ProjectsModule } from './modules/projects/projects.module';
+import { GoalsModule } from './modules/goals/goals.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { EmailServiceModule } from './modules/email-service/email-service.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { OrganizationModule } from './modules/organization/organization.module';
+import { ToolModule } from './modules/tool/tool.module';
+import { DataFetcherModule } from './modules/data-fetcher/data-fetcher.module';
 
 dotenv.config();
 
@@ -40,9 +48,25 @@ dotenv.config();
       useFactory: async (configService: ConfigService) => {
         return {
           uri: configService.get<string>('MONGODB_URL'),
+          connectionFactory: (connection) => {
+            connection.set('bufferCommands', false); // Optional: Disable command buffering
+            return connection;
+          },
+          connectTimeoutMS: 1000000,
+          socketTimeoutMS: 45000000, // 55 seconds timeout for socket inactivity
         };
       },
       inject: [ConfigService],
+    }),
+    MailerModule.forRoot({
+      transport: {
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_SERVICE_PORT,
+        auth: {
+          user: process.env.EMAIL_USERNAME,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      },
     }),
     UserModule,
     JiraModule,
@@ -50,6 +74,13 @@ dotenv.config();
     GithubModule,
     GitRepoModule,
     QueueHandlerModule,
+    ProjectsModule,
+    GoalsModule,
+    AuthModule,
+    EmailServiceModule,
+    OrganizationModule,
+    ToolModule,
+    DataFetcherModule,
   ],
   providers: [
     {

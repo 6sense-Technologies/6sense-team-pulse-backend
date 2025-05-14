@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { Designation, Project } from '../enums/user.enum';
-
+//TODO: THIS IS OLD USER SCHEMA N
 export interface IIssueCount {
   Task: number;
   Bug: number;
@@ -60,13 +60,19 @@ export interface IUser {
 
 @Schema({ timestamps: true })
 export class User extends Document {
-  @Prop()
+  @Prop({ type: String, unique: false, default: '' })
+  jiraAccountId: string;
+
+  @Prop({ type: String, unique: false, default: '' })
+  trelloAccountId: string;
+
+  @Prop({ type: String, default: '' })
   accountId: string;
 
-  @Prop()
+  @Prop({ type: String, default: '' })
   displayName: string;
 
-  @Prop()
+  @Prop({ type: String, default: '' })
   userFrom: string;
 
   @Prop({ type: String, default: '' })

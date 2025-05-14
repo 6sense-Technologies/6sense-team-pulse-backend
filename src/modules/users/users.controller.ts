@@ -7,6 +7,11 @@ import {
   Put,
   Body,
   Post,
+  Req,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -17,19 +22,109 @@ import {
 } from './interfaces/users.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from './enums/user.enum';
+import { CreateUserDto } from './dto/create-user.dto';
+import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
+import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { InviteUserDTO } from './dto/invite-user.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {
     // Constructor for injecting UserService
   }
+  // Experimental Modification
+  @Get('user-info')
+  async getUserInfo(@Query('userId') userId: string): Promise<{
+    userData: any;
+    currentMonthScore: number;
+    lastMonthScore: number;
+  }> {
+    return this.userService.getUserInfo(userId);
+  }
+  @Get('individual')
+  async calculateIndividualStats(
+    @Query('userId') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.userService.calculateIndividualStats(userId, page, limit);
+  }
+  @Get('overview')
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  async calculateOverview(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Req() req: Request,
+  ): Promise<any[]> {
+    return this.userService.calculateOverview(page, limit, req['user'].userId);
+  }
+  @Get('daily-performance')
+  async calculateDailyPerformence(
+    @Query('userId') userId: string,
+    @Query('dateTime') dateTime: string,
+    @Query('Page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.userService.dailyPerformence(userId, dateTime, page, limit);
+  }
 
+  @Post('toggle-enable')
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @Roles(['Admin'])
+  @UseGuards(RolesGuard)
+  async toggleEnable(@Query('userId') userId: string, @Req() req: Request) {
+    return this.userService.toggleEnable(userId, req['user'].userId);
+  }
+
+  @Post('invite')
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(
+    FileInterceptor('profilePicture', {
+      limits: { fileSize: 100 * 1024 }, // 100KB limit
+      fileFilter: (req, file, callback) => {
+        if (!file.mimetype.match(/^image\/(jpeg|png|jpg)$/)) {
+          return callback(
+            new BadRequestException(
+              'Only JPEG, PNG, and JPG files are allowed!',
+            ),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @Roles(['Admin'])
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard)
+  @UseGuards(RolesGuard)
+  async invite(
+    @Body() inviteUserDTO: InviteUserDTO,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    return this.userService.inviteUser(inviteUserDTO, req['user'].userId, file);
+  }
+
+  //------------------------///
   @Get()
   async getAllUsers(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ): Promise<IAllUsers> {
     return this.userService.getAllUsers(page, limit);
+  }
+
+  @Post('create')
+  async createUser(@Body() createUserDto: CreateUserDto): Promise<any> {
+    return this.userService.createUser(createUserDto);
   }
 
   @Get(':accountId')
@@ -55,9 +150,8 @@ export class UserController {
   }
 
   @Get('projects/list')
-  getProjects(): { projects: string[] } {
-    const projects = Object.values(Project);
-    return { projects };
+  async getProjects() {
+    return this.userService.getProjects();
   }
 
   @Put(':accountId/archive')

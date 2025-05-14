@@ -45,15 +45,17 @@ export class GitConsumer extends WorkerHost {
 
   async process(job: Job<any>) {
     // Job processing logic here
-    switch (job.name) {
-      case 'get-commit-report':
-        this.getCommitReport(job.data);
-        break;
-      case 'get-commits-by-branch':
-        await this.getCommitsByBranch(job.data);
-        break;
-      default:
-        break;
+    switch (
+      job.name
+      // case 'get-commit-report':
+      //   this.getCommitReport(job.data);
+      //   break;
+      // case 'get-commits-by-branch':
+      //   await this.getCommitsByBranch(job.data);
+      //   break;
+      // default:
+      //   break;
+    ) {
     }
     this.logger.log(`Processing ${job.name} job with data:`, job.data);
   }

@@ -1,13 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import mongoose, { Model, Mongoose, Schema, Types } from 'mongoose';
 import { IIssue, User } from '../users/schemas/user.schema';
 import {
   IDailyMetrics,
@@ -19,13 +21,15 @@ import {
 import { TrelloService } from '../trello/trello.service';
 import { UserService } from '../users/users.service';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
-import { handleError } from 'src/common/helpers/error.helper';
+import { handleError } from '../../common/helpers/error.helper';
 import { Designation, Project } from '../users/enums/user.enum';
 import {
   validateAccountId,
   validateDate,
-} from 'src/common/helpers/validation.helper';
-
+} from '../../common/helpers/validation.helper';
+import { IssueEntry } from '../users/schemas/IssueEntry.schema';
+import { ClientMqtt } from '@nestjs/microservices';
+import * as moment from 'moment';
 dotenv.config();
 
 @Injectable()
@@ -43,12 +47,93 @@ export class JiraService {
   constructor(
     private readonly httpService: HttpService,
     private readonly trelloService: TrelloService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(IssueEntry.name)
+    private readonly issueEntryModel: Model<IssueEntry>,
   ) {
     // Constructor for injecting userModel
   }
+  /*EXPERIMENTAL MODIFICATION*/
+  public async fetchAndSaveFromJira(rawData: any) {
+    console.log('INVOKED');
 
+    const data = JSON.parse(rawData);
+    // console.log(data);
+
+    for (let i = 0; i < data.length; i += 1) {
+      if (!data[i]) continue;
+
+      const {
+        accountId,
+        issueId,
+        projectUrl,
+        issueIdUrl,
+        issueLinkUrl,
+        issueType,
+        issueStatus,
+        issueSummary,
+        planned,
+        issueLinks,
+        date,
+      } = data[i];
+
+      if (accountId) {
+        // Fetch all users matching accountId or jiraId
+        const users = await this.userModel.find({
+          $or: [{ accountId }, { jiraId: accountId }],
+        });
+        // console.log(users);
+        if (!users.length) {
+          console.warn(`No users found for accountId: ${accountId}`);
+          continue;
+        }
+
+        const issueDate = new Date(date);
+
+        for (const user of users) {
+          console.log(
+            `Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`,
+          );
+
+          await this.issueEntryModel.findOneAndUpdate(
+            {
+              issueId, // Match by issueId
+              projectUrl, // Match by projectUrl
+              user: new mongoose.Types.ObjectId(user.id), // Ensure uniqueness per user
+            },
+            {
+              serialNumber: i,
+              issueId,
+              issueType: issueType || '',
+              issueStatus,
+              issueSummary,
+              username: user.displayName,
+              planned,
+              link: issueLinks || '',
+              accountId,
+              projectUrl,
+              issueIdUrl,
+              issueLinkUrl,
+              user: new mongoose.Types.ObjectId(user.id),
+              date: issueDate,
+              insight: '',
+            },
+            {
+              upsert: true, // Create if not found
+              new: true, // Return the updated document
+            },
+          );
+        }
+      }
+    }
+
+    console.log('DONE..');
+    return 'DONE';
+  }
+
+  ///----------------------------///
   private async fetchFromAllUrls(endpoint: string): Promise<any> {
     try {
       const url1 = `${this.jiraBaseUrl1}${endpoint}`;
@@ -109,6 +194,23 @@ export class JiraService {
       } else {
         handleError(error);
       }
+    }
+  }
+
+  async getUserDetailsFromJira(
+    jiraWorkspaceUrl: string,
+    accountId: string,
+  ): Promise<IJiraUserData> {
+    const endpoint = `/rest/api/3/user?accountId=${accountId}`;
+    try {
+      const response1 = await firstValueFrom(
+        this.httpService.get(`${jiraWorkspaceUrl}${endpoint}`, {
+          headers: this.headers,
+        }),
+      );
+      return response1.data;
+    } catch (error) {
+      handleError(error);
     }
   }
 
@@ -316,6 +418,15 @@ export class JiraService {
             dueDate,
             issueLinks: linkedIssues,
           });
+          // this.issueEntryModel.create({
+          //   issueId: issueId,
+          //   issueSummary: summary,
+          //   issueStatus: status,
+          //   issueType: issueType,
+          //   date: dueDate,
+          //   issueLinks: linkedIssues,
+          // });
+          console.log(`Issue created with id: ${issueId}`);
         }
       });
 
@@ -430,6 +541,17 @@ export class JiraService {
             dueDate,
             issueLinks: linkedIssues,
           });
+
+          /// EXPERIMENTAL MODIFICATION
+          // this.issueEntryModel.create({
+          //   issueId: issueId,
+          //   issueSummary: summary,
+          //   issueStatus: status,
+          //   issueType: issueType,
+          //   date: dueDate,
+          //   issueLinks: linkedIssues,
+          // });
+          // console.log(`Issue entry added with Issue ID: ${issueId}`);
         }
       }
 

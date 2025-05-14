@@ -11,6 +11,13 @@ export enum Designation {
   UIUXIntern = 'UI/UX Intern',
   PMIntern = 'PM Intern',
   ProjectSpecialist = 'Project Specialist',
+  JuniorProjectCoordinator = 'Junior Project Coordinator',
+  SeniorExecutiveSalesAndMarketing = 'Senior Executive - Sales & Marketing',
+  Visualizer = 'Visualizer',
+  SeniorContentWriter = 'Senior Content Writer',
+  SEOSpecialist = 'SEO Specialist',
+  BDRMTO = 'BDR MTO',
+  JuniorContentWriter = 'Junior Content Writer',
 }
 
 export enum Project {
