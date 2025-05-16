@@ -14,7 +14,8 @@ export const RequestMetadata = createParamDecorator(
     // Extract headers and map to DTO
     const metadata = plainToInstance(RequestMetadataDto, {
       organizationId: headers['organization-id'],
-      timezoneOffset: headers['x-timezone-offset'],
+      // timezoneOffset: headers['x-timezone-offset'],
+      timezoneRegion: headers['timezone-region'] || 'Etc/UTC',
     });
 
     // Validate the DTO

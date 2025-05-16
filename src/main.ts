@@ -38,7 +38,7 @@ async function bootstrap() {
   // Enable CORS for specific origins
   webApp.enableCors({
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization, X-Timezone-Offset, Organization-Id',
+    allowedHeaders: 'Content-Type, Accept, Authorization, timezone-region, Organization-Id',
   });
 
   // Create microservice with MQTT transport

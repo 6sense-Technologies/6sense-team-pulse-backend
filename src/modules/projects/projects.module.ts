@@ -31,6 +31,7 @@ import {
   OrganizationUserRoleSchema
 } from '../../schemas/OrganizationUserRole.schema'
 import { JwtService } from '@nestjs/jwt';
+import { OrganizationModule } from '../organization/organization.module';
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -51,6 +52,7 @@ import { JwtService } from '@nestjs/jwt';
         schema: OrganizationUserRoleSchema
       }
     ]),
+    OrganizationModule,
   ],
   controllers: [ProjectsController],
   providers: [ProjectsService,JwtService],

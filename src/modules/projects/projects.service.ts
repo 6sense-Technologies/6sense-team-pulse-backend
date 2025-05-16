@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -14,6 +15,8 @@ import { Tool } from '../../schemas/Tool.schema';
 import { ProjectTool } from '../../schemas/ProjectTool.schema';
 import { Organization } from '../../schemas/Organization.schema';
 import { OrganizationProjectUser } from '../../schemas/OrganizationProjectUser.schema';
+import { error } from 'console';
+import { OrganizationService } from '../organization/organization.service';
 
 @Injectable()
 export class ProjectsService {
@@ -26,6 +29,7 @@ export class ProjectsService {
     private readonly Organization: Model<Organization>,
     @InjectModel(OrganizationProjectUser.name)
     private readonly OrganizationProjectUser: Model<OrganizationProjectUser>,
+    private readonly organizationService: OrganizationService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto, userId: string) {
@@ -156,13 +160,13 @@ export class ProjectsService {
 
   async getUserProjectsByOrganization(userId: string, organizationId: string) {
     try {
-      // if (!isValidObjectId(userId)) {
-      //   throw new BadRequestException('Invalid userId');
-      // }
+      if (!isValidObjectId(userId)) {
+        throw new BadRequestException('Invalid userId');
+      }
   
-      // if (!isValidObjectId(organizationId)) {
-      //   throw new BadRequestException('Invalid organizationId');
-      // }
+      if (!isValidObjectId(organizationId)) {
+        throw new BadRequestException('Invalid organizationId');
+      }
 
       // console.log('User ID:', userId);
       // console.log('Organization ID:', organizationId);
@@ -174,6 +178,15 @@ export class ProjectsService {
       // if (!organization) {
       //   throw new NotFoundException('Organization not found');
       // }
+
+      const validityOfOrgaizationUser = await this.organizationService.verifyUserofOrg(
+        userId,
+        organizationId,
+      );
+
+      if (!validityOfOrgaizationUser) {
+        throw error;
+      }
   
       const projects = await this.OrganizationProjectUser.aggregate([
         {
@@ -196,18 +209,19 @@ export class ProjectsService {
         {
           $replaceRoot: { newRoot: '$projectData' },
         },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-          },
-        },
+        // {
+        //   $project: {
+        //     _id: 1,
+        //     name: 1,
+        //   },
+        // },
       ]);
   
       return projects;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       if (error instanceof NotFoundException) throw error;
+      if (error instanceof UnauthorizedException) throw error;
       throw new InternalServerErrorException('Failed to retrieve user projects');
     }
   }
