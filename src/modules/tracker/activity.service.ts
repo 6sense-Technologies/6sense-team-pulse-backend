@@ -1,5 +1,15 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { ActivityLogEntryDto, CreateActivitiesDto } from './dto/create-activities.dto';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  ActivityLogEntryDto,
+  CreateActivitiesDto,
+} from './dto/create-activities.dto';
 import { Activity } from './entities/activity.schema';
 import mongoose, { isValidObjectId, Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
@@ -29,7 +39,7 @@ export class ActivityService {
     @InjectModel(WorksheetActivity.name)
     private readonly worksheetActivityModel: Model<WorksheetActivity>, // Replace 'any' with the actual type if available
 
-    @InjectQueue('activity-log') 
+    @InjectQueue('activity-log')
     private readonly activityLogQueue: Queue,
 
     private readonly applicationService: ApplicationService,
@@ -41,29 +51,36 @@ export class ActivityService {
     organizationId: string,
     activityLogs: ActivityLogEntryDto[],
   ): Promise<{ queued: number }> {
-
     if (!userId || !organizationId || !activityLogs?.length) {
       this.logger.warn(`Invalid or empty job data`, { userId, organizationId });
       return { queued: 0 }; // This is fine as a controlled no-op
     }
 
     try {
-      const isValid = await this.organizationService.verifyUserofOrg(userId, organizationId);
+      const isValid = await this.organizationService.verifyUserofOrg(
+        userId,
+        organizationId,
+      );
       if (!isValid) {
-        throw new UnauthorizedException(`User ${userId} not in organization ${organizationId}`);
+        throw new UnauthorizedException(
+          `User ${userId} not in organization ${organizationId}`,
+        );
       }
 
-      await this.activityLogQueue.add('process-activity', {
-        user_id: userId,
-        organization_id: organizationId,
-        logs: activityLogs,
-      }, {
-        jobId: `${userId}-${Date.now()}`,
-        removeOnComplete: true,
-      });
+      await this.activityLogQueue.add(
+        'process-activity',
+        {
+          user_id: userId,
+          organization_id: organizationId,
+          logs: activityLogs,
+        },
+        {
+          jobId: `${userId}-${Date.now()}`,
+          removeOnComplete: true,
+        },
+      );
 
       return { queued: activityLogs.length };
-
     } catch (error) {
       this.logger.error(`Failed to queue activity logs`, {
         userId,
@@ -84,23 +101,29 @@ export class ActivityService {
   async createActivitiesFromSession(
     activitySessions: ActivitySession[],
     userId: string,
-    organizationId: string
+    organizationId: string,
   ) {
     try {
       const enrichedSessions: any[] = [];
 
       const latest = await this.activityModel
-      .findOne({ user: new Types.ObjectId(userId), organization: new Types.ObjectId(organizationId) })
-      .sort({ endTime: -1 });
-  
+        .findOne({
+          user: new Types.ObjectId(userId),
+          organization: new Types.ObjectId(organizationId),
+        })
+        .sort({ endTime: -1 });
+
       for (const session of activitySessions) {
         if (latest && new Date(session.startTime) <= new Date(latest.endTime)) {
           continue;
         }
-        const app = await this.applicationService.findOrCreate(session.appName, session.faviconUrl);
-  
+        const app = await this.applicationService.findOrCreate(
+          session.appName,
+          session.faviconUrl,
+        );
+
         const name = session.windowTitle?.trim() || session.appName;
-  
+
         enrichedSessions.push({
           name,
           startTime: session.startTime,
@@ -126,51 +149,50 @@ export class ActivityService {
       throw error;
     }
   }
-  
 
   // Ignore testing this function
   async findAllActivities(
     organizationUserId: string,
     userId: string,
     date: string,
-    timezoneOffset: string = '+00:00' // default fallback
+    timezoneOffset: string = '+00:00', // default fallback
   ) {
     try {
       const query: any = {
         // organizationUserRole: organizationUserId,
       };
-  
+
       // Validate timezoneOffset format (e.g. +06:00 or -05:30)
       if (!/^[-+]\d{2}:\d{2}$/.test(timezoneOffset)) {
         timezoneOffset = '+00:00'; // fallback to UTC
       }
-  
+
       this.logger.log('Date:', date);
       this.logger.log('Timezone Offset:', timezoneOffset);
-  
+
       // Use today's date in the user's timezone if not provided
       if (!date) {
         const now = moment().utcOffset(timezoneOffset);
         date = now.format('YYYY-MM-DD');
       }
-  
+
       const isoStart = `${date}T00:00:00${timezoneOffset}`;
       const isoEnd = `${date}T23:59:59.999${timezoneOffset}`;
-  
+
       this.logger.log('ISO Start:', isoStart);
       this.logger.log('ISO End:', isoEnd);
-  
+
       const startOfDayUTC = moment.parseZone(isoStart).utc().toISOString();
       const endOfDayUTC = moment.parseZone(isoEnd).utc().toISOString();
-  
+
       this.logger.log('Start of Day UTC:', startOfDayUTC);
       this.logger.log('End of Day UTC:', endOfDayUTC);
-  
+
       query.startTime = {
         $gte: startOfDayUTC,
         $lte: endOfDayUTC,
       };
-  
+
       const activities = await this.activityModel.find(query);
       return activities;
     } catch (error) {
@@ -186,7 +208,7 @@ export class ActivityService {
     timezoneRegion: string,
     sortOrder: 'latest' | 'oldest' = 'latest',
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ) {
     try {
       await this.organizationService.verifyUserofOrg(userId, organizationId);
@@ -195,13 +217,13 @@ export class ActivityService {
       // if (!/^[-+]\d{2}:\d{2}$/.test(timezoneOffset)) {
       //   timezoneOffset = '+00:00';
       // }
-  
+
       // Use today's date if not provided
       if (!date) {
         const now = moment().tz(timezoneRegion);
         date = now.format('YYYY-MM-DD');
       }
-  
+
       // Use moment.tz to create start and end of day in that timezone
       const startOfDay = moment.tz(`${date}T00:00:00`, timezoneRegion);
       const endOfDay = moment.tz(`${date}T23:59:59.999`, timezoneRegion);
@@ -216,14 +238,13 @@ export class ActivityService {
 
       this.logger.log('Start of Day UTC:', startOfDayUTC);
       this.logger.log('End of Day UTC:', endOfDayUTC);
-  
+
       const sortDirection = sortOrder === 'latest' ? -1 : 1;
       const skip = (page - 1) * limit;
       // this.logger.log('limit:', limit);
       // this.logger.log('page:', page);
       // this.logger.log('Skip:', skip);
 
-  
       const unreportedActivities = await this.activityModel.aggregate([
         {
           $match: {
@@ -283,7 +304,7 @@ export class ActivityService {
       const paginated = unreportedActivities[0];
       const activities = paginated.data;
       const totalCount = paginated.totalCount[0]?.count || 0;
-  
+
       return {
         data: activities,
         paginationMetadata: {
@@ -302,7 +323,7 @@ export class ActivityService {
   async validateActivitiesForUser(
     userId: Types.ObjectId,
     organizationId: Types.ObjectId,
-    activityIds: string[]
+    activityIds: string[],
   ) {
     try {
       // mongoose.set('debug', true);
@@ -327,16 +348,18 @@ export class ActivityService {
       });
 
       this.logger.debug('Valid Activities:', validActivities);
-  
+
       if (validActivities.length !== activityIds.length) {
-        throw new BadRequestException('Some activities are invalid or unauthorized.');
+        throw new BadRequestException(
+          'Some activities are invalid or unauthorized.',
+        );
       }
-  
+
       return validActivities;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
-      } 
+      }
       console.error('Activity validation failed:', error);
       throw new InternalServerErrorException('Activity validation failed');
     }

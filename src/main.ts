@@ -40,7 +40,8 @@ async function bootstrap() {
   // Enable CORS for specific origins
   webApp.enableCors({
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization, timezone-region, Organization-Id',
+    allowedHeaders:
+      'Content-Type, Accept, Authorization, timezone-region, Organization-Id',
   });
 
   // Create microservice with MQTT transport
@@ -58,11 +59,16 @@ async function bootstrap() {
   // console.log('Microservice started');
 
   // Start the web application on port 8000
-  const port = parseInt(process.env.PORT || configService.get('PORT') || '10000', 10);
+  const port = parseInt(
+    process.env.PORT || configService.get('PORT') || '10000',
+    10,
+  );
   await webApp.listen(port, '0.0.0.0');
   const server = webApp.getHttpServer();
   const address = server.address();
-  console.log(`Web Application started on http://${address.address}:${address.port}`);
+  console.log(
+    `Web Application started on http://${address.address}:${address.port}`,
+  );
 }
 
 bootstrap();

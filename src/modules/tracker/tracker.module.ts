@@ -12,7 +12,10 @@ import { ApplicationService } from './application.service';
 import { TimelogController } from './timelog.controller';
 import { WorksheetService } from './worksheet.service';
 import { Worksheet, WorksheetSchema } from './entities/worksheet.schema';
-import { WorksheetActivity, WorksheetActivitySchema } from './entities/worksheetActivity.schema';
+import {
+  WorksheetActivity,
+  WorksheetActivitySchema,
+} from './entities/worksheetActivity.schema';
 
 @Module({
   imports: [
@@ -22,11 +25,16 @@ import { WorksheetActivity, WorksheetActivitySchema } from './entities/worksheet
       { name: Worksheet.name, schema: WorksheetSchema }, // Assuming Worksheet is also an Activity for this example
       { name: WorksheetActivity.name, schema: WorksheetActivitySchema }, // Assuming WorksheetActivity is also an Activity for this example
     ]),
-    BullModule.registerQueue({ name: 'activity-log' }), 
+    BullModule.registerQueue({ name: 'activity-log' }),
     OrganizationModule, // Assuming you have an organization module to import
   ],
   controllers: [TrackerController, TimelogController],
-  providers: [ActivityService, ApplicationService, WorksheetService, ActivityLogsProcessor],
+  providers: [
+    ActivityService,
+    ApplicationService,
+    WorksheetService,
+    ActivityLogsProcessor,
+  ],
   exports: [ActivityService],
 })
 export class TrackerModule {}

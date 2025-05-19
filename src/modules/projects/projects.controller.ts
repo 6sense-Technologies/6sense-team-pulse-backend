@@ -19,7 +19,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Role } from '../auth/enums/role.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { RequestMetadata }  from 'src/common/request-metadata/request-metadata.decorator';
+import { RequestMetadata } from 'src/common/request-metadata/request-metadata.decorator';
 import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
 
 @Controller('projects')
@@ -70,7 +70,7 @@ export class ProjectsController {
     return await this.projectsService.getUserProjectsByOrganization(
       req['user'].userId,
       metadata.organizationId,
-    ); 
+    );
   }
 
   @UseGuards(AccessTokenGuard)
@@ -92,7 +92,4 @@ export class ProjectsController {
   remove(@Param('id') id: string) {
     return this.projectsService.remove(id);
   }
-
-  
-
 }

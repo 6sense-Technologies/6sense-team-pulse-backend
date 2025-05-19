@@ -12,7 +12,8 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-const ISO8601_DATETIME_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const ISO8601_DATETIME_REGEX =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 export class ActivityLogEntryDto {
   @ApiProperty({ example: 'Safari' })
@@ -29,22 +30,33 @@ export class ActivityLogEntryDto {
   @IsNumber()
   pid: number;
 
-  @ApiProperty({ example: 'https://www.applegadgetsbd.com/product/macbook-air-m1-8256gb-13-inch-gold', required: false })
+  @ApiProperty({
+    example:
+      'https://www.applegadgetsbd.com/product/macbook-air-m1-8256gb-13-inch-gold',
+    required: false,
+  })
   @IsUrl()
   @IsOptional()
   browser_url?: string;
 
-  @ApiProperty({ example: 'MacBook Air M1 Gold Price in Bangladesh', required: false })
+  @ApiProperty({
+    example: 'MacBook Air M1 Gold Price in Bangladesh',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   window_title?: string;
 
-  @ApiProperty({ example: 'https://www.google.com/s2/favicons?sz=64&domain=www.applegadgetsbd.com', required: false })
+  @ApiProperty({
+    example:
+      'https://www.google.com/s2/favicons?sz=64&domain=www.applegadgetsbd.com',
+    required: false,
+  })
   @IsUrl()
   @IsOptional()
   favicon_url?: string;
 
-  @ApiProperty({ example: 'focused'})
+  @ApiProperty({ example: 'focused' })
   @IsString()
   @IsNotEmpty()
   event: string;

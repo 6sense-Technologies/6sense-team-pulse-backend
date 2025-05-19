@@ -8,10 +8,7 @@ import {
   IssueHistory,
   IssueHistorySchema,
 } from '../../schemas/IssueHistory.schems';
-import {
-  IssueEntry,
-  IssueEntrySchema,
-} from '../../schemas/IssueEntry.schema';
+import { IssueEntry, IssueEntrySchema } from '../../schemas/IssueEntry.schema';
 import { GitRepo, GitRepoSchema } from '../../schemas/GitRepo.schema';
 import {
   GitContribution,

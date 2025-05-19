@@ -4,10 +4,7 @@ import { HttpModule } from '@nestjs/axios';
 import { DataFetcherController } from './data-fetcher.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Tool, ToolSchema } from '../../schemas/Tool.schema';
-import {
-  IssueEntry,
-  IssueEntrySchema,
-} from '../../schemas/IssueEntry.schema';
+import { IssueEntry, IssueEntrySchema } from '../../schemas/IssueEntry.schema';
 import { Users, UsersSchema } from '../../schemas/users.schema';
 
 @Module({

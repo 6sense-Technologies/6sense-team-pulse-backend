@@ -163,14 +163,14 @@ export class ProjectsService {
       if (!isValidObjectId(userId)) {
         throw new BadRequestException('Invalid userId');
       }
-  
+
       if (!isValidObjectId(organizationId)) {
         throw new BadRequestException('Invalid organizationId');
       }
 
       // console.log('User ID:', userId);
       // console.log('Organization ID:', organizationId);
-  
+
       const userObjectId = new Types.ObjectId(userId);
       const orgObjectId = new Types.ObjectId(organizationId);
 
@@ -179,15 +179,13 @@ export class ProjectsService {
       //   throw new NotFoundException('Organization not found');
       // }
 
-      const validityOfOrgaizationUser = await this.organizationService.verifyUserofOrg(
-        userId,
-        organizationId,
-      );
+      const validityOfOrgaizationUser =
+        await this.organizationService.verifyUserofOrg(userId, organizationId);
 
       if (!validityOfOrgaizationUser) {
         throw error;
       }
-  
+
       const projects = await this.OrganizationProjectUser.aggregate([
         {
           $match: {
@@ -216,17 +214,17 @@ export class ProjectsService {
         //   },
         // },
       ]);
-  
+
       return projects;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       if (error instanceof NotFoundException) throw error;
       if (error instanceof UnauthorizedException) throw error;
-      throw new InternalServerErrorException('Failed to retrieve user projects');
+      throw new InternalServerErrorException(
+        'Failed to retrieve user projects',
+      );
     }
   }
-  
-  
 
   /* istanbul ignore next */
   findOne(id: string) {

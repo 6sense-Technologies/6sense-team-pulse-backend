@@ -5,12 +5,10 @@ import { Organization } from 'src/schemas/Organization.schema';
 import { Users } from 'src/schemas/users.schema';
 import { Application } from './application.schema';
 
-export type ActivityDocument =
-  HydratedDocument<Activity>;
+export type ActivityDocument = HydratedDocument<Activity>;
 
 @Schema({ timestamps: true })
 export class Activity {
-
   @Prop({ type: String, required: true })
   name: string;
 
@@ -39,5 +37,4 @@ export class Activity {
   faviconUrl: string; //if it is in a browser then the favicon url
 }
 
-export const ActivitySchema =
-  SchemaFactory.createForClass(Activity);
+export const ActivitySchema = SchemaFactory.createForClass(Activity);

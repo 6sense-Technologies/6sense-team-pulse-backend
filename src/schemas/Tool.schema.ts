@@ -9,8 +9,8 @@ export class Tool extends Document {
   @Prop({ type: String, default: '' })
   toolUrl: string;
 
-  @Prop({ 
-    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'ProjectTool' }]
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'ProjectTool' }],
   })
   projects: MongooseSchema.Types.ObjectId[]; // Virtual population
 }

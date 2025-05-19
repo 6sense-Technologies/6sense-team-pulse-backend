@@ -1,4 +1,3 @@
-
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { Worker, Job } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
@@ -25,7 +24,8 @@ export class ActivityLogsProcessor implements OnModuleInit {
   }
 
   onModuleInit() {
-    this.redis.ping()
+    this.redis
+      .ping()
       .then((res) => this.logger.log(`✅ Redis connection successful: ${res}`))
       .catch((err) => this.logger.error('❌ Redis connection failed', err));
 
@@ -39,7 +39,7 @@ export class ActivityLogsProcessor implements OnModuleInit {
           username: this.configService.get('REDIS_USERNAME'),
           password: this.configService.get('REDIS_PASSWORD'),
         },
-      }
+      },
     );
   }
 
@@ -48,7 +48,9 @@ export class ActivityLogsProcessor implements OnModuleInit {
 
     try {
       const { organization_id, user_id, logs } = this.validateJobData(job);
-      this.logger.log(`Processing job ${job.id} for ${organization_id}:${user_id}`);
+      this.logger.log(
+        `Processing job ${job.id} for ${organization_id}:${user_id}`,
+      );
 
       const sortedLogs = this.sortLogs(logs);
       const lastContext = await this.getLastContext(organization_id, user_id);
@@ -71,9 +73,12 @@ export class ActivityLogsProcessor implements OnModuleInit {
 
       const allSessions = [...crossBatchSessions, ...currentSessions];
 
-      await this.updateLastLogInRedis(organization_id, user_id, sortedLogs.at(-1));
+      await this.updateLastLogInRedis(
+        organization_id,
+        user_id,
+        sortedLogs.at(-1),
+      );
       await this.persistSessions(allSessions, organization_id, user_id);
-
     } catch (error) {
       this.logger.error(`❌ Error processing job ${job.id}`, error.stack);
     }
@@ -89,10 +94,16 @@ export class ActivityLogsProcessor implements OnModuleInit {
   }
 
   private sortLogs(logs: ActivityLog[]): ActivityLog[] {
-    return logs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    return logs.sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
   }
 
-  private async getLastContext(orgId: string, userId: string): Promise<ActivityLog | null> {
+  private async getLastContext(
+    orgId: string,
+    userId: string,
+  ): Promise<ActivityLog | null> {
     const redisKey = this.getRedisKeyForLastActivityLog(orgId, userId);
     const lastLogStr = await this.redis.get(redisKey);
     this.logger.debug(`Last log for ${orgId}:${userId} is ${lastLogStr}`);
@@ -104,11 +115,12 @@ export class ActivityLogsProcessor implements OnModuleInit {
     firstLog: ActivityLog,
     orgId: string,
     userId: string,
-    minDuration: number
+    minDuration: number,
   ): ActivitySession[] {
     if (!lastContext) return [];
 
-    const isSameContext = lastContext.app_name === firstLog.app_name &&
+    const isSameContext =
+      lastContext.app_name === firstLog.app_name &&
       lastContext.browser_url === firstLog.browser_url &&
       lastContext.window_title === firstLog.window_title &&
       lastContext.pid === firstLog.pid;
@@ -120,17 +132,19 @@ export class ActivityLogsProcessor implements OnModuleInit {
     const duration = endTime - startTime;
 
     if (duration > minDuration) {
-      return [{
-        organization: orgId,
-        user: userId,
-        appName: lastContext.app_name,
-        browserUrl: lastContext.browser_url,
-        windowTitle: lastContext.window_title,
-        pid: lastContext.pid,
-        faviconUrl: lastContext.favicon_url,
-        startTime: lastContext.timestamp,
-        endTime: firstLog.timestamp,
-      }];
+      return [
+        {
+          organization: orgId,
+          user: userId,
+          appName: lastContext.app_name,
+          browserUrl: lastContext.browser_url,
+          windowTitle: lastContext.window_title,
+          pid: lastContext.pid,
+          faviconUrl: lastContext.favicon_url,
+          startTime: lastContext.timestamp,
+          endTime: firstLog.timestamp,
+        },
+      ];
     } else {
       this.logger.warn(`⚠️ Ignored invalid cross-batch session: ${duration}ms`);
       return [];
@@ -142,7 +156,7 @@ export class ActivityLogsProcessor implements OnModuleInit {
     lastContext: ActivityLog | null,
     orgId: string,
     userId: string,
-    minDuration: number
+    minDuration: number,
   ): ActivitySession[] {
     const sessions: ActivitySession[] = [];
     let currentSessionStart: ActivityLog | null = null;
@@ -151,9 +165,12 @@ export class ActivityLogsProcessor implements OnModuleInit {
       const log = logs[i];
       const prevLog = i > 0 ? logs[i - 1] : lastContext;
 
-      this.logger.debug(`Comparing logs: ${JSON.stringify(log)} with ${JSON.stringify(prevLog)}`);
+      this.logger.debug(
+        `Comparing logs: ${JSON.stringify(log)} with ${JSON.stringify(prevLog)}`,
+      );
 
-      const isSameContext = prevLog &&
+      const isSameContext =
+        prevLog &&
         log.app_name === prevLog.app_name &&
         log.browser_url === prevLog.browser_url &&
         log.window_title === prevLog.window_title;
@@ -187,7 +204,11 @@ export class ActivityLogsProcessor implements OnModuleInit {
     return sessions;
   }
 
-  private async updateLastLogInRedis(orgId: string, userId: string, lastLog: ActivityLog | undefined) {
+  private async updateLastLogInRedis(
+    orgId: string,
+    userId: string,
+    lastLog: ActivityLog | undefined,
+  ) {
     if (!lastLog) return;
     const redisKey = this.getRedisKeyForLastActivityLog(orgId, userId);
     await this.redis.set(redisKey, JSON.stringify(lastLog), 'EX', 600);
@@ -197,15 +218,18 @@ export class ActivityLogsProcessor implements OnModuleInit {
   private async persistSessions(
     sessions: ActivitySession[],
     orgId: string,
-    userId: string
+    userId: string,
   ) {
     if (!sessions.length) return;
     // this.logger.log(`💾 Saving ${sessions.length} sessions for ${userId}`);
-    await this.activityService.createActivitiesFromSession(sessions, userId, orgId);
+    await this.activityService.createActivitiesFromSession(
+      sessions,
+      userId,
+      orgId,
+    );
   }
 
   private getRedisKeyForLastActivityLog(orgId: string, userId: string): string {
     return `bull:activity-log:last:${orgId}:${userId}`;
   }
 }
-

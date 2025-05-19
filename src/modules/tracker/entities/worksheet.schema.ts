@@ -5,12 +5,10 @@ import { Project } from '../../../schemas/Project.schema';
 import { Organization } from 'src/schemas/Organization.schema';
 import { User } from 'src/schemas/user.schema';
 
-export type WorksheetDocument =
-  HydratedDocument<Worksheet>;
+export type WorksheetDocument = HydratedDocument<Worksheet>;
 
 @Schema({ timestamps: true })
 export class Worksheet {
-
   @Prop({ type: String, required: true })
   name: string;
 
@@ -30,8 +28,7 @@ export class Worksheet {
   lastReportedOn: Date;
 }
 
-export const WorksheetSchema =
-  SchemaFactory.createForClass(Worksheet);
+export const WorksheetSchema = SchemaFactory.createForClass(Worksheet);
 
 WorksheetSchema.index(
   { name: 1, user: 1, organization: 1, project: 1, date: 1 },

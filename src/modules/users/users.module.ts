@@ -12,7 +12,10 @@ import { IssueEntry, IssueEntrySchema } from '../../schemas/IssueEntry.schema';
 import { Comment, CommentSchema } from '../../schemas/Comment.schema';
 import { Project, ProjectSchema } from '../../schemas/Project.schema';
 import { TrelloModule } from '../trello/trello.module';
-import { UserProject, UserProjectSchema } from '../../schemas/UserProject.schema';
+import {
+  UserProject,
+  UserProjectSchema,
+} from '../../schemas/UserProject.schema';
 import {
   Organization,
   OrganizationSchema,

@@ -1,5 +1,13 @@
 // dto/request-metadata.dto.ts
-import { IsMongoId, IsNotEmpty, IsOptional, Matches, registerDecorator, ValidationArguments, ValidationOptions } from 'class-validator';
+import {
+  IsMongoId,
+  IsNotEmpty,
+  IsOptional,
+  Matches,
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+} from 'class-validator';
 import * as moment from 'moment-timezone';
 
 export class RequestMetadataDto {
@@ -15,7 +23,6 @@ export class RequestMetadataDto {
   @IsTimezoneRegion({ message: 'Invalid timezone region' })
   timezoneRegion?: string;
 }
-
 
 function IsTimezoneRegion(validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {

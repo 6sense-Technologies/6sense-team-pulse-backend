@@ -1,5 +1,9 @@
 // decorators/request-metadata.decorator.ts
-import { createParamDecorator, ExecutionContext, BadRequestException } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  BadRequestException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { IsMongoId, IsOptional, Matches } from 'class-validator';
@@ -19,9 +23,17 @@ export const RequestMetadata = createParamDecorator(
     });
 
     // Validate the DTO
-    const errors = validateSync(metadata, { whitelist: true, forbidNonWhitelisted: true });
+    const errors = validateSync(metadata, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
     if (errors.length > 0) {
-      throw new BadRequestException(errors.map(e => Object.values(e.constraints)).flat().join(', '));
+      throw new BadRequestException(
+        errors
+          .map((e) => Object.values(e.constraints))
+          .flat()
+          .join(', '),
+      );
     }
 
     return metadata;

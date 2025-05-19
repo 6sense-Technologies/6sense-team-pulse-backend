@@ -69,14 +69,14 @@ describe('TrackerService', () => {
       inputDto.activities.map((a) => ({
         ...a,
         organizationUserRole: userId,
-      }))
+      })),
     );
     expect(result).toEqual(expectedOutput);
   });
 
   it('should throw an error if insertMany fails', async () => {
     const userId = '67d8f6712d117be5fbc23a18';
-  
+
     const inputDto: CreateActivitiesDto = {
       organizationUserId: userId,
       activities: [
@@ -88,11 +88,11 @@ describe('TrackerService', () => {
         },
       ],
     };
-  
+
     mockActivityModel.insertMany.mockRejectedValue(new Error());
-  
+
     await expect(service.createActivity(inputDto, userId)).rejects.toThrow();
-  
+
     expect(mockActivityModel.insertMany).toHaveBeenCalledWith([
       {
         name: 'Chrome - StackOverflow',
@@ -101,5 +101,5 @@ describe('TrackerService', () => {
         organizationUserRole: userId,
       },
     ]);
-  });  
+  });
 });
