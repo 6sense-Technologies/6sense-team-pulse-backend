@@ -14,6 +14,7 @@ import { Activity } from './entities/activity.schema';
 import mongoose, { isValidObjectId, Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import * as moment from 'moment';
+import 'moment-timezone';
 import { Application } from './entities/application.schema';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -326,16 +327,15 @@ export class ActivityService {
     activityIds: string[],
   ) {
     try {
-      // mongoose.set('debug', true);
-
-      const activityObjectIds: Types.ObjectId[] = [];
-
-      for (const id of activityIds) {
-        if (!Types.ObjectId.isValid(id)) {
-          throw new BadRequestException(`Invalid activityId: ${id}`);
-        }
-        activityObjectIds.push(new Types.ObjectId(id));
+      // Validate input IDs first to avoid unnecessary DB calls
+      if (
+        !Array.isArray(activityIds) ||
+        activityIds.some((id) => !Types.ObjectId.isValid(id))
+      ) {
+        throw new BadRequestException('One or more activityIds are invalid.');
       }
+
+      const activityObjectIds = activityIds.map((id) => new Types.ObjectId(id));
 
       this.logger.debug('Activity Object IDs:', activityObjectIds);
       this.logger.debug('User ID:', userId);
@@ -360,7 +360,7 @@ export class ActivityService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Activity validation failed:', error);
+      this.logger.error('Activity validation failed', error);
       throw new InternalServerErrorException('Activity validation failed');
     }
   }
