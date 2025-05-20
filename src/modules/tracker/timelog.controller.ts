@@ -1,10 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query, Headers, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  Query,
+  Headers,
+  BadRequestException,
+} from '@nestjs/common';
 // import { TrackerService } from './tracker.service';
 import { ActivityService } from './activity.service';
 import { CreateTrackerDto } from './dto/create-tracker.dto';
 import { UpdateTrackerDto } from './dto/update-tracker.dto';
 import { CreateActivitiesDto } from './dto/create-activities.dto';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -17,7 +35,7 @@ import { WorksheetGetNamesQueryDto } from './dto/worksheet-get-names.query';
 @Controller('timelog')
 export class TimelogController {
   constructor(
-    // @InjectQueue('logs') 
+    // @InjectQueue('logs')
     // private readonly logsQueue: Queue, // Inject the logs queue
     // private readonly trackerService: TrackerService,
     private readonly activityService: ActivityService,
@@ -36,16 +54,15 @@ export class TimelogController {
   //     return this.authService.listOrganizations(req['user'].userId);
   //   }
 
-//   @UseGuards(AccessTokenGuard)
-//   @ApiBearerAuth()
-//   @Post('add-activity-logs')
-//   async addActivityLogsToQueue(
-//     @Body() createActivitiesDto: CreateActivitiesDto,
-//     @Req() req: Request
-//   ) {
-//     return await this.activityService.addActivityLogsToQueue(req['user'].userId, createActivitiesDto.organization_id, createActivitiesDto.activity_log);
-//   }
-
+  //   @UseGuards(AccessTokenGuard)
+  //   @ApiBearerAuth()
+  //   @Post('add-activity-logs')
+  //   async addActivityLogsToQueue(
+  //     @Body() createActivitiesDto: CreateActivitiesDto,
+  //     @Req() req: Request
+  //   ) {
+  //     return await this.activityService.addActivityLogsToQueue(req['user'].userId, createActivitiesDto.organization_id, createActivitiesDto.activity_log);
+  //   }
 
   // @UseGuards(AccessTokenGuard)
   // @ApiBearerAuth()
@@ -68,14 +85,22 @@ export class TimelogController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
-    console.log("Date: ", date);
-    console.log("Timezone Offset: ", metadata.timezoneRegion);
-    console.log("Sort Order: ", sortOrder);
-    console.log("Page: ", page);
-    console.log("Limit: ", limit);
-    console.log("Organization User ID: ", metadata.organizationId);
-    console.log("User ID: ", req['user'].userId);
-    return await this.activityService.findUnreportedActivitiesForCurrentUser(req['user'].userId, metadata.organizationId, date, metadata.timezoneRegion, sortOrder, parseInt(page), parseInt(limit));
+    console.log('Date: ', date);
+    console.log('Timezone Offset: ', metadata.timezoneRegion);
+    console.log('Sort Order: ', sortOrder);
+    console.log('Page: ', page);
+    console.log('Limit: ', limit);
+    console.log('Organization User ID: ', metadata.organizationId);
+    console.log('User ID: ', req['user'].userId);
+    return await this.activityService.findUnreportedActivitiesForCurrentUser(
+      req['user'].userId,
+      metadata.organizationId,
+      date,
+      metadata.timezoneRegion,
+      sortOrder,
+      parseInt(page),
+      parseInt(limit),
+    );
   }
 
   @UseGuards(AccessTokenGuard)
@@ -117,43 +142,46 @@ export class TimelogController {
   }
 
   @Get('worksheet/list')
-@ApiOperation({ summary: 'Get list of worksheets' })
-@ApiResponse({ status: 200, description: 'List of worksheets' })
-@ApiResponse({ status: 401, description: 'Unauthorized access' })
-@UseGuards(AccessTokenGuard)
-@ApiBearerAuth()
-async getWorksheets(
-  @Req() req: any,
-  @RequestMetadata() metadata: RequestMetadataDto,
-  @Query('page') page: string = '1',
-  @Query('limit') limit: string = '10',
-  @Query('start-date') startDate?: string,
-  @Query('end-date') endDate?: string,
-  @Query('sort-order') sortOrder: 'latest' | 'oldest' = 'latest',
-) {
-  const userId = req.user.userId;
+  @ApiOperation({ summary: 'Get list of worksheets' })
+  @ApiResponse({ status: 200, description: 'List of worksheets' })
+  @ApiResponse({ status: 401, description: 'Unauthorized access' })
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  async getWorksheets(
+    @Req() req: any,
+    @RequestMetadata() metadata: RequestMetadataDto,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('start-date') startDate?: string,
+    @Query('end-date') endDate?: string,
+    @Query('sort-order') sortOrder: 'latest' | 'oldest' = 'latest',
+  ) {
+    const userId = req.user.userId;
 
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-  if (startDate && !dateRegex.test(startDate)) {
-    throw new BadRequestException('Invalid start-date format. Expected YYYY-MM-DD.');
+    if (startDate && !dateRegex.test(startDate)) {
+      throw new BadRequestException(
+        'Invalid start-date format. Expected YYYY-MM-DD.',
+      );
+    }
+
+    if (endDate && !dateRegex.test(endDate)) {
+      throw new BadRequestException(
+        'Invalid end-date format. Expected YYYY-MM-DD.',
+      );
+    }
+
+    return this.worksheetService.getWorksheets(
+      userId,
+      metadata.organizationId,
+      parseInt(page, 10),
+      parseInt(limit, 10),
+      sortOrder,
+      startDate,
+      endDate,
+    );
   }
-
-  if (endDate && !dateRegex.test(endDate)) {
-    throw new BadRequestException('Invalid end-date format. Expected YYYY-MM-DD.');
-  }
-
-  return this.worksheetService.getWorksheets(
-    userId,
-    metadata.organizationId,
-    parseInt(page, 10),
-    parseInt(limit, 10),
-    sortOrder,
-    startDate,
-    endDate,
-  );
-}
-
 
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
@@ -161,7 +189,10 @@ async getWorksheets(
   @ApiOperation({ summary: 'Get activities in a worksheet' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'List of activities in the worksheet' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of activities in the worksheet',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized access' })
   async getActivitiesInWorksheet(
     @Req() req: any,
@@ -183,7 +214,6 @@ async getWorksheets(
       sortOrder,
     );
   }
-
 
   // @Get()
   // findAll() {

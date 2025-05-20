@@ -21,13 +21,12 @@
 //     // @InjectModel(Application.name)
 //     // private readonly appModel: Model<Application>,
 
-//     @InjectQueue('activity-log') 
+//     @InjectQueue('activity-log')
 //     private readonly activityLogQueue: Queue,
 
 //     private readonly applicationService: ApplicationService,
 //     private readonly organizationService: OrganizationService,
 //   ) {}
-
 
 //   // async findOrCreateApp(name: string) {
 //   //   return this.appModel.findOneAndUpdate(
@@ -65,11 +64,9 @@
 //         // removeOnComplete: true, // Optional: remove job after completion
 //       }
 //     );
-  
+
 //     return { queued: activityLogs.length };
 //   }
-  
-
 
 //   // async finalizeSession(session: any, endTime: Date) {
 //   //   const application = await this.findOrCreateApp(session.applicationName);
@@ -89,7 +86,6 @@
 //   //   await activity.save();
 //   // }
 
-
 //   async createActivitiesFromSession(
 //     activitySessions: ActivitySession[],
 //     userId: string,
@@ -97,12 +93,12 @@
 //   ) {
 //     try {
 //       const enrichedSessions: any[] = [];
-  
+
 //       for (const session of activitySessions) {
 //         const app = await this.applicationService.findOrCreate(session.appName, session.faviconUrl);
-  
+
 //         const name = session.windowTitle?.trim() || session.appName;
-  
+
 //         enrichedSessions.push({
 //           name,
 //           startTime: session.startTime,
@@ -115,16 +111,15 @@
 //           faviconUrl: session.faviconUrl || null,
 //         });
 //       }
-  
+
 //       const created = await this.activityModel.insertMany(enrichedSessions);
 //       return created;
-  
+
 //     } catch (error) {
 //       this.logger.error('Failed to create activities', error.message);
 //       throw error;
 //     }
 //   }
-  
 
 //   // async findAllActivities(
 //   //   organizationUserId: string,
@@ -136,38 +131,38 @@
 //   //     const query: any = {
 //   //       organizationUserRole: organizationUserId,
 //   //     };
-  
+
 //   //     // Validate timezoneOffset format (e.g. +06:00 or -05:30)
 //   //     if (!/^[-+]\d{2}:\d{2}$/.test(timezoneOffset)) {
 //   //       timezoneOffset = '+00:00'; // fallback to UTC
 //   //     }
-  
+
 //   //     this.logger.log('Date:', date);
 //   //     this.logger.log('Timezone Offset:', timezoneOffset);
-  
+
 //   //     // Use today's date in the user's timezone if not provided
 //   //     if (!date) {
 //   //       const now = moment().utcOffset(timezoneOffset);
 //   //       date = now.format('YYYY-MM-DD');
 //   //     }
-  
+
 //   //     const isoStart = `${date}T00:00:00${timezoneOffset}`;
 //   //     const isoEnd = `${date}T23:59:59.999${timezoneOffset}`;
-  
+
 //   //     this.logger.log('ISO Start:', isoStart);
 //   //     this.logger.log('ISO End:', isoEnd);
-  
+
 //   //     const startOfDayUTC = moment.parseZone(isoStart).utc().toISOString();
 //   //     const endOfDayUTC = moment.parseZone(isoEnd).utc().toISOString();
-  
+
 //   //     this.logger.log('Start of Day UTC:', startOfDayUTC);
 //   //     this.logger.log('End of Day UTC:', endOfDayUTC);
-  
+
 //   //     query.startTime = {
 //   //       $gte: startOfDayUTC,
 //   //       $lte: endOfDayUTC,
 //   //     };
-  
+
 //   //     const activities = await this.activityModel.find(query);
 //   //     return activities;
 //   //   } catch (error) {
@@ -175,8 +170,6 @@
 //   //     throw error;
 //   //   }
 //   // }
-
-
 
 //   // create(createTrackerDto: CreateTrackerDto) {
 //   //   return 'This action adds a new tracker';

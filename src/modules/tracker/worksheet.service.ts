@@ -1,5 +1,15 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { ActivityLogEntryDto, CreateActivitiesDto } from './dto/create-activities.dto';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  ActivityLogEntryDto,
+  CreateActivitiesDto,
+} from './dto/create-activities.dto';
 import { Activity } from './entities/activity.schema';
 import { Connection, isValidObjectId, Model, Types } from 'mongoose';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
@@ -137,7 +147,6 @@ export class WorksheetService {
       ]);
 
       return worksheets;
-
     } catch (error) {
       this.logger.error('Failed to get worksheet names', {
         userId,
@@ -147,7 +156,9 @@ export class WorksheetService {
         date,
         error: error.message,
       });
-      throw new InternalServerErrorException('Unable to retrieve worksheet summary');
+      throw new InternalServerErrorException(
+        'Unable to retrieve worksheet summary',
+      );
     }
   }
 
@@ -175,15 +186,12 @@ export class WorksheetService {
       const projectObjectId = new Types.ObjectId(projectId);
 
       const validityOfOrgaizationUser =
-        await this.organizationService.verifyUserofOrg(
-          userId,
-          organizationId,
-        );
+        await this.organizationService.verifyUserofOrg(userId, organizationId);
 
       if (!validityOfOrgaizationUser) {
         throw new UnauthorizedException(
           `Invalid userId or organizationId: userId=${userId}, organizationId=${organizationId}`,
-        ); 
+        );
       }
 
       // Find or create worksheet with upsert
@@ -252,14 +260,16 @@ export class WorksheetService {
 
       // Insert new links
       try {
-        await this.worksheetActivityModel.insertMany(links, { ordered: false, session });
+        await this.worksheetActivityModel.insertMany(links, {
+          ordered: false,
+          session,
+        });
       } catch (err) {
         if (err.code !== 11000) throw err;
       }
 
       await session.commitTransaction();
       session.endSession();
-
 
       return {
         worksheetId: worksheet._id,
@@ -281,7 +291,7 @@ export class WorksheetService {
         error instanceof BadRequestException ||
         error instanceof NotFoundException ||
         error instanceof UnauthorizedException
-      ){
+      ) {
         throw error;
       }
       throw new InternalServerErrorException(
@@ -311,7 +321,9 @@ export class WorksheetService {
         worksheet.user.toString() !== userId ||
         worksheet.organization.toString() !== organizationId
       ) {
-        throw new UnauthorizedException('You are not authorized to access this worksheet.');
+        throw new UnauthorizedException(
+          'You are not authorized to access this worksheet.',
+        );
       }
 
       const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
@@ -423,17 +435,20 @@ export class WorksheetService {
         throw error;
       }
 
-      throw new InternalServerErrorException('Unable to fetch activities for worksheet.');
+      throw new InternalServerErrorException(
+        'Unable to fetch activities for worksheet.',
+      );
     }
   }
-
 
   private calculateTimeSpent(start: Date, end: Date) {
     if (!start || !end) {
       return { hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 };
     }
 
-    const duration = Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 1000);
+    const duration = Math.floor(
+      (new Date(end).getTime() - new Date(start).getTime()) / 1000,
+    );
     const hours = Math.floor(duration / 3600);
     const minutes = Math.floor((duration % 3600) / 60);
     const seconds = duration % 60;
@@ -501,7 +516,12 @@ export class WorksheetService {
             as: 'worksheetActivities',
           },
         },
-        { $unwind: { path: '$worksheetActivities', preserveNullAndEmptyArrays: true } },
+        {
+          $unwind: {
+            path: '$worksheetActivities',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
         {
           $lookup: {
             from: 'activities',
@@ -595,5 +615,4 @@ export class WorksheetService {
       throw new InternalServerErrorException('Unable to retrieve worksheets.');
     }
   }
-
 }

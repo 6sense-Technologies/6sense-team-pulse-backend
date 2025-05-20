@@ -105,34 +105,38 @@ export class OrganizationService {
   ): Promise<OrganizationUserRole> {
     try {
       if (!isValidObjectId(organizationId) || !isValidObjectId(userId)) {
-        throw new BadRequestException('Invalid organizationId or userId format');
+        throw new BadRequestException(
+          'Invalid organizationId or userId format',
+        );
       }
-  
-      const orgUser = await this.organizationUserRole.findOne({
-        organization: new Types.ObjectId(organizationId),
-        user: new Types.ObjectId(userId),
-      })
-      .populate('user')
-      .populate('organization')
-      .populate('role');
-  
+
+      const orgUser = await this.organizationUserRole
+        .findOne({
+          organization: new Types.ObjectId(organizationId),
+          user: new Types.ObjectId(userId),
+        })
+        .populate('user')
+        .populate('organization')
+        .populate('role');
+
       if (orgUser) {
         return orgUser;
       }
-  
+
       const [userExists, orgExists] = await Promise.all([
         this.usersModel.exists({ _id: userId }),
         this.organizationModel.exists({ _id: organizationId }),
       ]);
-  
+
       const errors = [];
       if (!userExists) errors.push(`User with id ${userId} does not exist`);
-      if (!orgExists) errors.push(`Organization with id ${organizationId} does not exist`);
-  
+      if (!orgExists)
+        errors.push(`Organization with id ${organizationId} does not exist`);
+
       if (errors.length > 0) {
         throw new NotFoundException(errors.join(' and '));
       }
-  
+
       throw new BadRequestException(
         `User with id ${userId} is not part of the organization with id ${organizationId}`,
       );

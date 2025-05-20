@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, IsArray, ValidateNested, IsUrl } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsArray,
+  ValidateNested,
+  IsUrl,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -6,7 +12,7 @@ class ToolDto {
   @ApiProperty({
     description: 'Name of the tool',
     type: String,
-    example: 'VSCode',  // Example value for toolName
+    example: 'VSCode', // Example value for toolName
   })
   @IsNotEmpty()
   @IsString()
@@ -15,7 +21,7 @@ class ToolDto {
   @ApiProperty({
     description: 'URL for the tool',
     type: String,
-    example: 'https://code.visualstudio.com/',  // Example value for toolUrl
+    example: 'https://code.visualstudio.com/', // Example value for toolUrl
   })
   @IsNotEmpty()
   @IsString()
@@ -27,7 +33,7 @@ export class CreateProjectDto {
   @ApiProperty({
     description: 'Name of the project',
     type: String,
-    example: 'My Awesome Project',  // Example value for project name
+    example: 'My Awesome Project', // Example value for project name
   })
   @IsNotEmpty()
   @IsString()
@@ -39,13 +45,13 @@ export class CreateProjectDto {
     example: [
       {
         toolName: 'VSCode',
-        toolUrl: 'https://code.visualstudio.com/'
+        toolUrl: 'https://code.visualstudio.com/',
       },
       {
         toolName: 'GitHub',
-        toolUrl: 'https://github.com/'
-      }
-    ],  // Example value for tools array
+        toolUrl: 'https://github.com/',
+      },
+    ], // Example value for tools array
   })
   @IsNotEmpty()
   @IsArray()

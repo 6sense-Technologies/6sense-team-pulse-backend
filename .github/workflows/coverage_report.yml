@@ -8,14 +8,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: github.actor == 'ahmedfaiyaz-6sense' # 2. Restrictive condition; adjust if others need to trigger this workflow.
+    # if: github.actor == 'ahmedfaiyaz-6sense' # 2. Restrictive condition; adjust if others need to trigger this workflow.
     steps:
     - uses: actions/checkout@v4 # 6. Keep this action updated to the latest version for security and performance.
 
     - name: Use Node.js
       uses: actions/setup-node@v4 # 6. Keep this action updated periodically.
       with:
-        node-version: 20.x
+        node-version: 22.x
 
     - name: Install Dependencies
       run: yarn install

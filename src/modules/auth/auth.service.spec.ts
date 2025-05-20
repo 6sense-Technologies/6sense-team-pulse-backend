@@ -8,7 +8,12 @@ import { Model } from 'mongoose';
 import { Users } from '../../schemas/users.schema';
 import { OTPSecret } from '../../schemas/OTPSecret.schema';
 import { Organization } from '../../schemas/Organization.schema';
-import { ConflictException, BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 describe('AuthService', () => {
@@ -78,11 +83,11 @@ describe('AuthService', () => {
           useValue: {
             get: jest.fn().mockImplementation((key) => {
               const config = {
-                'JWT_SECRET': 'secret',
-                'JWT_EXPIRE': '1h',
-                'JWT_REFRESH_SECRET': 'refresh-secret',
-                'JWT_EXPIRE_REFRESH_TOKEN': '7d',
-                'INVITE_SECRET': 'invite-secret'
+                JWT_SECRET: 'secret',
+                JWT_EXPIRE: '1h',
+                JWT_REFRESH_SECRET: 'refresh-secret',
+                JWT_EXPIRE_REFRESH_TOKEN: '7d',
+                INVITE_SECRET: 'invite-secret',
               };
               return config[key];
             }),
@@ -93,8 +98,12 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userModel = module.get<Model<Users>>(getModelToken(Users.name));
-    otpSecretModel = module.get<Model<OTPSecret>>(getModelToken(OTPSecret.name));
-    organizationModel = module.get<Model<Organization>>(getModelToken(Organization.name));
+    otpSecretModel = module.get<Model<OTPSecret>>(
+      getModelToken(OTPSecret.name),
+    );
+    organizationModel = module.get<Model<Organization>>(
+      getModelToken(Organization.name),
+    );
     emailService = module.get<EmailService>(EmailService);
     jwtService = module.get<JwtService>(JwtService);
     configService = module.get<ConfigService>(ConfigService);
@@ -125,7 +134,9 @@ describe('AuthService', () => {
         emailAddress: registerDto.emailAddress,
         password: hashedPassword,
       });
-      expect(emailService.sendEmail).toHaveBeenCalledWith(registerDto.emailAddress);
+      expect(emailService.sendEmail).toHaveBeenCalledWith(
+        registerDto.emailAddress,
+      );
       expect(result.userInfo).not.toHaveProperty('password');
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
@@ -139,7 +150,7 @@ describe('AuthService', () => {
         isInvited: true,
         password: undefined,
       };
-      
+
       jest.spyOn(userModel, 'findOne').mockResolvedValue(invitedUser as any);
       jest.spyOn(bcrypt, 'hash').mockResolvedValue(hashedPassword);
 
@@ -155,7 +166,7 @@ describe('AuthService', () => {
         isInvited: true,
         password: 'existingPassword',
       };
-      
+
       jest.spyOn(userModel, 'findOne').mockResolvedValue(invitedUser as any);
 
       await expect(service.registerEmailPassword(registerDto)).rejects.toThrow(
@@ -205,7 +216,9 @@ describe('AuthService', () => {
         password: 'hashedPassword',
       };
 
-      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockUserWithPassword as any);
+      jest
+        .spyOn(userModel, 'findOne')
+        .mockResolvedValue(mockUserWithPassword as any);
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
       jest.spyOn(organizationModel, 'find').mockResolvedValue([{ id: 'org1' }]);
 
@@ -223,7 +236,9 @@ describe('AuthService', () => {
         password: 'hashedPassword',
       };
 
-      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockUserWithPassword as any);
+      jest
+        .spyOn(userModel, 'findOne')
+        .mockResolvedValue(mockUserWithPassword as any);
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
       jest.spyOn(organizationModel, 'find').mockResolvedValue([]);
 
@@ -244,7 +259,9 @@ describe('AuthService', () => {
         }),
       };
 
-      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockInvitedUser as any);
+      jest
+        .spyOn(userModel, 'findOne')
+        .mockResolvedValue(mockInvitedUser as any);
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
       jest.spyOn(organizationModel, 'find').mockResolvedValue([]);
 
@@ -271,9 +288,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid refresh token', async () => {
       // jest.spyOn(jwtService, 'verify').mockResolvedValue(false);
 
-      await expect(service.generateRefreshTokens('invalidToken')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.generateRefreshTokens('invalidToken'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -296,7 +313,9 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for expired token', async () => {
-      jest.spyOn(jwtService, 'verifyAsync').mockRejectedValue({ name: 'TokenExpiredError' });
+      jest
+        .spyOn(jwtService, 'verifyAsync')
+        .mockRejectedValue({ name: 'TokenExpiredError' });
 
       await expect(service.verifyInvite(verifyInviteDto)).rejects.toThrow(
         UnauthorizedException,

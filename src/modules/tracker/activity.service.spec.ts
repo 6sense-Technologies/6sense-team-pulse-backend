@@ -1,40 +1,46 @@
-// test/activity.service.spec.ts
-
 import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
 import { ActivityService } from './activity.service';
+import { getModelToken } from '@nestjs/mongoose';
 import { Activity } from './entities/activity.schema';
 import { Application } from './entities/application.schema';
 import { Worksheet } from './entities/worksheet.schema';
 import { WorksheetActivity } from './entities/worksheetActivity.schema';
-import { Queue } from 'bullmq';
-import { OrganizationService } from '../organization/organization.service';
 import { ApplicationService } from './application.service';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import * as moment from 'moment-timezone';
+import { OrganizationService } from '../organization/organization.service';
+import { ActivityLogEntryDto } from './dto/create-activities.dto';
+import { BadRequestException, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { ActivitySession } from './tracker.interface';
 
+// Mocks
 const mockActivityModel = {
   findOne: jest.fn(),
-  insertMany: jest.fn(),
   find: jest.fn(),
+  insertMany: jest.fn(),
   aggregate: jest.fn(),
 };
 
 const mockApplicationModel = {};
 const mockWorksheetModel = {};
 const mockWorksheetActivityModel = {};
-
-const mockQueue = {
-  add: jest.fn(),
+const mockLogger = {
+  log: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+  verbose: jest.fn(),
 };
 
-const mockOrgService = {
+const mockApplicationService = {
+  findOrCreate: jest.fn(),
+};
+
+const mockOrganizationService = {
   verifyUserofOrg: jest.fn(),
 };
 
-const mockAppService = {
-  findOrCreate: jest.fn(),
+const mockActivityLogQueue = {
+  add: jest.fn(),
 };
 
 describe('ActivityService', () => {
@@ -48,96 +54,311 @@ describe('ActivityService', () => {
         { provide: getModelToken(Application.name), useValue: mockApplicationModel },
         { provide: getModelToken(Worksheet.name), useValue: mockWorksheetModel },
         { provide: getModelToken(WorksheetActivity.name), useValue: mockWorksheetActivityModel },
-        { provide: 'BullQueue_activity-log', useValue: mockQueue },
-        { provide: OrganizationService, useValue: mockOrgService },
-        { provide: ApplicationService, useValue: mockAppService },
+        { provide: Logger, useValue: mockLogger },
+        { provide: ApplicationService, useValue: mockApplicationService },
+        { provide: OrganizationService, useValue: mockOrganizationService },
+        { provide: 'BullQueue_activity-log', useValue: mockActivityLogQueue }, // ✅ Correct token
       ],
     }).compile();
 
     service = module.get<ActivityService>(ActivityService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
   describe('addActivityLogsToQueue', () => {
-    it('should queue logs correctly when valid input is provided', async () => {
-      mockOrgService.verifyUserofOrg.mockResolvedValue(true);
-      const result = await service.addActivityLogsToQueue('user1', 'org1', [{ startTime: new Date(), endTime: new Date(), appName: 'App' }]);
-      expect(mockQueue.add).toHaveBeenCalled();
-      expect(result.queued).toBe(1);
+    const userId = 'user123';
+    const organizationId = 'org456';
+
+    const sampleLogs: ActivityLogEntryDto[] = [
+      {
+        app_name: 'Chrome',
+        app_path: '/Applications/Google Chrome.app',
+        pid: 111,
+        browser_url: 'http://google.com',
+        window_title: 'Google Homepage',
+        favicon_url: 'http://favicon.com',
+        event: 'focused',
+        timestamp: new Date().toISOString(),
+        duration_sec: 10,
+      },
+    ];
+
+    beforeEach(() => {
+      jest.clearAllMocks();
     });
 
-    it('should throw UnauthorizedException if user is not in org', async () => {
-      mockOrgService.verifyUserofOrg.mockResolvedValue(false);
-      await expect(
-        service.addActivityLogsToQueue('user1', 'org1', [{ startTime: new Date(), endTime: new Date(), appName: 'App' }])
-      ).rejects.toThrow(UnauthorizedException);
+    it('should queue logs and return count when input is valid', async () => {
+      mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
+      mockActivityLogQueue.add.mockResolvedValue({});
+
+      const result = await service.addActivityLogsToQueue(userId, organizationId, sampleLogs);
+
+      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(userId, organizationId);
+      expect(mockActivityLogQueue.add).toHaveBeenCalledWith(
+        'process-activity',
+        expect.objectContaining({
+          user_id: userId,
+          organization_id: organizationId,
+          logs: sampleLogs,
+        }),
+        expect.objectContaining({ jobId: expect.any(String), removeOnComplete: true })
+      );
+      expect(result).toEqual({ queued: sampleLogs.length });
     });
 
-    it('should handle missing input gracefully', async () => {
+    it('should throw UnauthorizedException if user is not in organization', async () => {
+      mockOrganizationService.verifyUserofOrg.mockResolvedValue(false);
+
+      await expect(service.addActivityLogsToQueue(userId, organizationId, sampleLogs))
+        .rejects
+        .toThrow(UnauthorizedException);
+    });
+
+    it('should return queued: 0 if inputs are invalid or empty', async () => {
       const result = await service.addActivityLogsToQueue('', '', []);
-      expect(result.queued).toBe(0);
+      expect(result).toEqual({ queued: 0 });
+      expect(mockActivityLogQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('should throw InternalServerErrorException on unknown error', async () => {
+      mockOrganizationService.verifyUserofOrg.mockImplementation(() => {
+        throw new Error('unexpected failure');
+      });
+
+      await expect(service.addActivityLogsToQueue(userId, organizationId, sampleLogs))
+        .rejects
+        .toThrow(InternalServerErrorException);
     });
   });
 
   describe('createActivitiesFromSession', () => {
-    it('should create activities from sessions', async () => {
-      mockActivityModel.findOne.mockResolvedValue(null);
-      mockAppService.findOrCreate.mockResolvedValue({ _id: 'appId' });
-      mockActivityModel.insertMany.mockResolvedValue([{ name: 'Chrome' }]);
+    const userId = new Types.ObjectId().toHexString();
+    const organizationId = new Types.ObjectId().toHexString();
 
-      const sessions = [{ appName: 'Chrome', startTime: new Date(), endTime: new Date() }];
-      const result = await service.createActivitiesFromSession(sessions, 'userId', 'orgId');
-      expect(result.length).toBe(1);
+    const baseSession: ActivitySession = {
+  startTime: '2025-05-18T12:00:00Z',
+  endTime: '2025-05-18T12:10:00Z',
+  appName: 'Chrome',
+  faviconUrl: 'http://favicon.com',
+  windowTitle: 'Google',
+  pid: 1234,
+  browserUrl: 'http://google.com',
+  organization: new Types.ObjectId(organizationId).toHexString(),
+  user: new Types.ObjectId(userId).toHexString(),
+};
+
+    it('should skip sessions older than latest activity', async () => {
+      mockActivityModel.findOne.mockReturnValue({
+        sort: jest.fn().mockResolvedValue({
+          endTime: new Date('2025-05-19T00:00:00Z'), // future of baseSession
+        }),
+      });
+
+      const result = await service.createActivitiesFromSession(
+        [baseSession],
+        userId,
+        organizationId,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockActivityModel.insertMany).not.toHaveBeenCalled();
     });
 
-    it('should skip sessions older than last activity', async () => {
-      mockActivityModel.findOne.mockResolvedValue({ endTime: new Date() });
-      const sessions = [{ appName: 'Chrome', startTime: new Date(2000, 1, 1), endTime: new Date(2000, 1, 1) }];
-      const result = await service.createActivitiesFromSession(sessions, 'userId', 'orgId');
+    it('should insert new activities if valid', async () => {
+      mockActivityModel.findOne.mockReturnValue({
+        sort: jest.fn().mockResolvedValue(null), // no latest activity
+      });
+
+      mockApplicationService.findOrCreate.mockResolvedValue({
+        _id: new Types.ObjectId(),
+      });
+
+      mockActivityModel.insertMany.mockResolvedValue([
+        { name: 'Google', pid: 1234 },
+      ]);
+
+      const result = await service.createActivitiesFromSession(
+        [baseSession],
+        userId,
+        organizationId,
+      );
+
+      expect(result.length).toBe(1);
+      expect(mockActivityModel.insertMany).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Google',
+            pid: 1234,
+            application: expect.any(Types.ObjectId),
+          }),
+        ]),
+      );
+    });
+
+    it('should return empty array if nothing to insert', async () => {
+      mockActivityModel.findOne.mockReturnValue({
+        sort: jest.fn().mockResolvedValue({
+          endTime: new Date('2025-05-18T12:30:00Z'),
+        }),
+      });
+
+      const result = await service.createActivitiesFromSession(
+        [baseSession],
+        userId,
+        organizationId,
+      );
+
       expect(result).toEqual([]);
     });
-  });
 
-  describe('findAllActivities', () => {
-    it('should return activities in specified date and timezone', async () => {
-      mockActivityModel.find.mockResolvedValue([{ _id: 'activity1' }]);
-      const result = await service.findAllActivities('orgUserId', 'userId', '2023-10-01', '+05:30');
-      expect(result.length).toBeGreaterThanOrEqual(0);
+    it('should throw error on failure', async () => {
+      mockActivityModel.findOne.mockReturnValue({
+        sort: jest.fn().mockResolvedValue(null),
+      });
+
+      mockApplicationService.findOrCreate.mockRejectedValue(
+        new Error('DB error'),
+      );
+
+      await expect(
+        service.createActivitiesFromSession([baseSession], userId, organizationId),
+      ).rejects.toThrow('DB error');
     });
   });
 
   describe('findUnreportedActivitiesForCurrentUser', () => {
-    it('should return paginated unreported activities', async () => {
-      mockOrgService.verifyUserofOrg.mockResolvedValue(true);
-      mockActivityModel.aggregate.mockResolvedValue([
+    const userId = '507f1f77bcf86cd799439011'; // valid 24-char hex
+    const organizationId = '507f1f77bcf86cd799439012';
+    const timezone = 'Asia/Dhaka';
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should return unreported activities with pagination metadata', async () => {
+      const mockAggregateResult = [
         {
-          data: [{ _id: 'a1' }],
+          data: [{ _id: 'a1', startTime: new Date() }],
           totalCount: [{ count: 1 }],
         },
-      ]);
+      ];
+
+      mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
+      mockActivityModel.aggregate.mockResolvedValue(mockAggregateResult);
 
       const result = await service.findUnreportedActivitiesForCurrentUser(
-        'userId', 'orgId', '2023-10-01', 'Asia/Kolkata'
+        userId,
+        organizationId,
+        '2025-05-18',
+        timezone,
+        'latest',
+        1,
+        10,
       );
+
+      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(userId, organizationId);
+      expect(mockActivityModel.aggregate).toHaveBeenCalled();
       expect(result.data.length).toBe(1);
+      expect(result.paginationMetadata.totalCount).toBe(1);
+    });
+
+    it('should default to today\'s date if date is not provided', async () => {
+      mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
+      mockActivityModel.aggregate.mockResolvedValue([{ data: [], totalCount: [] }]);
+
+      const result = await service.findUnreportedActivitiesForCurrentUser(
+        userId,
+        organizationId,
+        undefined,
+        timezone,
+      );
+
+      expect(result.paginationMetadata.totalCount).toBe(0);
+      expect(mockActivityModel.aggregate).toHaveBeenCalled();
+    });
+
+    it('should throw an error if user is not in the organization', async () => {
+      mockOrganizationService.verifyUserofOrg.mockRejectedValue(new Error('Unauthorized'));
+
+      await expect(
+        service.findUnreportedActivitiesForCurrentUser(
+          userId,
+          organizationId,
+          '2025-05-18',
+          timezone,
+        ),
+      ).rejects.toThrow('Unauthorized');
+    });
+
+    it('should throw if aggregate fails', async () => {
+      mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
+      mockActivityModel.aggregate.mockRejectedValue(new Error('DB Error'));
+
+      await expect(
+        service.findUnreportedActivitiesForCurrentUser(
+          userId,
+          organizationId,
+          '2025-05-18',
+          timezone,
+        ),
+      ).rejects.toThrow('DB Error');
     });
   });
 
   describe('validateActivitiesForUser', () => {
-    it('should validate and return correct activity list', async () => {
-      const ids = ['507f191e810c19729de860ea'];
-      mockActivityModel.find.mockResolvedValue([{ _id: ids[0] }]);
-      const result = await service.validateActivitiesForUser(new Types.ObjectId(), new Types.ObjectId(), ids);
-      expect(result.length).toBe(1);
+    const userId = new Types.ObjectId();
+    const orgId = new Types.ObjectId();
+
+    it('should return valid activities if all checks pass', async () => {
+      const activityIds = [new Types.ObjectId().toHexString()];
+      const validActivity = { _id: activityIds[0], user: userId, organization: orgId };
+
+      mockActivityModel.find.mockResolvedValue([validActivity]);
+
+      const result = await service.validateActivitiesForUser(userId, orgId, activityIds);
+
+      expect(mockActivityModel.find).toHaveBeenCalledWith({
+        _id: { $in: activityIds.map((id) => new Types.ObjectId(id)) },
+        user: userId,
+        organization: orgId,
+      });
+
+      expect(result).toEqual([validActivity]);
     });
 
-    it('should throw error for invalid id', async () => {
+    it('should throw BadRequestException for invalid ObjectID', async () => {
+      const invalidId = 'invalid';
+
       await expect(
-        service.validateActivitiesForUser(new Types.ObjectId(), new Types.ObjectId(), ['invalid'])
+        service.validateActivitiesForUser(userId, orgId, [invalidId]),
       ).rejects.toThrow(BadRequestException);
+
+      expect(mockActivityModel.find).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if not all activities found', async () => {
+      const validId = new Types.ObjectId().toHexString();
+
+      mockActivityModel.find.mockResolvedValue([]); // none found
+
+      await expect(
+        service.validateActivitiesForUser(userId, orgId, [validId]),
+      ).rejects.toThrow('Some activities are invalid or unauthorized.');
+    });
+
+    it('should throw InternalServerErrorException for unknown error', async () => {
+      const validId = new Types.ObjectId().toHexString();
+
+      mockActivityModel.find.mockRejectedValue(new Error('DB error'));
+
+      await expect(
+        service.validateActivitiesForUser(userId, orgId, [validId]),
+      ).rejects.toThrow('Activity validation failed');
     });
   });
+
+
 });

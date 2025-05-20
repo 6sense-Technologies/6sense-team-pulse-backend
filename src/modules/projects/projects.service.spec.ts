@@ -285,26 +285,19 @@ describe('ProjectsService', () => {
     //   const mockOrganization = {
     //     projects: [{ name: 'Project 1' }, { name: 'Project 2' }],
     //   };
-
     //   jest
     //     .spyOn(organizationModel, 'findOne')
     //     .mockResolvedValue(mockOrganization);
-
     //   const result = await service.getNames(1, 10, userId.toHexString());
-
     //   expect(result).toEqual(['Project 1', 'Project 2']);
     //   expect(organizationModel.findOne).toHaveBeenCalledWith({
     //     createdBy: userId,
     //   });
     // });
-
     // it('should return empty array if no projects found', async () => {
     //   const userId = new Types.ObjectId();
-
     //   jest.spyOn(organizationModel, 'findOne').mockResolvedValue(null);
-
     //   const result = await service.getNames(1, 10, userId.toHexString());
-
     //   expect(result).toEqual([]);
     // });
   });

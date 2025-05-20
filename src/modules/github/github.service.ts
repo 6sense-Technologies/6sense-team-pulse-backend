@@ -39,7 +39,12 @@ export class GithubService {
   findAll() {
     return `This action returns all github`;
   }
-  async summary(userId:string,date:string,page:number=1,limit:number = 10){
+  async summary(
+    userId: string,
+    date: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
     const inputDate = new Date(date); // Replace `date` with your input date
     const dateStart = DateTime.fromJSDate(inputDate, {
       zone: 'Asia/Dhaka',
@@ -105,7 +110,6 @@ export class GithubService {
         $project: {
           // Extract the first element from the summary array
           summary: { $arrayElemAt: ['$summary', 0] },
-
         },
       },
     ]);

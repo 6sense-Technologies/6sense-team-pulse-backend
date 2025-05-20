@@ -10,7 +10,7 @@ export interface ActivityLog {
   favicon_url?: string;
   duration_sec?: number;
 }
-  
+
 export interface ActivitySession {
   organization: string;
   user: string;

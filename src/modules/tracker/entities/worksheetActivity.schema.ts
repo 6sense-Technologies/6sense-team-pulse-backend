@@ -4,12 +4,16 @@ import { Types } from 'mongoose';
 import { Activity } from './activity.schema';
 import { Worksheet } from './worksheet.schema';
 
-export type WorksheetActivityDocument =
-  HydratedDocument<WorksheetActivity>;
+export type WorksheetActivityDocument = HydratedDocument<WorksheetActivity>;
 
 @Schema({ timestamps: true })
 export class WorksheetActivity {
-  @Prop({ type: Types.ObjectId, ref: Activity.name, required: true, unique: true }) //remove unique constraint if we want to allow acitivity to be added multiple times to multiple worksheets
+  @Prop({
+    type: Types.ObjectId,
+    ref: Activity.name,
+    required: true,
+    unique: true,
+  }) //remove unique constraint if we want to allow acitivity to be added multiple times to multiple worksheets
   activity: Activity;
 
   @Prop({ type: Types.ObjectId, ref: Worksheet.name, required: true })

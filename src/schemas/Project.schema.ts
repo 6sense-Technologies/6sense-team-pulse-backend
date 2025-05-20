@@ -16,12 +16,10 @@ export class Project extends Document {
   createdBy: User;
 
   @Prop({
-      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }], // Reference to the User schema
-      default: [],
-    })
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }], // Reference to the User schema
+    default: [],
+  })
   assignedUsers: mongoose.Types.ObjectId[];
-
-
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

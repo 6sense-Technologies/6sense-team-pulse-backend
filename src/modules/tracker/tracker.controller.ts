@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  Query,
+  Headers,
+} from '@nestjs/common';
 // import { TrackerService } from './tracker.service';
 import { ActivityService } from './activity.service';
 import { CreateTrackerDto } from './dto/create-tracker.dto';
@@ -12,10 +24,10 @@ import { Queue } from 'bullmq';
 @Controller('tracker')
 export class TrackerController {
   constructor(
-    // @InjectQueue('logs') 
+    // @InjectQueue('logs')
     // private readonly logsQueue: Queue, // Inject the logs queue
     // private readonly trackerService: TrackerService,
-    private readonly activityService: ActivityService
+    private readonly activityService: ActivityService,
   ) {}
 
   // @Post()
@@ -35,11 +47,14 @@ export class TrackerController {
   @Post('add-activity-logs')
   async addActivityLogsToQueue(
     @Body() createActivitiesDto: CreateActivitiesDto,
-    @Req() req: Request
+    @Req() req: Request,
   ) {
-    return await this.activityService.addActivityLogsToQueue(req['user'].userId, createActivitiesDto.organization_id, createActivitiesDto.activity_log);
+    return await this.activityService.addActivityLogsToQueue(
+      req['user'].userId,
+      createActivitiesDto.organization_id,
+      createActivitiesDto.activity_log,
+    );
   }
-
 
   // @UseGuards(AccessTokenGuard)
   // @ApiBearerAuth()
@@ -58,11 +73,16 @@ export class TrackerController {
     @Param('organizationUserId') organizationUserId: string,
     @Query('date') date: string,
     @Headers('X-Timezone-Offset') timezoneOffset: string,
-    @Req() req: Request
+    @Req() req: Request,
   ) {
-    console.log("Date: ", date);
-    console.log("Timezone Offset: ", timezoneOffset);
-    return await this.activityService.findAllActivities(organizationUserId, req['user'].userId, date, timezoneOffset);
+    console.log('Date: ', date);
+    console.log('Timezone Offset: ', timezoneOffset);
+    return await this.activityService.findAllActivities(
+      organizationUserId,
+      req['user'].userId,
+      date,
+      timezoneOffset,
+    );
   }
 
   // @Get()

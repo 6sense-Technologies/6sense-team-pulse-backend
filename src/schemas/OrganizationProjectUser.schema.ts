@@ -6,13 +6,11 @@ import { Project } from './Project.schema';
 import { Organization } from './Organization.schema';
 import { Users } from './users.schema';
 
-
-export type OrganizationProjectUserDocument = HydratedDocument<OrganizationProjectUser>;
+export type OrganizationProjectUserDocument =
+  HydratedDocument<OrganizationProjectUser>;
 
 @Schema({ timestamps: true })
 export class OrganizationProjectUser {
-
-
   @Prop({ type: Types.ObjectId, ref: Organization.name, required: true })
   organization: Types.ObjectId;
 
@@ -26,4 +24,6 @@ export class OrganizationProjectUser {
   createdBy: Types.ObjectId;
 }
 
-export const OrganizationProjectUserSchema = SchemaFactory.createForClass(OrganizationProjectUser);
+export const OrganizationProjectUserSchema = SchemaFactory.createForClass(
+  OrganizationProjectUser,
+);

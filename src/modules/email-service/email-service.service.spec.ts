@@ -66,14 +66,18 @@ describe('EmailService', () => {
   describe('sendEmail', () => {
     it('should throw NotFoundException if user does not exist', async () => {
       usersModel.findOne.mockResolvedValue(null);
-      await expect(emailService.sendEmail('test@example.com')).rejects.toThrow(NotFoundException);
+      await expect(emailService.sendEmail('test@example.com')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should send an email with a verification code', async () => {
       usersModel.findOne.mockResolvedValue({ displayName: 'Test User' });
       otpSecretModel.findOne.mockResolvedValue(null);
       otpSecretModel.create.mockResolvedValue({});
-      jest.spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate').mockReturnValue('<html>Mock Email</html>');
+      jest
+        .spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate')
+        .mockReturnValue('<html>Mock Email</html>');
       mailerService.sendMail.mockResolvedValue({ success: true });
 
       const response = await emailService.sendEmail('test@example.com');
@@ -91,8 +95,13 @@ describe('EmailService', () => {
   describe('sendInvitationEmail', () => {
     it('should throw NotFoundException if user does not exist', async () => {
       usersModel.findOne.mockResolvedValue(null);
-      await expect(emailService.sendInvitationEmail('test@example.com', 'Admin', 'TestOrg'))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        emailService.sendInvitationEmail(
+          'test@example.com',
+          'Admin',
+          'TestOrg',
+        ),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should send an invitation email', async () => {
@@ -103,10 +112,16 @@ describe('EmailService', () => {
         return 'mock-email-sender@example.com';
       });
       jwtService.sign.mockReturnValue('mock-jwt-token');
-      jest.spyOn(EmailTemplate, 'invitationEmail').mockReturnValue('<html>Mock Invite Email</html>');
+      jest
+        .spyOn(EmailTemplate, 'invitationEmail')
+        .mockReturnValue('<html>Mock Invite Email</html>');
       mailerService.sendMail.mockResolvedValue({ success: true });
 
-      const response = await emailService.sendInvitationEmail('test@example.com', 'Admin', 'TestOrg');
+      const response = await emailService.sendInvitationEmail(
+        'test@example.com',
+        'Admin',
+        'TestOrg',
+      );
 
       expect(jwtService.sign).toHaveBeenCalledWith(
         { emailAddress: 'test@example.com' },

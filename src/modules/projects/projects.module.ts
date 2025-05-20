@@ -7,10 +7,7 @@ import {
   IssueHistory,
   IssueHistorySchema,
 } from '../../schemas/IssueHistory.schems';
-import {
-  IssueEntry,
-  IssueEntrySchema,
-} from '../../schemas/IssueEntry.schema';
+import { IssueEntry, IssueEntrySchema } from '../../schemas/IssueEntry.schema';
 import { GitRepo, GitRepoSchema } from '../../schemas/GitRepo.schema';
 import { Project, ProjectSchema } from '../../schemas/Project.schema';
 import { Tool, ToolSchema } from '../../schemas/Tool.schema';
@@ -28,8 +25,8 @@ import {
 } from '../../schemas/OrganizationProjectUser.schema';
 import {
   OrganizationUserRole,
-  OrganizationUserRoleSchema
-} from '../../schemas/OrganizationUserRole.schema'
+  OrganizationUserRoleSchema,
+} from '../../schemas/OrganizationUserRole.schema';
 import { JwtService } from '@nestjs/jwt';
 import { OrganizationModule } from '../organization/organization.module';
 @Module({
@@ -49,12 +46,12 @@ import { OrganizationModule } from '../organization/organization.module';
       },
       {
         name: OrganizationUserRole.name,
-        schema: OrganizationUserRoleSchema
-      }
+        schema: OrganizationUserRoleSchema,
+      },
     ]),
     OrganizationModule,
   ],
   controllers: [ProjectsController],
-  providers: [ProjectsService,JwtService],
+  providers: [ProjectsService, JwtService],
 })
 export class ProjectsModule {}
