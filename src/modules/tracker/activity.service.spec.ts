@@ -8,7 +8,12 @@ import { WorksheetActivity } from './entities/worksheetActivity.schema';
 import { ApplicationService } from './application.service';
 import { OrganizationService } from '../organization/organization.service';
 import { ActivityLogEntryDto } from './dto/create-activities.dto';
-import { BadRequestException, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ActivitySession } from './tracker.interface';
 
@@ -23,13 +28,6 @@ const mockActivityModel = {
 const mockApplicationModel = {};
 const mockWorksheetModel = {};
 const mockWorksheetActivityModel = {};
-const mockLogger = {
-  log: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
-  verbose: jest.fn(),
-};
 
 const mockApplicationService = {
   findOrCreate: jest.fn(),
@@ -51,10 +49,18 @@ describe('ActivityService', () => {
       providers: [
         ActivityService,
         { provide: getModelToken(Activity.name), useValue: mockActivityModel },
-        { provide: getModelToken(Application.name), useValue: mockApplicationModel },
-        { provide: getModelToken(Worksheet.name), useValue: mockWorksheetModel },
-        { provide: getModelToken(WorksheetActivity.name), useValue: mockWorksheetActivityModel },
-        { provide: Logger, useValue: mockLogger },
+        {
+          provide: getModelToken(Application.name),
+          useValue: mockApplicationModel,
+        },
+        {
+          provide: getModelToken(Worksheet.name),
+          useValue: mockWorksheetModel,
+        },
+        {
+          provide: getModelToken(WorksheetActivity.name),
+          useValue: mockWorksheetActivityModel,
+        },
         { provide: ApplicationService, useValue: mockApplicationService },
         { provide: OrganizationService, useValue: mockOrganizationService },
         { provide: 'BullQueue_activity-log', useValue: mockActivityLogQueue }, // ✅ Correct token
@@ -94,9 +100,16 @@ describe('ActivityService', () => {
       mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
       mockActivityLogQueue.add.mockResolvedValue({});
 
-      const result = await service.addActivityLogsToQueue(userId, organizationId, sampleLogs);
+      const result = await service.addActivityLogsToQueue(
+        userId,
+        organizationId,
+        sampleLogs,
+      );
 
-      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(userId, organizationId);
+      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(
+        userId,
+        organizationId,
+      );
       expect(mockActivityLogQueue.add).toHaveBeenCalledWith(
         'process-activity',
         expect.objectContaining({
@@ -104,7 +117,10 @@ describe('ActivityService', () => {
           organization_id: organizationId,
           logs: sampleLogs,
         }),
-        expect.objectContaining({ jobId: expect.any(String), removeOnComplete: true })
+        expect.objectContaining({
+          jobId: expect.any(String),
+          removeOnComplete: true,
+        }),
       );
       expect(result).toEqual({ queued: sampleLogs.length });
     });
@@ -112,9 +128,9 @@ describe('ActivityService', () => {
     it('should throw UnauthorizedException if user is not in organization', async () => {
       mockOrganizationService.verifyUserofOrg.mockResolvedValue(false);
 
-      await expect(service.addActivityLogsToQueue(userId, organizationId, sampleLogs))
-        .rejects
-        .toThrow(UnauthorizedException);
+      await expect(
+        service.addActivityLogsToQueue(userId, organizationId, sampleLogs),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should return queued: 0 if inputs are invalid or empty', async () => {
@@ -128,9 +144,9 @@ describe('ActivityService', () => {
         throw new Error('unexpected failure');
       });
 
-      await expect(service.addActivityLogsToQueue(userId, organizationId, sampleLogs))
-        .rejects
-        .toThrow(InternalServerErrorException);
+      await expect(
+        service.addActivityLogsToQueue(userId, organizationId, sampleLogs),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -139,16 +155,16 @@ describe('ActivityService', () => {
     const organizationId = new Types.ObjectId().toHexString();
 
     const baseSession: ActivitySession = {
-  startTime: '2025-05-18T12:00:00Z',
-  endTime: '2025-05-18T12:10:00Z',
-  appName: 'Chrome',
-  faviconUrl: 'http://favicon.com',
-  windowTitle: 'Google',
-  pid: 1234,
-  browserUrl: 'http://google.com',
-  organization: new Types.ObjectId(organizationId).toHexString(),
-  user: new Types.ObjectId(userId).toHexString(),
-};
+      startTime: '2025-05-18T12:00:00Z',
+      endTime: '2025-05-18T12:10:00Z',
+      appName: 'Chrome',
+      faviconUrl: 'http://favicon.com',
+      windowTitle: 'Google',
+      pid: 1234,
+      browserUrl: 'http://google.com',
+      organization: new Types.ObjectId(organizationId).toHexString(),
+      user: new Types.ObjectId(userId).toHexString(),
+    };
 
     it('should skip sessions older than latest activity', async () => {
       mockActivityModel.findOne.mockReturnValue({
@@ -224,7 +240,11 @@ describe('ActivityService', () => {
       );
 
       await expect(
-        service.createActivitiesFromSession([baseSession], userId, organizationId),
+        service.createActivitiesFromSession(
+          [baseSession],
+          userId,
+          organizationId,
+        ),
       ).rejects.toThrow('DB error');
     });
   });
@@ -259,15 +279,20 @@ describe('ActivityService', () => {
         10,
       );
 
-      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(userId, organizationId);
+      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(
+        userId,
+        organizationId,
+      );
       expect(mockActivityModel.aggregate).toHaveBeenCalled();
       expect(result.data.length).toBe(1);
       expect(result.paginationMetadata.totalCount).toBe(1);
     });
 
-    it('should default to today\'s date if date is not provided', async () => {
+    it("should default to today's date if date is not provided", async () => {
       mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
-      mockActivityModel.aggregate.mockResolvedValue([{ data: [], totalCount: [] }]);
+      mockActivityModel.aggregate.mockResolvedValue([
+        { data: [], totalCount: [] },
+      ]);
 
       const result = await service.findUnreportedActivitiesForCurrentUser(
         userId,
@@ -281,7 +306,9 @@ describe('ActivityService', () => {
     });
 
     it('should throw an error if user is not in the organization', async () => {
-      mockOrganizationService.verifyUserofOrg.mockRejectedValue(new Error('Unauthorized'));
+      mockOrganizationService.verifyUserofOrg.mockRejectedValue(
+        new Error('Unauthorized'),
+      );
 
       await expect(
         service.findUnreportedActivitiesForCurrentUser(
@@ -310,55 +337,77 @@ describe('ActivityService', () => {
 
   describe('validateActivitiesForUser', () => {
     const userId = new Types.ObjectId();
-    const orgId = new Types.ObjectId();
+    const organizationId = new Types.ObjectId();
+    const validActivityIds = [
+      new Types.ObjectId().toHexString(),
+      new Types.ObjectId().toHexString(),
+    ];
+    const activityDocs = validActivityIds.map((id) => ({
+      _id: new Types.ObjectId(id),
+      user: userId,
+      organization: organizationId,
+    }));
 
-    it('should return valid activities if all checks pass', async () => {
-      const activityIds = [new Types.ObjectId().toHexString()];
-      const validActivity = { _id: activityIds[0], user: userId, organization: orgId };
-
-      mockActivityModel.find.mockResolvedValue([validActivity]);
-
-      const result = await service.validateActivitiesForUser(userId, orgId, activityIds);
-
-      expect(mockActivityModel.find).toHaveBeenCalledWith({
-        _id: { $in: activityIds.map((id) => new Types.ObjectId(id)) },
-        user: userId,
-        organization: orgId,
-      });
-
-      expect(result).toEqual([validActivity]);
+    beforeEach(() => {
+      jest.clearAllMocks();
     });
 
-    it('should throw BadRequestException for invalid ObjectID', async () => {
-      const invalidId = 'invalid';
+    it('should return valid activities for correct user and org', async () => {
+      mockActivityModel.find.mockResolvedValue(activityDocs);
+
+      const result = await service.validateActivitiesForUser(
+        userId,
+        organizationId,
+        validActivityIds,
+      );
+
+      expect(mockActivityModel.find).toHaveBeenCalledWith({
+        _id: { $in: validActivityIds.map((id) => new Types.ObjectId(id)) },
+        user: userId,
+        organization: organizationId,
+      });
+
+      expect(result).toEqual(activityDocs);
+    });
+
+    it('should throw BadRequestException if some activities are invalid', async () => {
+      mockActivityModel.find.mockResolvedValue([activityDocs[0]]); // only 1 returned
 
       await expect(
-        service.validateActivitiesForUser(userId, orgId, [invalidId]),
+        service.validateActivitiesForUser(
+          userId,
+          organizationId,
+          validActivityIds,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for invalid ObjectId', async () => {
+      const invalidIds = ['notanid'];
+
+      await expect(
+        service.validateActivitiesForUser(userId, organizationId, invalidIds),
       ).rejects.toThrow(BadRequestException);
 
       expect(mockActivityModel.find).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException if not all activities found', async () => {
-      const validId = new Types.ObjectId().toHexString();
-
-      mockActivityModel.find.mockResolvedValue([]); // none found
-
-      await expect(
-        service.validateActivitiesForUser(userId, orgId, [validId]),
-      ).rejects.toThrow('Some activities are invalid or unauthorized.');
-    });
-
-    it('should throw InternalServerErrorException for unknown error', async () => {
-      const validId = new Types.ObjectId().toHexString();
-
-      mockActivityModel.find.mockRejectedValue(new Error('DB error'));
+    it('should throw InternalServerErrorException on unexpected error', async () => {
+      const error = new Error('Mongo error');
+      mockActivityModel.find.mockRejectedValue(error);
 
       await expect(
-        service.validateActivitiesForUser(userId, orgId, [validId]),
-      ).rejects.toThrow('Activity validation failed');
+        service.validateActivitiesForUser(
+          userId,
+          organizationId,
+          validActivityIds,
+        ),
+      ).rejects.toThrow(InternalServerErrorException);
+
+      // expect(mockLogger.error).toHaveBeenCalledWith(
+      //   'Activity validation failed',
+      //   expect.any(Error),
+      // );
     });
   });
-
-
 });
