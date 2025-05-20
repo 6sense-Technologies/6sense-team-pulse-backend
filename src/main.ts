@@ -9,25 +9,23 @@ async function bootstrap() {
   const webApp = await NestFactory.create(AppModule);
   const configService = webApp.get(ConfigService);
 
-  if (process.env.NODE_ENV !== 'production') {
-    // Swagger configuration
-    const config = new DocumentBuilder()
-      .setTitle('Efficiency APIs')
-      .setDescription('Efficiency API docs')
-      .setVersion('1.0')
-      .addTag('Efficiency')
-      .addBearerAuth({
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT Token',
-        in: 'header',
-      })
-      .build();
-    const document = SwaggerModule.createDocument(webApp, config);
-    SwaggerModule.setup('api', webApp, document);
-  }
+  // Swagger configuration
+  const config = new DocumentBuilder()
+    .setTitle('Efficiency APIs')
+    .setDescription('Efficiency API docs')
+    .setVersion('1.0')
+    .addTag('Efficiency')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'JWT',
+      description: 'Enter JWT Token',
+      in: 'header',
+    })
+    .build();
+  const document = SwaggerModule.createDocument(webApp, config);
+  SwaggerModule.setup('api', webApp, document);
 
   //updated
   // Global Pipes (validation)

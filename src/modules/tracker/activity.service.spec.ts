@@ -11,7 +11,6 @@ import { ActivityLogEntryDto } from './dto/create-activities.dto';
 import {
   BadRequestException,
   InternalServerErrorException,
-  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Types } from 'mongoose';

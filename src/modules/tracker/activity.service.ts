@@ -31,15 +31,6 @@ export class ActivityService {
     @InjectModel(Activity.name)
     private readonly activityModel: Model<Activity>,
 
-    @InjectModel(Application.name)
-    private readonly applicationModel: Model<Application>,
-
-    @InjectModel(Worksheet.name)
-    private readonly worksheetModel: Model<Worksheet>,
-
-    @InjectModel(WorksheetActivity.name)
-    private readonly worksheetActivityModel: Model<WorksheetActivity>, // Replace 'any' with the actual type if available
-
     @InjectQueue('activity-log')
     private readonly activityLogQueue: Queue,
 
@@ -366,6 +357,4 @@ export class ActivityService {
       throw new InternalServerErrorException('Activity validation failed');
     }
   }
-
-
 }
