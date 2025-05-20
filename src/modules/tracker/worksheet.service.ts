@@ -6,20 +6,9 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import {
-  ActivityLogEntryDto,
-  CreateActivitiesDto,
-} from './dto/create-activities.dto';
-import { Activity } from './entities/activity.schema';
 import { Connection, isValidObjectId, Model, Types } from 'mongoose';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import * as moment from 'moment';
-import { Application } from './entities/application.schema';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { ActivitySession } from './tracker.interface';
 import { OrganizationService } from '../organization/organization.service';
-import { ApplicationService } from './application.service';
 import { Worksheet } from './entities/worksheet.schema';
 import { WorksheetActivity } from './entities/worksheetActivity.schema';
 import { ActivityService } from './activity.service';
@@ -29,25 +18,15 @@ import { AssignActivitiesDto } from './dto/assign-activities.dto';
 export class WorksheetService {
   private readonly logger = new Logger(WorksheetService.name);
   constructor(
-    @InjectModel(Activity.name)
-    private readonly activityModel: Model<Activity>,
-
-    @InjectModel(Application.name)
-    private readonly applicationModel: Model<Application>,
-
     @InjectModel(Worksheet.name)
     private readonly worksheetModel: Model<Worksheet>,
 
     @InjectModel(WorksheetActivity.name)
     private readonly worksheetActivityModel: Model<WorksheetActivity>, // Replace 'any' with the actual type if available
 
-    @InjectQueue('activity-log')
-    private readonly activityLogQueue: Queue,
-
     @InjectConnection()
     private readonly connection: Connection,
 
-    private readonly applicationService: ApplicationService,
     private readonly organizationService: OrganizationService,
     private readonly activityService: ActivityService,
   ) {}
