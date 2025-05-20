@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   Application,
@@ -12,15 +12,40 @@ export class ApplicationService {
     @InjectModel(Application.name)
     private appModel: Model<ApplicationDocument>,
   ) {}
+  private readonly logger = new Logger(ApplicationService.name);
 
   async findOrCreate(
     appName: string,
     icon?: string,
   ): Promise<ApplicationDocument> {
-    let app = await this.appModel.findOne({ name: appName });
-    if (!app) {
-      app = await this.appModel.create({ name: appName });
+    try {
+      const update: Partial<Application> = { name: appName };
+      if (icon) {
+        update.icon = icon;
+      }
+
+      const app = await this.appModel.findOneAndUpdate(
+        { name: appName },
+        { $setOnInsert: update },
+        {
+          upsert: true,
+          new: true,
+          setDefaultsOnInsert: true,
+        },
+      );
+
+      if (!app) {
+        throw new Error(`Failed to create or retrieve application: ${appName}`);
+      }
+
+      return app;
+    } catch (error) {
+      this.logger.error(
+        `Error in ApplicationService.findOrCreate: ${error.message}`,
+      );
+      throw new Error(`ApplicationService.findOrCreate failed: ${error.message}`);
     }
-    return app;
   }
+
+
 }
