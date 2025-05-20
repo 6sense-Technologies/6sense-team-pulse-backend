@@ -104,10 +104,6 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "modules/auth/**/*.service.ts",
-      "modules/email-service/**/*.service.ts",
-      "modules/projects/**/*.service.ts",
-      "modules/data-fetcher/**/*.service.ts",
       "modules/tracker/**/*.service.ts"
     ],
     "coverageDirectory": "../coverage",
