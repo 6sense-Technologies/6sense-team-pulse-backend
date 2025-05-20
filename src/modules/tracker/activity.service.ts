@@ -327,12 +327,14 @@ export class ActivityService {
     activityIds: string[],
   ) {
     try {
-      // Validate input IDs first to avoid unnecessary DB calls
-      if (
-        !Array.isArray(activityIds) ||
-        activityIds.some((id) => !Types.ObjectId.isValid(id))
-      ) {
-        throw new BadRequestException('One or more activityIds are invalid.');
+      // Ensure each ID is strictly a valid 24-char hex ObjectId
+      for (const id of activityIds) {
+        if (
+          !Types.ObjectId.isValid(id) ||
+          new Types.ObjectId(id).toHexString() !== id
+        ) {
+          throw new BadRequestException(`Invalid activityId: ${id}`);
+        }
       }
 
       const activityObjectIds = activityIds.map((id) => new Types.ObjectId(id));
@@ -364,4 +366,6 @@ export class ActivityService {
       throw new InternalServerErrorException('Activity validation failed');
     }
   }
+
+
 }
