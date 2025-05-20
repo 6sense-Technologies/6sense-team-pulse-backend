@@ -13,6 +13,7 @@ import { Worksheet } from './entities/worksheet.schema';
 import { WorksheetActivity } from './entities/worksheetActivity.schema';
 import { ActivityService } from './activity.service';
 import { AssignActivitiesDto } from './dto/assign-activities.dto';
+import { calculateTimeSpent } from './time.utils';
 
 @Injectable()
 export class WorksheetService {
@@ -384,7 +385,7 @@ export class WorksheetService {
         startTime: wa.startTime,
         endTime: wa.endTime,
         icon: wa.icon,
-        timeSpent: this.calculateTimeSpent(wa.startTime, wa.endTime),
+        timeSpent: calculateTimeSpent(wa.startTime, wa.endTime),
       }));
 
       return {
@@ -420,25 +421,25 @@ export class WorksheetService {
     }
   }
 
-  private calculateTimeSpent(start: Date, end: Date) {
-    if (!start || !end) {
-      return { hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 };
-    }
+  // private calculateTimeSpent(start: Date, end: Date) {
+  //   if (!start || !end) {
+  //     return { hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 };
+  //   }
 
-    const duration = Math.floor(
-      (new Date(end).getTime() - new Date(start).getTime()) / 1000,
-    );
-    const hours = Math.floor(duration / 3600);
-    const minutes = Math.floor((duration % 3600) / 60);
-    const seconds = duration % 60;
+  //   const duration = Math.floor(
+  //     (new Date(end).getTime() - new Date(start).getTime()) / 1000,
+  //   );
+  //   const hours = Math.floor(duration / 3600);
+  //   const minutes = Math.floor((duration % 3600) / 60);
+  //   const seconds = duration % 60;
 
-    return {
-      hours,
-      minutes,
-      seconds,
-      totalSeconds: duration,
-    };
-  }
+  //   return {
+  //     hours,
+  //     minutes,
+  //     seconds,
+  //     totalSeconds: duration,
+  //   };
+  // }
 
   async getWorksheets(
     userId: string,
@@ -467,10 +468,9 @@ export class WorksheetService {
         matchStage.date = dateMatch;
       }
 
-      const result = await this.worksheetModel.aggregate([
+      const rawData = await this.worksheetModel.aggregate([
         { $match: matchStage },
 
-        // project lookup
         {
           $lookup: {
             from: 'projects',
@@ -486,7 +486,6 @@ export class WorksheetService {
           },
         },
 
-        // activities + duration
         {
           $lookup: {
             from: 'worksheetactivities',
@@ -495,12 +494,8 @@ export class WorksheetService {
             as: 'worksheetActivities',
           },
         },
-        {
-          $unwind: {
-            path: '$worksheetActivities',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
+        { $unwind: { path: '$worksheetActivities', preserveNullAndEmptyArrays: true } },
+
         {
           $lookup: {
             from: 'activities',
@@ -510,72 +505,59 @@ export class WorksheetService {
           },
         },
         { $unwind: { path: '$activity', preserveNullAndEmptyArrays: true } },
-        {
-          $addFields: {
-            activityDurationSeconds: {
-              $cond: {
-                if: { $and: ['$activity.startTime', '$activity.endTime'] },
-                then: {
-                  $divide: [
-                    { $subtract: ['$activity.endTime', '$activity.startTime'] },
-                    1000,
-                  ],
-                },
-                else: 0,
-              },
-            },
-          },
-        },
 
-        // grouping
-        {
-          $group: {
-            _id: {
-              worksheetId: '$_id',
-              name: '$name',
-              date: '$date',
-              projectName: '$project.name',
-            },
-            totalLoggedSeconds: { $sum: '$activityDurationSeconds' },
-          },
-        },
-
-        // final projection
-        {
-          $project: {
-            _id: 0,
-            worksheetId: '$_id.worksheetId',
-            name: '$_id.name',
-            date: '$_id.date',
-            projectName: '$_id.projectName',
-            totalLoggedTime: {
-              totalSeconds: '$totalLoggedSeconds',
-              hours: { $floor: { $divide: ['$totalLoggedSeconds', 3600] } },
-              minutes: {
-                $floor: {
-                  $divide: [{ $mod: ['$totalLoggedSeconds', 3600] }, 60],
-                },
-              },
-              seconds: { $mod: ['$totalLoggedSeconds', 60] },
-            },
-          },
-        },
-
-        // sorting + pagination
         { $sort: { date: sortDirection } },
-        {
-          $facet: {
-            data: [{ $skip: skip }, { $limit: limit }],
-            totalCount: [{ $count: 'count' }],
-          },
-        },
       ]);
 
-      const worksheets = result[0]?.data || [];
-      const totalCount = result[0]?.totalCount[0]?.count || 0;
+      // Group and calculate durations in TypeScript
+      const grouped: Record<string, any> = {};
+
+      for (const item of rawData) {
+        const worksheetId = item._id.toString();
+
+        if (!grouped[worksheetId]) {
+          grouped[worksheetId] = {
+            worksheetId: item._id,
+            name: item.name,
+            date: item.date,
+            projectName: item.project?.name || null,
+            totalSeconds: 0,
+          };
+        }
+
+        const start = item.activity?.startTime ? new Date(item.activity.startTime) : null;
+        const end = item.activity?.endTime ? new Date(item.activity.endTime) : null;
+
+        const timeSpent = calculateTimeSpent(start, end);
+        grouped[worksheetId].totalSeconds += timeSpent.totalSeconds;
+      }
+
+      const allWorksheets = Object.values(grouped).map((ws: any) => {
+        const { hours, minutes, seconds, totalSeconds } = calculateTimeSpent(
+          new Date(0),
+          new Date(ws.totalSeconds * 1000),
+        );
+
+        return {
+          worksheetId: ws.worksheetId,
+          name: ws.name,
+          date: ws.date,
+          projectName: ws.projectName,
+          totalLoggedTime: {
+            totalSeconds,
+            hours,
+            minutes,
+            seconds,
+          },
+        };
+      });
+
+      // Pagination on grouped results
+      const paginated = allWorksheets.slice(skip, skip + limit);
+      const totalCount = allWorksheets.length;
 
       return {
-        data: worksheets,
+        data: paginated,
         paginationMetadata: {
           page,
           limit,
@@ -591,6 +573,14 @@ export class WorksheetService {
         endDate,
         error: error.message,
       });
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+
       throw new InternalServerErrorException('Unable to retrieve worksheets.');
     }
   }
