@@ -242,12 +242,12 @@ export class ActivityService {
           $match: {
             user: new Types.ObjectId(userId),
             organization: new Types.ObjectId(organizationId),
-            $expr: {
-              $and: [
-                { $gte: ['$startTime', new Date(startOfDayUTC)] },
-                { $lte: ['$startTime', new Date(endOfDayUTC)] },
-              ],
-            },
+            // $expr: {
+            //   $and: [
+            //     { $gte: ['$startTime', startOfDayUTC] },
+            //     { $lte: ['$startTime', endOfDayUTC] },
+            //   ],
+            // },
           },
         },
         {
