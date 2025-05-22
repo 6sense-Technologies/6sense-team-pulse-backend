@@ -306,7 +306,7 @@ describe('ActivityService', () => {
 
     it('should throw an error if user is not in the organization', async () => {
       mockOrganizationService.verifyUserofOrg.mockRejectedValue(
-        new Error('Unauthorized'),
+        new UnauthorizedException,
       );
 
       await expect(
@@ -330,7 +330,7 @@ describe('ActivityService', () => {
           '2025-05-18',
           timezone,
         ),
-      ).rejects.toThrow('DB Error');
+      ).rejects.toThrow('Unable to fetch unreported activities.');
     });
   });
 
