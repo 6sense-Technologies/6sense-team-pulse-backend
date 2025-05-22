@@ -306,7 +306,7 @@ describe('ActivityService', () => {
 
     it('should throw an error if user is not in the organization', async () => {
       mockOrganizationService.verifyUserofOrg.mockRejectedValue(
-        new UnauthorizedException,
+        new UnauthorizedException(),
       );
 
       await expect(

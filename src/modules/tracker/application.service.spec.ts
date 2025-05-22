@@ -16,7 +16,7 @@ describe('ApplicationService', () => {
 
   const mockAppModel = {
     findOneAndUpdate: jest.fn(),
-};
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

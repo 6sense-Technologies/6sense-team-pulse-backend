@@ -3,20 +3,14 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
-  Delete,
   UseGuards,
   Req,
   Query,
-  Headers,
   BadRequestException,
 } from '@nestjs/common';
 // import { TrackerService } from './tracker.service';
 import { ActivityService } from './activity.service';
-import { CreateTrackerDto } from './dto/create-tracker.dto';
-import { UpdateTrackerDto } from './dto/update-tracker.dto';
-import { CreateActivitiesDto } from './dto/create-activities.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -24,8 +18,6 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { AssignActivitiesDto } from './dto/assign-activities.dto';
 import { RequestMetadata } from 'src/common/request-metadata/request-metadata.decorator';
 import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
@@ -40,7 +32,9 @@ export class TimelogController {
     // private readonly trackerService: TrackerService,
     private readonly activityService: ActivityService,
     private readonly worksheetService: WorksheetService,
-  ) {}
+  ) {
+    // do nothing.
+  }
 
   // @Post()
   // create(@Body() createTrackerDto: CreateTrackerDto) {
@@ -82,9 +76,9 @@ export class TimelogController {
     @RequestMetadata() metadata: RequestMetadataDto,
     @Query('date') date?: string,
     @Query('sortOrder') sortOrder?: 'latest' | 'oldest',
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
-  ) {
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ): Promise<any> {
     console.log('Date: ', date);
     console.log('Timezone Offset: ', metadata.timezoneRegion);
     console.log('Sort Order: ', sortOrder);
@@ -110,7 +104,7 @@ export class TimelogController {
     @Req() req: any,
     @RequestMetadata() metadata: RequestMetadataDto,
     @Body() assignActivitiesDto: AssignActivitiesDto,
-  ) {
+  ): Promise<any> {
     const userId = req.user.userId;
 
     return await this.worksheetService.assignActivitiesToWorksheet(
@@ -129,7 +123,7 @@ export class TimelogController {
     @Req() req: any,
     @RequestMetadata() metadata: RequestMetadataDto,
     @Query() query: WorksheetGetNamesQueryDto,
-  ) {
+  ): Promise<any> {
     const userId = req.user.userId;
 
     return await this.worksheetService.getWorksheetNames(
@@ -155,7 +149,7 @@ export class TimelogController {
     @Query('start-date') startDate?: string,
     @Query('end-date') endDate?: string,
     @Query('sort-order') sortOrder: 'latest' | 'oldest' = 'latest',
-  ) {
+  ): Promise<any> {
     const userId = req.user.userId;
 
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -201,7 +195,7 @@ export class TimelogController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('sort-order') sortOrder: 'latest' | 'oldest' = 'latest',
-  ) {
+  ): Promise<any> {
     const userId = req.user.userId;
 
     return this.worksheetService.getActivitiesForWorksheet(

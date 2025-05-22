@@ -6,7 +6,11 @@ import { OrganizationService } from '../organization/organization.service';
 import { ActivityService } from './activity.service';
 import { Worksheet } from './entities/worksheet.schema';
 import { WorksheetActivity } from './entities/worksheetActivity.schema';
-import { BadRequestException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Types } from 'mongoose';
 import * as timeUtils from './time.utils';
 
@@ -46,7 +50,10 @@ describe('WorksheetService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorksheetService,
-        { provide: getModelToken(Worksheet.name), useValue: mockWorksheetModel },
+        {
+          provide: getModelToken(Worksheet.name),
+          useValue: mockWorksheetModel,
+        },
         {
           provide: getModelToken(WorksheetActivity.name),
           useValue: mockWorksheetActivityModel,
@@ -72,63 +79,69 @@ describe('WorksheetService', () => {
     const date = '2025-05-20';
 
     it('should return worksheet summaries successfully', async () => {
-        // Arrange: mock aggregate result
-        const mockAggregationResult = [
+      // Arrange: mock aggregate result
+      const mockAggregationResult = [
         {
-            name: 'test worksheet',
-            date,
-            lastReportedOn: new Date('2025-05-20T10:00:00Z'),
-            totalActivities: 5,
-            totalLoggedTime: {
+          name: 'test worksheet',
+          date,
+          lastReportedOn: new Date('2025-05-20T10:00:00Z'),
+          totalActivities: 5,
+          totalLoggedTime: {
             totalSeconds: 3600,
             hours: 1,
             minutes: 0,
             seconds: 0,
-            },
+          },
         },
-        ];
+      ];
 
-        // Mock the aggregate method
-        (mockWorksheetModel.aggregate as jest.Mock).mockResolvedValueOnce(
+      // Mock the aggregate method
+      (mockWorksheetModel.aggregate as jest.Mock).mockResolvedValueOnce(
         mockAggregationResult,
-        );
+      );
 
-        // Act
-        const result = await service.getWorksheetNames(
+      // Act
+      const result = await service.getWorksheetNames(
         userId,
         organizationId,
         projectId,
         name,
         date,
-        );
+      );
 
-        // Assert
-        expect(mockWorksheetModel.aggregate).toHaveBeenCalledWith(
+      // Assert
+      expect(mockWorksheetModel.aggregate).toHaveBeenCalledWith(
         expect.arrayContaining([
-            expect.objectContaining({
+          expect.objectContaining({
             $match: expect.objectContaining({
-                user: new Types.ObjectId(userId),
-                organization: new Types.ObjectId(organizationId),
-                project: new Types.ObjectId(projectId),
-                name: { $regex: new RegExp(name, 'i') },
-                date,
+              user: new Types.ObjectId(userId),
+              organization: new Types.ObjectId(organizationId),
+              project: new Types.ObjectId(projectId),
+              name: { $regex: new RegExp(name, 'i') },
+              date,
             }),
-            }),
+          }),
         ]),
-        );
-        expect(result).toEqual(mockAggregationResult);
+      );
+      expect(result).toEqual(mockAggregationResult);
     });
 
     it('should throw InternalServerErrorException on failure', async () => {
-        // Arrange: force aggregate to throw
-        (mockWorksheetModel.aggregate as jest.Mock).mockRejectedValueOnce(
+      // Arrange: force aggregate to throw
+      (mockWorksheetModel.aggregate as jest.Mock).mockRejectedValueOnce(
         new Error('Database failure'),
-        );
+      );
 
-        // Act & Assert
-        await expect(
-        service.getWorksheetNames(userId, organizationId, projectId, name, date),
-        ).rejects.toThrow(InternalServerErrorException);
+      // Act & Assert
+      await expect(
+        service.getWorksheetNames(
+          userId,
+          organizationId,
+          projectId,
+          name,
+          date,
+        ),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -160,7 +173,10 @@ describe('WorksheetService', () => {
 
       const result = await service.getWorksheets(userId, organizationId, 1, 10);
 
-      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(userId, organizationId);
+      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(
+        userId,
+        organizationId,
+      );
       expect(mockWorksheetModel.aggregate).toHaveBeenCalled();
 
       expect(result).toEqual({
@@ -189,23 +205,31 @@ describe('WorksheetService', () => {
 
     it('should throw InternalServerErrorException on aggregation failure', async () => {
       mockOrganizationService.verifyUserofOrg.mockResolvedValueOnce(true);
-      (mockWorksheetModel.aggregate as jest.Mock).mockRejectedValueOnce(new Error('Aggregation failed'));
+      (mockWorksheetModel.aggregate as jest.Mock).mockRejectedValueOnce(
+        new Error('Aggregation failed'),
+      );
 
-      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(InternalServerErrorException);
+      await expect(
+        service.getWorksheets(userId, organizationId),
+      ).rejects.toThrow(InternalServerErrorException);
     });
 
     it('should rethrow BadRequestException', async () => {
       const error = new BadRequestException('Invalid request');
       mockOrganizationService.verifyUserofOrg.mockRejectedValueOnce(error);
 
-      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(BadRequestException);
+      await expect(
+        service.getWorksheets(userId, organizationId),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should rethrow UnauthorizedException', async () => {
       const error = new UnauthorizedException('Unauthorized');
       mockOrganizationService.verifyUserofOrg.mockRejectedValueOnce(error);
 
-      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.getWorksheets(userId, organizationId),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -255,7 +279,9 @@ describe('WorksheetService', () => {
         },
       ];
 
-      mockWorksheetActivityModel.aggregate.mockResolvedValueOnce(aggregationResult);
+      mockWorksheetActivityModel.aggregate.mockResolvedValueOnce(
+        aggregationResult,
+      );
 
       // // Mock calculateTimeSpent if used outside this snippet:
       // jest.mock('./time.utils/calculateTimeSpent', () => ({
@@ -297,10 +323,10 @@ describe('WorksheetService', () => {
             endTime: new Date('2025-05-20T09:00:00Z'),
             icon: 'icon-url',
             timeSpent: {
-              "hours": 1,
-              "minutes": 0,
-              "seconds": 0,
-              "totalSeconds": 3600,
+              hours: 1,
+              minutes: 0,
+              seconds: 0,
+              totalSeconds: 3600,
             },
           },
         ],
@@ -363,7 +389,6 @@ describe('WorksheetService', () => {
         service.getActivitiesForWorksheet(userId, organizationId, worksheetId),
       ).rejects.toThrow(InternalServerErrorException);
     });
-
   });
 
   describe('assignActivitiesToWorksheet', () => {
@@ -415,7 +440,10 @@ describe('WorksheetService', () => {
 
       expect(mockConnection.startSession).toHaveBeenCalled();
       expect(sessionMock.startTransaction).toHaveBeenCalled();
-      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(userId, organizationId);
+      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(
+        userId,
+        organizationId,
+      );
       expect(mockWorksheetModel.findOneAndUpdate).toHaveBeenCalled();
       expect(mockActivityService.validateActivitiesForUser).toHaveBeenCalled();
       expect(mockWorksheetActivityModel.insertMany).toHaveBeenCalled();
@@ -436,7 +464,11 @@ describe('WorksheetService', () => {
       ]);
 
       await expect(
-        service.assignActivitiesToWorksheet(userId, organizationId, assignActivitiesDto),
+        service.assignActivitiesToWorksheet(
+          userId,
+          organizationId,
+          assignActivitiesDto,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       expect(sessionMock.abortTransaction).toHaveBeenCalled();
@@ -447,27 +479,39 @@ describe('WorksheetService', () => {
       mockOrganizationService.verifyUserofOrg.mockResolvedValue(false);
 
       await expect(
-        service.assignActivitiesToWorksheet(userId, organizationId, assignActivitiesDto),
+        service.assignActivitiesToWorksheet(
+          userId,
+          organizationId,
+          assignActivitiesDto,
+        ),
       ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw BadRequestException for invalid ObjectId', async () => {
       await expect(
-        service.assignActivitiesToWorksheet('invalid', organizationId, assignActivitiesDto),
+        service.assignActivitiesToWorksheet(
+          'invalid',
+          organizationId,
+          assignActivitiesDto,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw InternalServerErrorException on unexpected error', async () => {
-      mockWorksheetModel.findOneAndUpdate.mockRejectedValue(new Error('Unexpected'));
+      mockWorksheetModel.findOneAndUpdate.mockRejectedValue(
+        new Error('Unexpected'),
+      );
 
       await expect(
-        service.assignActivitiesToWorksheet(userId, organizationId, assignActivitiesDto),
+        service.assignActivitiesToWorksheet(
+          userId,
+          organizationId,
+          assignActivitiesDto,
+        ),
       ).rejects.toThrow(InternalServerErrorException);
 
       expect(sessionMock.abortTransaction).toHaveBeenCalled();
       expect(sessionMock.endSession).toHaveBeenCalled();
     });
   });
-
-
 });

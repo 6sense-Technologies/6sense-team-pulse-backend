@@ -43,9 +43,9 @@ export class ApplicationService {
       this.logger.error(
         `Error in ApplicationService.findOrCreate: ${error.message}`,
       );
-      throw new Error(`ApplicationService.findOrCreate failed: ${error.message}`);
+      throw new Error(
+        `ApplicationService.findOrCreate failed: ${error.message}`,
+      );
     }
   }
-
-
 }
