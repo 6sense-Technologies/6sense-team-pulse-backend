@@ -23,6 +23,7 @@ import { OrganizationService } from '../organization/organization.service';
 import { ApplicationService } from './application.service';
 import { Worksheet } from './entities/worksheet.schema';
 import { WorksheetActivity } from './entities/worksheetActivity.schema';
+import { calculateTimeSpent } from './time.utils';
 
 @Injectable()
 export class ActivityService {
@@ -193,6 +194,119 @@ export class ActivityService {
     }
   }
 
+  // async findUnreportedActivitiesForCurrentUser(
+  //   userId: string,
+  //   organizationId: string,
+  //   date: string,
+  //   timezoneRegion: string,
+  //   sortOrder: 'latest' | 'oldest' = 'latest',
+  //   page: number = 1,
+  //   limit: number = 10,
+  // ) {
+  //   try {
+  //     await this.organizationService.verifyUserofOrg(userId, organizationId);
+
+  //     // // Validate timezoneOffset
+  //     // if (!/^[-+]\d{2}:\d{2}$/.test(timezoneOffset)) {
+  //     //   timezoneOffset = '+00:00';
+  //     // }
+
+  //     // Use today's date if not provided
+  //     if (!date) {
+  //       const now = moment().tz(timezoneRegion);
+  //       date = now.format('YYYY-MM-DD');
+  //     }
+
+  //     // Use moment.tz to create start and end of day in that timezone
+  //     const startOfDay = moment.tz(`${date}T00:00:00`, timezoneRegion);
+  //     const endOfDay = moment.tz(`${date}T23:59:59.999`, timezoneRegion);
+
+  //     // Log local times
+  //     this.logger.log('Start of Day (local):', startOfDay.format());
+  //     this.logger.log('End of Day (local):', endOfDay.format());
+
+  //     // Convert to UTC
+  //     const startOfDayUTC = startOfDay.utc().toISOString();
+  //     const endOfDayUTC = endOfDay.utc().toISOString();
+
+  //     this.logger.log('Start of Day UTC:', startOfDayUTC);
+  //     this.logger.log('End of Day UTC:', endOfDayUTC);
+
+  //     const sortDirection = sortOrder === 'latest' ? -1 : 1;
+  //     const skip = (page - 1) * limit;
+  //     // this.logger.log('limit:', limit);
+  //     // this.logger.log('page:', page);
+  //     // this.logger.log('Skip:', skip);
+
+  //     const unreportedActivities = await this.activityModel.aggregate([
+  //       {
+  //         $match: {
+  //           user: new Types.ObjectId(userId),
+  //           organization: new Types.ObjectId(organizationId),
+  //           // $expr: {
+  //           //   $and: [
+  //           //     { $gte: ['$startTime', startOfDayUTC] },
+  //           //     { $lte: ['$startTime', endOfDayUTC] },
+  //           //   ],
+  //           // },
+  //         },
+  //       },
+  //       {
+  //         $lookup: {
+  //           from: 'worksheetactivities',
+  //           localField: '_id',
+  //           foreignField: 'activity',
+  //           as: 'reported',
+  //         },
+  //       },
+  //       {
+  //         $match: {
+  //           reported: { $size: 0 },
+  //         },
+  //       },
+  //       {
+  //         $project: {
+  //           reported: 0,
+  //         },
+  //       },
+  //       {
+  //         $sort: {
+  //           startTime: sortDirection,
+  //         },
+  //       },
+  //       {
+  //         $facet: {
+  //           data: [
+  //             { $sort: { startTime: sortOrder === 'latest' ? -1 : 1 } },
+  //             { $skip: skip },
+  //             { $limit: limit },
+  //           ],
+  //           totalCount: [{ $count: 'count' }],
+  //         },
+  //       },
+  //     ]);
+
+  //     this.logger.debug('Unreported Activities:', unreportedActivities);
+
+  //     const paginated = unreportedActivities[0];
+  //     const activities = paginated.data;
+  //     const totalCount = paginated.totalCount[0]?.count || 0;
+
+  //     return {
+  //       data: activities,
+  //       paginationMetadata: {
+  //         page,
+  //         limit,
+  //         totalCount,
+  //         totalPages: Math.ceil(totalCount / limit),
+  //       },
+  //     };
+  //   } catch (error) {
+  //     this.logger.error('Failed to find unreported activities', error.message);
+  //     throw error;
+  //   }
+  // }
+
   async findUnreportedActivitiesForCurrentUser(
     userId: string,
     organizationId: string,
@@ -205,49 +319,26 @@ export class ActivityService {
     try {
       await this.organizationService.verifyUserofOrg(userId, organizationId);
 
-      // // Validate timezoneOffset
-      // if (!/^[-+]\d{2}:\d{2}$/.test(timezoneOffset)) {
-      //   timezoneOffset = '+00:00';
-      // }
-
-      // Use today's date if not provided
       if (!date) {
         const now = moment().tz(timezoneRegion);
         date = now.format('YYYY-MM-DD');
       }
 
-      // Use moment.tz to create start and end of day in that timezone
-      const startOfDay = moment.tz(`${date}T00:00:00`, timezoneRegion);
-      const endOfDay = moment.tz(`${date}T23:59:59.999`, timezoneRegion);
+      const startOfDay = moment.tz(`${date}T00:00:00`, timezoneRegion).utc().toDate();
+      const endOfDay = moment.tz(`${date}T23:59:59.999`, timezoneRegion).utc().toDate();
 
-      // Log local times
-      this.logger.log('Start of Day (local):', startOfDay.format());
-      this.logger.log('End of Day (local):', endOfDay.format());
-
-      // Convert to UTC
-      const startOfDayUTC = startOfDay.utc().toISOString();
-      const endOfDayUTC = endOfDay.utc().toISOString();
-
-      this.logger.log('Start of Day UTC:', startOfDayUTC);
-      this.logger.log('End of Day UTC:', endOfDayUTC);
+      this.logger.debug('Start of Day UTC:', startOfDay);
+      this.logger.debug('End of Day UTC:', endOfDay);
 
       const sortDirection = sortOrder === 'latest' ? -1 : 1;
-      const skip = (page - 1) * limit;
-      // this.logger.log('limit:', limit);
-      // this.logger.log('page:', page);
-      // this.logger.log('Skip:', skip);
+      const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
 
-      const unreportedActivities = await this.activityModel.aggregate([
+      const result = await this.activityModel.aggregate([
         {
           $match: {
             user: new Types.ObjectId(userId),
             organization: new Types.ObjectId(organizationId),
-            // $expr: {
-            //   $and: [
-            //     { $gte: ['$startTime', startOfDayUTC] },
-            //     { $lte: ['$startTime', endOfDayUTC] },
-            //   ],
-            // },
+            startTime: { $gte: startOfDay, $lte: endOfDay },
           },
         },
         {
@@ -264,41 +355,61 @@ export class ActivityService {
           },
         },
         {
-          $project: {
-            reported: 0,
+          $lookup: {
+            from: 'applications',
+            localField: 'application',
+            foreignField: '_id',
+            as: 'application',
           },
         },
         {
-          $sort: {
-            startTime: sortDirection,
+          $unwind: {
+            path: '$application',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $addFields: {
+            icon: {
+              $cond: {
+                if: { $ifNull: ['$faviconUrl', false] },
+                then: '$faviconUrl',
+                else: '$application.icon',
+              },
+            },
           },
         },
         {
           $facet: {
             data: [
-              { $sort: { startTime: sortOrder === 'latest' ? -1 : 1 } },
+              { $sort: { startTime: sortDirection } },
               { $skip: skip },
               { $limit: limit },
+              {
+                $project: {
+                  _id: 1,
+                  name: 1,
+                  startTime: 1,
+                  endTime: 1,
+                  icon: 1,
+                },
+              },
             ],
             totalCount: [{ $count: 'count' }],
           },
         },
-        // {
-        //   $skip: skip,
-        // },
-        // {
-        //   $limit: limit,
-        // },
       ]);
 
-      this.logger.debug('Unreported Activities:', unreportedActivities);
+      const activities = result[0]?.data || [];
+      const totalCount = result[0]?.totalCount[0]?.count || 0;
 
-      const paginated = unreportedActivities[0];
-      const activities = paginated.data;
-      const totalCount = paginated.totalCount[0]?.count || 0;
+      const transformed = activities.map((activity) => ({
+        ...activity,
+        timeSpent: calculateTimeSpent(activity.startTime, activity.endTime),
+      }));
 
       return {
-        data: activities,
+        data: transformed,
         paginationMetadata: {
           page,
           limit,
@@ -307,10 +418,18 @@ export class ActivityService {
         },
       };
     } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
       this.logger.error('Failed to find unreported activities', error.message);
-      throw error;
+      throw new InternalServerErrorException('Unable to fetch unreported activities.');
     }
   }
+
 
   async validateActivitiesForUser(
     userId: Types.ObjectId,
