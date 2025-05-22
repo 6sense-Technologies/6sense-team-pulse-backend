@@ -494,7 +494,12 @@ export class WorksheetService {
             as: 'worksheetActivities',
           },
         },
-        { $unwind: { path: '$worksheetActivities', preserveNullAndEmptyArrays: true } },
+        {
+          $unwind: {
+            path: '$worksheetActivities',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
 
         {
           $lookup: {
@@ -525,8 +530,12 @@ export class WorksheetService {
           };
         }
 
-        const start = item.activity?.startTime ? new Date(item.activity.startTime) : null;
-        const end = item.activity?.endTime ? new Date(item.activity.endTime) : null;
+        const start = item.activity?.startTime
+          ? new Date(item.activity.startTime)
+          : null;
+        const end = item.activity?.endTime
+          ? new Date(item.activity.endTime)
+          : null;
 
         const timeSpent = calculateTimeSpent(start, end);
         grouped[worksheetId].totalSeconds += timeSpent.totalSeconds;

@@ -324,8 +324,14 @@ export class ActivityService {
         date = now.format('YYYY-MM-DD');
       }
 
-      const startOfDay = moment.tz(`${date}T00:00:00`, timezoneRegion).utc().toDate();
-      const endOfDay = moment.tz(`${date}T23:59:59.999`, timezoneRegion).utc().toDate();
+      const startOfDay = moment
+        .tz(`${date}T00:00:00`, timezoneRegion)
+        .utc()
+        .toDate();
+      const endOfDay = moment
+        .tz(`${date}T23:59:59.999`, timezoneRegion)
+        .utc()
+        .toDate();
 
       this.logger.debug('Start of Day UTC:', startOfDay);
       this.logger.debug('End of Day UTC:', endOfDay);
@@ -426,10 +432,11 @@ export class ActivityService {
         throw error;
       }
       this.logger.error('Failed to find unreported activities', error.message);
-      throw new InternalServerErrorException('Unable to fetch unreported activities.');
+      throw new InternalServerErrorException(
+        'Unable to fetch unreported activities.',
+      );
     }
   }
-
 
   async validateActivitiesForUser(
     userId: Types.ObjectId,
