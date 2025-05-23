@@ -75,7 +75,7 @@ export class TimelogController {
     @Req() req: Request,
     @RequestMetadata() metadata: RequestMetadataDto,
     @Query('date') date?: string,
-    @Query('sortOrder') sortOrder?: 'latest' | 'oldest',
+    @Query('sort-order') sortOrder?: 'latest' | 'oldest',
     @Query('page') page = '1',
     @Query('limit') limit = '10',
   ): Promise<any> {
