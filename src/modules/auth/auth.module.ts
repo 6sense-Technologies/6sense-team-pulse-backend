@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -26,6 +26,7 @@ import {
   OrganizationProjectUserSchema,
 } from '../../schemas/OrganizationProjectUser.schema';
 
+@Global()
 @Module({
   imports: [
     PassportModule,
@@ -34,10 +35,7 @@ import {
       { name: Users.name, schema: UsersSchema },
       { name: OTPSecret.name, schema: OTPSecretSchema },
       { name: Organization.name, schema: OrganizationSchema },
-      {
-        name: OrganizationProjectUser.name,
-        schema: OrganizationProjectUserSchema,
-      },
+      { name: OrganizationProjectUser.name, schema: OrganizationProjectUserSchema },
       { name: OrganizationUserRole.name, schema: OrganizationUserRoleSchema },
       { name: Role.name, schema: RoleSchema },
     ]),
@@ -51,5 +49,6 @@ import {
     EmailService,
     OrganizationService,
   ],
+  exports: [AuthService],
 })
 export class AuthModule {}

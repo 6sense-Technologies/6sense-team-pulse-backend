@@ -21,6 +21,7 @@ import { Role } from '../auth/enums/role.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequestMetadata } from 'src/common/request-metadata/request-metadata.decorator';
 import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
+import { Auth } from '../auth/decorators/auth.decorator';
 
 @Controller('projects')
 export class ProjectsController {
@@ -59,17 +60,15 @@ export class ProjectsController {
     return this.projectsService.findAll(+page, +limit, req['user'].userId);
   }
 
-  @UseGuards(AccessTokenGuard)
+  @Auth()
   @ApiBearerAuth()
   @Get('get-user-projects-by-organization')
   async getUserProjectsByOrganization(
     @Req() req: Request,
-    @RequestMetadata() metadata: RequestMetadataDto,
-    // @Headers('Organization-Id') organizationUserId: string,
   ) {
     return await this.projectsService.getUserProjectsByOrganization(
       req['user'].userId,
-      metadata.organizationId,
+      req['user'].organizationId,
     );
   }
 

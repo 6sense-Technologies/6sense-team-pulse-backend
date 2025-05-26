@@ -50,16 +50,6 @@ export class ActivityService {
     }
 
     try {
-      const isValid = await this.organizationService.verifyUserofOrg(
-        userId,
-        organizationId,
-      );
-      if (!isValid) {
-        throw new UnauthorizedException(
-          `User ${userId} not in organization ${organizationId}`,
-        );
-      }
-
       await this.activityLogQueue.add(
         'process-activity',
         {
@@ -143,6 +133,7 @@ export class ActivityService {
     }
   }
 
+  // istanbul ignore next
   // Ignore testing this function
   async findAllActivities(
     organizationUserId: string,
@@ -194,119 +185,6 @@ export class ActivityService {
     }
   }
 
-  // async findUnreportedActivitiesForCurrentUser(
-  //   userId: string,
-  //   organizationId: string,
-  //   date: string,
-  //   timezoneRegion: string,
-  //   sortOrder: 'latest' | 'oldest' = 'latest',
-  //   page: number = 1,
-  //   limit: number = 10,
-  // ) {
-  //   try {
-  //     await this.organizationService.verifyUserofOrg(userId, organizationId);
-
-  //     // // Validate timezoneOffset
-  //     // if (!/^[-+]\d{2}:\d{2}$/.test(timezoneOffset)) {
-  //     //   timezoneOffset = '+00:00';
-  //     // }
-
-  //     // Use today's date if not provided
-  //     if (!date) {
-  //       const now = moment().tz(timezoneRegion);
-  //       date = now.format('YYYY-MM-DD');
-  //     }
-
-  //     // Use moment.tz to create start and end of day in that timezone
-  //     const startOfDay = moment.tz(`${date}T00:00:00`, timezoneRegion);
-  //     const endOfDay = moment.tz(`${date}T23:59:59.999`, timezoneRegion);
-
-  //     // Log local times
-  //     this.logger.log('Start of Day (local):', startOfDay.format());
-  //     this.logger.log('End of Day (local):', endOfDay.format());
-
-  //     // Convert to UTC
-  //     const startOfDayUTC = startOfDay.utc().toISOString();
-  //     const endOfDayUTC = endOfDay.utc().toISOString();
-
-  //     this.logger.log('Start of Day UTC:', startOfDayUTC);
-  //     this.logger.log('End of Day UTC:', endOfDayUTC);
-
-  //     const sortDirection = sortOrder === 'latest' ? -1 : 1;
-  //     const skip = (page - 1) * limit;
-  //     // this.logger.log('limit:', limit);
-  //     // this.logger.log('page:', page);
-  //     // this.logger.log('Skip:', skip);
-
-  //     const unreportedActivities = await this.activityModel.aggregate([
-  //       {
-  //         $match: {
-  //           user: new Types.ObjectId(userId),
-  //           organization: new Types.ObjectId(organizationId),
-  //           // $expr: {
-  //           //   $and: [
-  //           //     { $gte: ['$startTime', startOfDayUTC] },
-  //           //     { $lte: ['$startTime', endOfDayUTC] },
-  //           //   ],
-  //           // },
-  //         },
-  //       },
-  //       {
-  //         $lookup: {
-  //           from: 'worksheetactivities',
-  //           localField: '_id',
-  //           foreignField: 'activity',
-  //           as: 'reported',
-  //         },
-  //       },
-  //       {
-  //         $match: {
-  //           reported: { $size: 0 },
-  //         },
-  //       },
-  //       {
-  //         $project: {
-  //           reported: 0,
-  //         },
-  //       },
-  //       {
-  //         $sort: {
-  //           startTime: sortDirection,
-  //         },
-  //       },
-  //       {
-  //         $facet: {
-  //           data: [
-  //             { $sort: { startTime: sortOrder === 'latest' ? -1 : 1 } },
-  //             { $skip: skip },
-  //             { $limit: limit },
-  //           ],
-  //           totalCount: [{ $count: 'count' }],
-  //         },
-  //       },
-  //     ]);
-
-  //     this.logger.debug('Unreported Activities:', unreportedActivities);
-
-  //     const paginated = unreportedActivities[0];
-  //     const activities = paginated.data;
-  //     const totalCount = paginated.totalCount[0]?.count || 0;
-
-  //     return {
-  //       data: activities,
-  //       paginationMetadata: {
-  //         page,
-  //         limit,
-  //         totalCount,
-  //         totalPages: Math.ceil(totalCount / limit),
-  //       },
-  //     };
-  //   } catch (error) {
-  //     this.logger.error('Failed to find unreported activities', error.message);
-  //     throw error;
-  //   }
-  // }
-
   async findUnreportedActivitiesForCurrentUser(
     userId: string,
     organizationId: string,
@@ -317,8 +195,6 @@ export class ActivityService {
     limit: number = 10,
   ) {
     try {
-      await this.organizationService.verifyUserofOrg(userId, organizationId);
-
       if (!date) {
         const now = moment().tz(timezoneRegion);
         date = now.format('YYYY-MM-DD');

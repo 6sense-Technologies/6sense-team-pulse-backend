@@ -23,6 +23,7 @@ import { RequestMetadata } from 'src/common/request-metadata/request-metadata.de
 import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
 import { WorksheetService } from './worksheet.service';
 import { WorksheetGetNamesQueryDto } from './dto/worksheet-get-names.query';
+import { Auth } from '../auth/decorators/auth.decorator';
 
 @Controller('timelog')
 export class TimelogController {
@@ -68,7 +69,7 @@ export class TimelogController {
   //   return await this.trackerService.createActivity(createActivitiesDto, req['user'].userId);
   // }
 
-  @UseGuards(AccessTokenGuard)
+  @Auth()
   @ApiBearerAuth()
   @Get('unreported')
   async findUnreportedActivitiesForCurrentUser(
@@ -84,11 +85,11 @@ export class TimelogController {
     console.log('Sort Order: ', sortOrder);
     console.log('Page: ', page);
     console.log('Limit: ', limit);
-    console.log('Organization User ID: ', metadata.organizationId);
+    console.log('Organization User ID: ', req['user'].organizationId);
     console.log('User ID: ', req['user'].userId);
     return await this.activityService.findUnreportedActivitiesForCurrentUser(
       req['user'].userId,
-      metadata.organizationId,
+      req['user'].organizationId,
       date,
       metadata.timezoneRegion,
       sortOrder,
@@ -97,38 +98,36 @@ export class TimelogController {
     );
   }
 
-  @UseGuards(AccessTokenGuard)
+  @Auth()
   @Post('unreported/assign-to-project')
   @ApiOperation({ summary: 'Assign activities to a worksheet' })
   async assignActivitiesToWorksheet(
     @Req() req: any,
-    @RequestMetadata() metadata: RequestMetadataDto,
     @Body() assignActivitiesDto: AssignActivitiesDto,
   ): Promise<any> {
     const userId = req.user.userId;
 
     return await this.worksheetService.assignActivitiesToWorksheet(
       userId,
-      metadata.organizationId,
+      req['user'].organizationId,
       assignActivitiesDto,
     );
   }
 
-  @UseGuards(AccessTokenGuard)
+  @Auth()
   @ApiBearerAuth()
   @Get('worksheet/get-names')
   @ApiOperation({ summary: 'Get worksheet names and reported time' })
   @ApiResponse({ status: 200, description: 'List of worksheet names' })
   async getWorksheetNames(
     @Req() req: any,
-    @RequestMetadata() metadata: RequestMetadataDto,
     @Query() query: WorksheetGetNamesQueryDto,
   ): Promise<any> {
     const userId = req.user.userId;
 
     return await this.worksheetService.getWorksheetNames(
       userId,
-      metadata.organizationId,
+      req['user'].organizationId,
       query['project-id'],
       query.name,
       query.date,
@@ -139,11 +138,10 @@ export class TimelogController {
   @ApiOperation({ summary: 'Get list of worksheets' })
   @ApiResponse({ status: 200, description: 'List of worksheets' })
   @ApiResponse({ status: 401, description: 'Unauthorized access' })
-  @UseGuards(AccessTokenGuard)
+  @Auth()
   @ApiBearerAuth()
   async getWorksheets(
     @Req() req: any,
-    @RequestMetadata() metadata: RequestMetadataDto,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('start-date') startDate?: string,
@@ -168,7 +166,7 @@ export class TimelogController {
 
     return this.worksheetService.getWorksheets(
       userId,
-      metadata.organizationId,
+      req['user'].organizationId,
       parseInt(page, 10),
       parseInt(limit, 10),
       sortOrder,
@@ -177,7 +175,7 @@ export class TimelogController {
     );
   }
 
-  @UseGuards(AccessTokenGuard)
+  @Auth()
   @ApiBearerAuth()
   @Get('worksheet/:worksheetId')
   @ApiOperation({ summary: 'Get activities in a worksheet' })
@@ -200,7 +198,7 @@ export class TimelogController {
 
     return this.worksheetService.getActivitiesForWorksheet(
       userId,
-      metadata.organizationId,
+      req['user'].organizationId,
       worksheetId,
       metadata.timezoneRegion,
       parseInt(page),

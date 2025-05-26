@@ -18,7 +18,7 @@ export class OrganizationUserRole {
   user: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: Role.name, required: true })
-  role: Types.ObjectId;
+  role: Role;
 
   @Prop({ type: Types.ObjectId, ref: User.name })
   createdBy: Types.ObjectId;
