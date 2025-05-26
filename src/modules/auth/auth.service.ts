@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Model, Types } from 'mongoose';
+import { isValidObjectId, Model, Types } from 'mongoose';
 import { Users } from '../../schemas/users.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import {
@@ -36,10 +38,11 @@ export class AuthService {
     @InjectModel(Organization.name)
     private readonly organizationModel: Model<Organization>,
     @InjectModel(OrganizationUserRole.name)
-    private readonly organizationUserRole: Model<OrganizationUserRole>,
+    private readonly organizationUserRoleModel: Model<OrganizationUserRole>,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
+
   private generateTokens(userId: string, email: string) {
     const accessToken = this.jwtService.sign(
       { userId, email },
@@ -336,4 +339,49 @@ export class AuthService {
       refreshToken: refreshToken,
     };
   }
+
+  async validateOrgAccess(userId: string, orgId: string, roles?: string[]) {
+    if (!isValidObjectId(userId) || !isValidObjectId(orgId)) {
+      throw new BadRequestException('Invalid userId or organizationId');
+    }
+
+    const orgUser = await this.organizationUserRoleModel
+      .findOne({ 
+        user: new Types.ObjectId(userId), 
+        organization: new Types.ObjectId(orgId), 
+        isDisabled: false 
+      })
+      .populate('role');
+
+    if (!orgUser) {
+      const [userExists, orgExists] = await Promise.all([
+        this.userModel.exists({ _id: userId, isDisabled: false }),
+        this.organizationModel.exists({ _id: orgId, isDisabled: false }),
+      ]);
+
+      const errors = [];
+      if (!userExists) {
+        errors.push(`User not found (user: ${userId})`);
+      }
+      if (!orgExists) {
+        errors.push(`Organization not found (org: ${orgId})`);
+      }
+      if (errors.length) {
+        throw new NotFoundException(errors.join(' and '));
+      }
+
+      throw new ForbiddenException(`User ${userId} does not belong to organization ${orgId}`);
+    }
+
+    if (roles?.length) {
+      const userRole = orgUser.role?.roleName?.toLowerCase();
+      const hasRole = roles.some((r) => r.toLowerCase() === userRole);
+      if (!hasRole) {
+        throw new ForbiddenException('Insufficient role permissions');
+      }
+    }
+
+    return orgUser;
+  }
+
 }

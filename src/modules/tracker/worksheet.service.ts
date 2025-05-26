@@ -165,15 +165,6 @@ export class WorksheetService {
       const organizationObjectId = new Types.ObjectId(organizationId);
       const projectObjectId = new Types.ObjectId(projectId);
 
-      const validityOfOrgaizationUser =
-        await this.organizationService.verifyUserofOrg(userId, organizationId);
-
-      if (!validityOfOrgaizationUser) {
-        throw new UnauthorizedException(
-          `Invalid userId or organizationId: userId=${userId}, organizationId=${organizationId}`,
-        );
-      }
-
       // Find or create worksheet with upsert
       const worksheet = await this.worksheetModel.findOneAndUpdate(
         {
@@ -290,8 +281,6 @@ export class WorksheetService {
     sortOrder: 'latest' | 'oldest' = 'latest',
   ) {
     try {
-      await this.organizationService.verifyUserofOrg(userId, organizationId);
-
       const worksheet = await this.worksheetModel.findById(worksheetId);
       if (!worksheet) {
         throw new BadRequestException('Worksheet not found.');
@@ -451,8 +440,6 @@ export class WorksheetService {
     endDate?: string,
   ) {
     try {
-      await this.organizationService.verifyUserofOrg(userId, organizationId);
-
       const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
       const sortDirection = sortOrder === 'latest' ? -1 : 1;
 

@@ -160,31 +160,8 @@ export class ProjectsService {
 
   async getUserProjectsByOrganization(userId: string, organizationId: string) {
     try {
-      if (!isValidObjectId(userId)) {
-        throw new BadRequestException('Invalid userId');
-      }
-
-      if (!isValidObjectId(organizationId)) {
-        throw new BadRequestException('Invalid organizationId');
-      }
-
-      // console.log('User ID:', userId);
-      // console.log('Organization ID:', organizationId);
-
       const userObjectId = new Types.ObjectId(userId);
       const orgObjectId = new Types.ObjectId(organizationId);
-
-      // const organization = await this.Organization.findOne({ _id: orgObjectId });
-      // if (!organization) {
-      //   throw new NotFoundException('Organization not found');
-      // }
-
-      const validityOfOrgaizationUser =
-        await this.organizationService.verifyUserofOrg(userId, organizationId);
-
-      if (!validityOfOrgaizationUser) {
-        throw error;
-      }
 
       const projects = await this.OrganizationProjectUser.aggregate([
         {

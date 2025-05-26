@@ -24,6 +24,9 @@ export class Organization extends Document {
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   createdBy: Users;
+
+  @Prop({ type: Boolean, default: false })
+  isDisabled: boolean;
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);
