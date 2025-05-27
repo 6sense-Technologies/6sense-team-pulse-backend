@@ -143,7 +143,7 @@ export class ActivityService {
         throw new BadRequestException('End time must be after start time.');
       }
 
-      const activity = new this.activityModel({
+      const activity = await this.activityModel.insertOne({
         name,
         startTime,
         endTime,
@@ -152,7 +152,6 @@ export class ActivityService {
         manualType,
       });
 
-      await activity.save();
       return activity;
     } catch (error) {
       this.logger.error('Failed to create manual activity', error.message);
