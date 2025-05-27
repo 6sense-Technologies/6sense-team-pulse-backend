@@ -28,7 +28,6 @@ export class WorksheetService {
     @InjectConnection()
     private readonly connection: Connection,
 
-    private readonly organizationService: OrganizationService,
     private readonly activityService: ActivityService,
   ) {}
 
@@ -153,14 +152,6 @@ export class WorksheetService {
     session.startTransaction();
 
     try {
-      // Validate ObjectIds
-      if (!isValidObjectId(userId))
-        throw new BadRequestException('Invalid userId');
-      if (!isValidObjectId(organizationId))
-        throw new BadRequestException('Invalid organizationId');
-      if (!isValidObjectId(projectId))
-        throw new BadRequestException('Invalid projectId');
-
       const userObjectId = new Types.ObjectId(userId);
       const organizationObjectId = new Types.ObjectId(organizationId);
       const projectObjectId = new Types.ObjectId(projectId);

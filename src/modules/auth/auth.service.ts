@@ -346,10 +346,10 @@ export class AuthService {
     }
 
     const orgUser = await this.organizationUserRoleModel
-      .findOne({ 
-        user: new Types.ObjectId(userId), 
-        organization: new Types.ObjectId(orgId), 
-        isDisabled: false 
+      .findOne({
+        user: new Types.ObjectId(userId),
+        organization: new Types.ObjectId(orgId),
+        isDisabled: false,
       })
       .populate('role');
 
@@ -370,7 +370,9 @@ export class AuthService {
         throw new NotFoundException(errors.join(' and '));
       }
 
-      throw new ForbiddenException(`User ${userId} does not belong to organization ${orgId}`);
+      throw new ForbiddenException(
+        `User ${userId} does not belong to organization ${orgId}`,
+      );
     }
 
     if (roles?.length) {
@@ -383,5 +385,4 @@ export class AuthService {
 
     return orgUser;
   }
-
 }

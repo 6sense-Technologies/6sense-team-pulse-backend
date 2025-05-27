@@ -35,7 +35,10 @@ import {
       { name: Users.name, schema: UsersSchema },
       { name: OTPSecret.name, schema: OTPSecretSchema },
       { name: Organization.name, schema: OrganizationSchema },
-      { name: OrganizationProjectUser.name, schema: OrganizationProjectUserSchema },
+      {
+        name: OrganizationProjectUser.name,
+        schema: OrganizationProjectUserSchema,
+      },
       { name: OrganizationUserRole.name, schema: OrganizationUserRoleSchema },
       { name: Role.name, schema: RoleSchema },
     ]),

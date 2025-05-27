@@ -63,9 +63,7 @@ export class ProjectsController {
   @Auth()
   @ApiBearerAuth()
   @Get('get-user-projects-by-organization')
-  async getUserProjectsByOrganization(
-    @Req() req: Request,
-  ) {
+  async getUserProjectsByOrganization(@Req() req: Request) {
     return await this.projectsService.getUserProjectsByOrganization(
       req['user'].userId,
       req['user'].organizationId,
