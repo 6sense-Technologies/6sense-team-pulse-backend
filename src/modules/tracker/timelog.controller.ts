@@ -28,6 +28,7 @@ import { WorksheetService } from './worksheet.service';
 import { WorksheetGetNamesQueryDto } from './dto/worksheet-get-names.query';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
+import { UpdateManualActivityDto } from './dto/update-manaul-activity.dto';
 
 @Controller('timelog')
 export class TimelogController {
@@ -136,7 +137,7 @@ export class TimelogController {
   async editManualActivity(
     @Param('id') activityId: string,
     @Req() req: Request,
-    @Body() updateDto: Partial<CreateManualActivityDto>,
+    @Body() updateDto: UpdateManualActivityDto,
   ): Promise<any> {
     const userId = req['user'].userId;
     const organizationId = req['user'].organizationId;
