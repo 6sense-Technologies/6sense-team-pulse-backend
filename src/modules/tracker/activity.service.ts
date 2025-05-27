@@ -15,15 +15,13 @@ import mongoose, { isValidObjectId, Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import * as moment from 'moment';
 import 'moment-timezone';
-import { Application } from './entities/application.schema';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ActivitySession } from './tracker.interface';
-import { OrganizationService } from '../organization/organization.service';
 import { ApplicationService } from './application.service';
-import { Worksheet } from './entities/worksheet.schema';
-import { WorksheetActivity } from './entities/worksheetActivity.schema';
 import { calculateTimeSpent } from './time.utils';
+import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
+import { Create } from 'sharp';
 
 @Injectable()
 export class ActivityService {
@@ -129,6 +127,95 @@ export class ActivityService {
     } catch (error) {
       this.logger.error('Failed to create activities', error.message);
       throw error;
+    }
+  }
+
+  async createManualActivity(
+    createManualActivityDto: CreateManualActivityDto,
+    userId: string,
+    organizationId: string,
+  ) {
+    try {
+      const { name, startTime, endTime, manualType } =
+        createManualActivityDto;
+
+      if (new Date(endTime) <= new Date(startTime)) {
+        throw new BadRequestException('End time must be after start time.');
+      }
+
+      const activity = new this.activityModel({
+        name,
+        startTime,
+        endTime,
+        organization: new Types.ObjectId(organizationId),
+        user: new Types.ObjectId(userId),
+        manualType,
+      });
+
+      await activity.save();
+      return activity;
+    } catch (error) {
+      this.logger.error('Failed to create manual activity', error.message);
+      throw error;
+    }
+  }
+
+  async editManualActivity(
+    activityId: string,
+    userId: string,
+    organizationId: string,
+    updateDto: Partial<CreateManualActivityDto>,
+  ): Promise<Activity> {
+    try {
+
+      if (!isValidObjectId(activityId)) {
+        throw new BadRequestException('Invalid activity ID format.');
+      }
+
+      const activity = await this.activityModel.findOne({
+        _id: new Types.ObjectId(activityId),
+      });
+
+      if (!activity) {
+        throw new NotFoundException('Manual activity not found.');
+      }
+
+      if (
+        activity.user.toString() !== userId ||
+        activity.organization.toString() !== organizationId
+      ) {
+        throw new UnauthorizedException('You do not have permission to edit this activity.');
+      }
+
+      if (activity.manualType == undefined) {
+        throw new BadRequestException(
+          'This activity is not a manual activity and cannot be edited.',
+        );
+      }
+
+      const { name, manualType, startTime, endTime } = updateDto;
+
+      if (startTime && endTime && new Date(endTime) <= new Date(startTime)) {
+        throw new BadRequestException('End time must be after start time.');
+      }
+
+      if (name !== undefined) activity.name = name;
+      if (manualType !== undefined) activity.manualType = manualType;
+      if (startTime !== undefined) activity.startTime = new Date(startTime);
+      if (endTime !== undefined) activity.endTime = new Date(endTime);
+
+      await activity.save();
+      return activity;
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      this.logger.error('Failed to update manual activity', error.message);
+      throw new InternalServerErrorException('Could not update manual activity');
     }
   }
 
@@ -272,6 +359,7 @@ export class ActivityService {
                   name: 1,
                   startTime: 1,
                   endTime: 1,
+                  manualType: 1,
                   icon: 1,
                 },
               },
