@@ -22,6 +22,7 @@ import { ApplicationService } from './application.service';
 import { calculateTimeSpent } from './time.utils';
 import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
 import { Create } from 'sharp';
+import { UpdateManualActivityDto } from './dto/update-manaul-activity.dto';
 
 @Injectable()
 export class ActivityService {
@@ -163,7 +164,7 @@ export class ActivityService {
     activityId: string,
     userId: string,
     organizationId: string,
-    updateDto: Partial<CreateManualActivityDto>,
+    updateDto: UpdateManualActivityDto,
   ): Promise<Activity> {
     try {
 
