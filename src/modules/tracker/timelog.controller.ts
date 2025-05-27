@@ -8,12 +8,15 @@ import {
   Req,
   Query,
   BadRequestException,
+  Patch,
 } from '@nestjs/common';
 // import { TrackerService } from './tracker.service';
 import { ActivityService } from './activity.service';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
@@ -24,6 +27,7 @@ import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata
 import { WorksheetService } from './worksheet.service';
 import { WorksheetGetNamesQueryDto } from './dto/worksheet-get-names.query';
 import { Auth } from '../auth/decorators/auth.decorator';
+import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
 
 @Controller('timelog')
 export class TimelogController {
@@ -99,6 +103,54 @@ export class TimelogController {
   }
 
   @Auth()
+  @ApiBearerAuth()
+  @Post('unreported/manual-entry')
+  @ApiOperation({ summary: 'Create a manual activity entry' })
+  @ApiBody({ type: CreateManualActivityDto })
+  @ApiResponse({ status: 201, description: 'Manual activity successfully created' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async createManualActivity(
+    @Req() req: Request,
+    @Body() createManualActivityDto: CreateManualActivityDto,
+  ): Promise<any> {
+    const userId = req['user'].userId;
+    const organizationId = req['user'].organizationId;
+
+    return await this.activityService.createManualActivity(
+      createManualActivityDto,
+      userId,
+      organizationId,
+    );
+  }
+
+  @Auth()
+  @ApiBearerAuth()
+  @Patch('unreported/manual-entry/:id')
+  @ApiOperation({ summary: 'Update a manual activity entry' })
+  @ApiParam({ name: 'id', type: String, description: 'Activity ID' })
+  @ApiResponse({ status: 200, description: 'Manual activity updated' })
+  @ApiResponse({ status: 400, description: 'Bad request - validation or logical failure' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Manual activity not found' })
+  async editManualActivity(
+    @Param('id') activityId: string,
+    @Req() req: Request,
+    @Body() updateDto: Partial<CreateManualActivityDto>,
+  ): Promise<any> {
+    const userId = req['user'].userId;
+    const organizationId = req['user'].organizationId;
+
+    return this.activityService.editManualActivity(
+      activityId,
+      userId,
+      organizationId,
+      updateDto,
+    );
+  }
+
+  @Auth()
+  @ApiBearerAuth()
   @Post('unreported/assign-to-project')
   @ApiOperation({ summary: 'Assign activities to a worksheet' })
   async assignActivitiesToWorksheet(

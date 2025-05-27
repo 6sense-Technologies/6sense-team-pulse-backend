@@ -15,7 +15,7 @@ export class Activity {
   @Prop({ type: Date, required: true })
   startTime: Date;
 
-  @Prop({ type: Date, required: false })
+  @Prop({ type: Date, required: true })
   endTime: Date;
 
   @Prop({ type: Types.ObjectId, ref: Organization.name, required: true })
@@ -24,10 +24,10 @@ export class Activity {
   @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
   user: Users;
 
-  @Prop({ type: Types.ObjectId, ref: Application.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Application.name })
   application: Application;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String })
   pid: string; //process id
 
   @Prop({ type: String, required: false })
@@ -35,6 +35,31 @@ export class Activity {
 
   @Prop({ type: String, required: false })
   faviconUrl: string; //if it is in a browser then the favicon url
+
+  @Prop({ type: String })
+  manualType?: string;
 }
 
 export const ActivitySchema = SchemaFactory.createForClass(Activity);
+
+ActivitySchema.pre<Activity>('save', function (next) {
+  const isManual = !!this.manualType;
+
+  if (isManual) {
+    if (this.application || this.pid || this.browserUrl || this.faviconUrl) {
+      return next(
+        new Error(
+          'Manual activities must not contain application, pid, browserUrl, or faviconUrl.',
+        ),
+      );
+    }
+  } else {
+    if (!this.application || !this.pid) {
+      return next(
+        new Error('Automatic activities must contain application and pid.'),
+      );
+    }
+  }
+
+  next();
+});

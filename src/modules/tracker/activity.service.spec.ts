@@ -359,4 +359,114 @@ describe('ActivityService', () => {
       // );
     });
   });
+
+  // describe('createManualActivity', () => {
+  //   const userId = new Types.ObjectId().toString();
+  //   const organizationId = new Types.ObjectId().toString();
+
+  //   const validDto = {
+  //     name: 'Planning Session',
+  //     manualType: 'Planning',
+  //     startTime: new Date('2025-05-21T10:00:00Z').toISOString(),
+  //     endTime: new Date('2025-05-21T11:00:00Z').toISOString(),
+  //   };
+
+  //   it('should create and return a manual activity when valid', async () => {
+  //     const mockSavedActivity = {
+  //       ...validDto,
+  //       organization: organizationId,
+  //       user: userId,
+  //     };
+
+  //     const mockSave = jest.fn().mockResolvedValue(mockSavedActivity);
+  //     const mockActivityConstructor = jest.fn().mockReturnValue({
+  //       ...mockSavedActivity,
+  //       save: mockSave,
+  //     });
+
+  //     // Override model for this specific test
+  //     service['activityModel'] = mockActivityConstructor as any;
+
+  //     const result = await service.createManualActivity(validDto, userId, organizationId);
+
+  //     expect(mockActivityConstructor).toHaveBeenCalledWith({
+  //       name: validDto.name,
+  //       startTime: validDto.startTime,
+  //       endTime: validDto.endTime,
+  //       organization: expect.any(Types.ObjectId),
+  //       user: expect.any(Types.ObjectId),
+  //       manualType: validDto.manualType,
+  //     });
+
+  //     expect(mockSave).toHaveBeenCalled();
+  //     expect(result).toEqual(mockSavedActivity);
+  //   });
+  // });
+
+
+  describe('editManualActivity', () => {
+    const userId = new Types.ObjectId().toString();
+    const organizationId = new Types.ObjectId().toString();
+    const activityId = new Types.ObjectId().toString();
+
+    const existingActivity = {
+      _id: new Types.ObjectId(activityId),
+      name: 'Old Name',
+      manualType: 'Meeting',
+      startTime: new Date('2025-05-21T09:00:00Z'),
+      endTime: new Date('2025-05-21T10:00:00Z'),
+      user: new Types.ObjectId(userId),
+      organization: new Types.ObjectId(organizationId),
+      save: jest.fn().mockResolvedValue(true),
+    };
+
+    beforeEach(() => {
+      mockActivityModel.findOne.mockResolvedValue(existingActivity);
+    });
+
+    it('should update and return the manual activity when authorized', async () => {
+      const updateDto = {
+        name: 'Updated Meeting',
+        manualType: 'Collaboration',
+        startTime: new Date('2025-05-21T09:30:00Z').toISOString(),
+        endTime: new Date('2025-05-21T10:30:00Z').toISOString(),
+      };
+
+      const result = await service.editManualActivity(activityId, userId, organizationId, updateDto);
+      expect(existingActivity.save).toHaveBeenCalled();
+      expect(result.name).toBe(updateDto.name);
+      expect(result.manualType).toBe(updateDto.manualType);
+    });
+
+    it('should throw BadRequestException when endTime is before startTime', async () => {
+      const updateDto = {
+        startTime: new Date('2025-05-21T10:30:00Z').toISOString(),
+        endTime: new Date('2025-05-21T09:30:00Z').toISOString(),
+      };
+
+      await expect(
+        service.editManualActivity(activityId, userId, organizationId, updateDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw UnauthorizedException when user does not own activity', async () => {
+      const anotherUserId = new Types.ObjectId().toString();
+
+      await expect(
+        service.editManualActivity(activityId, anotherUserId, organizationId, { name: 'Test' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw BadRequestException if activity is not manual', async () => {
+      mockActivityModel.findOne.mockResolvedValue({
+        ...existingActivity,
+        manualType: undefined,
+      });
+
+      await expect(
+        service.editManualActivity(activityId, userId, organizationId, { name: 'Test' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
 });
