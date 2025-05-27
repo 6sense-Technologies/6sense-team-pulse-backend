@@ -36,7 +36,6 @@ export class ActivityService {
     private readonly activityLogQueue: Queue,
 
     private readonly applicationService: ApplicationService,
-    private readonly organizationService: OrganizationService,
   ) {}
 
   async addActivityLogsToQueue(

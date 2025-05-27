@@ -32,10 +32,6 @@ const mockApplicationService = {
   findOrCreate: jest.fn(),
 };
 
-const mockOrganizationService = {
-  verifyUserofOrg: jest.fn(),
-};
-
 const mockActivityLogQueue = {
   add: jest.fn(),
 };
@@ -61,7 +57,6 @@ describe('ActivityService', () => {
           useValue: mockWorksheetActivityModel,
         },
         { provide: ApplicationService, useValue: mockApplicationService },
-        { provide: OrganizationService, useValue: mockOrganizationService },
         { provide: 'BullQueue_activity-log', useValue: mockActivityLogQueue }, // ✅ Correct token
       ],
     }).compile();
@@ -96,7 +91,6 @@ describe('ActivityService', () => {
     });
 
     it('should queue logs and return count when input is valid', async () => {
-      mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
       mockActivityLogQueue.add.mockResolvedValue({});
 
       const result = await service.addActivityLogsToQueue(
@@ -105,10 +99,6 @@ describe('ActivityService', () => {
         sampleLogs,
       );
 
-      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(
-        userId,
-        organizationId,
-      );
       expect(mockActivityLogQueue.add).toHaveBeenCalledWith(
         'process-activity',
         expect.objectContaining({
@@ -124,28 +114,10 @@ describe('ActivityService', () => {
       expect(result).toEqual({ queued: sampleLogs.length });
     });
 
-    it('should throw UnauthorizedException if user is not in organization', async () => {
-      mockOrganizationService.verifyUserofOrg.mockResolvedValue(false);
-
-      await expect(
-        service.addActivityLogsToQueue(userId, organizationId, sampleLogs),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
     it('should return queued: 0 if inputs are invalid or empty', async () => {
       const result = await service.addActivityLogsToQueue('', '', []);
       expect(result).toEqual({ queued: 0 });
       expect(mockActivityLogQueue.add).not.toHaveBeenCalled();
-    });
-
-    it('should throw InternalServerErrorException on unknown error', async () => {
-      mockOrganizationService.verifyUserofOrg.mockImplementation(() => {
-        throw new Error('unexpected failure');
-      });
-
-      await expect(
-        service.addActivityLogsToQueue(userId, organizationId, sampleLogs),
-      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -265,7 +237,6 @@ describe('ActivityService', () => {
         },
       ];
 
-      mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
       mockActivityModel.aggregate.mockResolvedValue(mockAggregateResult);
 
       const result = await service.findUnreportedActivitiesForCurrentUser(
@@ -278,17 +249,12 @@ describe('ActivityService', () => {
         10,
       );
 
-      expect(mockOrganizationService.verifyUserofOrg).toHaveBeenCalledWith(
-        userId,
-        organizationId,
-      );
       expect(mockActivityModel.aggregate).toHaveBeenCalled();
       expect(result.data.length).toBe(1);
       expect(result.paginationMetadata.totalCount).toBe(1);
     });
 
     it("should default to today's date if date is not provided", async () => {
-      mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
       mockActivityModel.aggregate.mockResolvedValue([
         { data: [], totalCount: [] },
       ]);
@@ -304,23 +270,7 @@ describe('ActivityService', () => {
       expect(mockActivityModel.aggregate).toHaveBeenCalled();
     });
 
-    it('should throw an error if user is not in the organization', async () => {
-      mockOrganizationService.verifyUserofOrg.mockRejectedValue(
-        new UnauthorizedException(),
-      );
-
-      await expect(
-        service.findUnreportedActivitiesForCurrentUser(
-          userId,
-          organizationId,
-          '2025-05-18',
-          timezone,
-        ),
-      ).rejects.toThrow('Unauthorized');
-    });
-
     it('should throw if aggregate fails', async () => {
-      mockOrganizationService.verifyUserofOrg.mockResolvedValue(true);
       mockActivityModel.aggregate.mockRejectedValue(new Error('DB Error'));
 
       await expect(
