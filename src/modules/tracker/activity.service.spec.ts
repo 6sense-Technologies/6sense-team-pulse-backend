@@ -11,10 +11,12 @@ import { ActivityLogEntryDto } from './dto/create-activities.dto';
 import {
   BadRequestException,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ActivitySession } from './tracker.interface';
+import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
 
 // Mocks
 const mockActivityModel = {
@@ -22,6 +24,7 @@ const mockActivityModel = {
   find: jest.fn(),
   insertMany: jest.fn(),
   aggregate: jest.fn(),
+  insertOne: jest.fn(),
 };
 
 const mockApplicationModel = {};
@@ -360,113 +363,248 @@ describe('ActivityService', () => {
     });
   });
 
-  // describe('createManualActivity', () => {
+  describe('createManualActivity', () => {
+    const userId = new Types.ObjectId().toHexString();
+    const organizationId = new Types.ObjectId().toHexString();
+
+    const validDto: CreateManualActivityDto = {
+      name: 'Design UI',
+      manualType: 'Designing',
+      startTime: new Date('2025-05-20T10:00:00Z').toISOString(),
+      endTime: new Date('2025-05-20T11:00:00Z').toISOString(),
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully create a manual activity when data is valid', async () => {
+      const mockInsertedActivity = {
+        insertedId: new Types.ObjectId(),
+        acknowledged: true,
+      };
+
+      mockActivityModel.insertOne.mockResolvedValue(mockInsertedActivity);
+
+      const result = await service.createManualActivity(
+        validDto,
+        userId,
+        organizationId,
+      );
+
+      expect(mockActivityModel.insertOne).toHaveBeenCalledWith({
+        name: validDto.name,
+        startTime: validDto.startTime,
+        endTime: validDto.endTime,
+        organization: new Types.ObjectId(organizationId),
+        user: new Types.ObjectId(userId),
+        manualType: validDto.manualType,
+      });
+
+      expect(result).toEqual(mockInsertedActivity);
+    });
+
+    it('should throw BadRequestException if endTime is before or equal to startTime', async () => {
+      const invalidDto = {
+        ...validDto,
+        endTime: validDto.startTime,
+      };
+
+      await expect(
+        service.createManualActivity(invalidDto, userId, organizationId),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockActivityModel.insertOne).not.toHaveBeenCalled();
+    });
+
+    it('should throw InternalServerErrorException on unexpected error', async () => {
+      const errorMessage = 'DB insert failed';
+      mockActivityModel.insertOne.mockRejectedValue(
+        new Error(errorMessage),
+      );
+
+      await expect(
+        service.createManualActivity(validDto, userId, organizationId),
+      ).rejects.toThrow(errorMessage);
+
+      expect(mockActivityModel.insertOne).toHaveBeenCalled();
+    });
+  });
+
+  // describe('editManualActivity', () => {
   //   const userId = new Types.ObjectId().toString();
   //   const organizationId = new Types.ObjectId().toString();
+  //   const activityId = new Types.ObjectId().toString();
 
-  //   const validDto = {
-  //     name: 'Planning Session',
-  //     manualType: 'Planning',
-  //     startTime: new Date('2025-05-21T10:00:00Z').toISOString(),
-  //     endTime: new Date('2025-05-21T11:00:00Z').toISOString(),
+  //   const existingActivity = {
+  //     _id: new Types.ObjectId(activityId),
+  //     name: 'Old Name',
+  //     manualType: 'Meeting',
+  //     startTime: new Date('2025-05-21T09:00:00Z'),
+  //     endTime: new Date('2025-05-21T10:00:00Z'),
+  //     user: new Types.ObjectId(userId),
+  //     organization: new Types.ObjectId(organizationId),
+  //     save: jest.fn().mockResolvedValue(true),
   //   };
 
-  //   it('should create and return a manual activity when valid', async () => {
-  //     const mockSavedActivity = {
-  //       ...validDto,
-  //       organization: organizationId,
-  //       user: userId,
+  //   beforeEach(() => {
+  //     mockActivityModel.findOne.mockResolvedValue(existingActivity);
+  //   });
+
+  //   it('should update and return the manual activity when authorized', async () => {
+  //     const updateDto = {
+  //       name: 'Updated Meeting',
+  //       manualType: 'Collaboration',
+  //       startTime: new Date('2025-05-21T09:30:00Z').toISOString(),
+  //       endTime: new Date('2025-05-21T10:30:00Z').toISOString(),
   //     };
 
-  //     const mockSave = jest.fn().mockResolvedValue(mockSavedActivity);
-  //     const mockActivityConstructor = jest.fn().mockReturnValue({
-  //       ...mockSavedActivity,
-  //       save: mockSave,
+  //     const result = await service.editManualActivity(activityId, userId, organizationId, updateDto);
+  //     expect(existingActivity.save).toHaveBeenCalled();
+  //     expect(result.name).toBe(updateDto.name);
+  //     expect(result.manualType).toBe(updateDto.manualType);
+  //   });
+
+  //   it('should throw BadRequestException when endTime is before startTime', async () => {
+  //     const updateDto = {
+  //       startTime: new Date('2025-05-21T10:30:00Z').toISOString(),
+  //       endTime: new Date('2025-05-21T09:30:00Z').toISOString(),
+  //     };
+
+  //     await expect(
+  //       service.editManualActivity(activityId, userId, organizationId, updateDto),
+  //     ).rejects.toThrow(BadRequestException);
+  //   });
+
+  //   it('should throw UnauthorizedException when user does not own activity', async () => {
+  //     const anotherUserId = new Types.ObjectId().toString();
+
+  //     await expect(
+  //       service.editManualActivity(activityId, anotherUserId, organizationId, { name: 'Test' }),
+  //     ).rejects.toThrow(UnauthorizedException);
+  //   });
+
+  //   it('should throw BadRequestException if activity is not manual', async () => {
+  //     mockActivityModel.findOne.mockResolvedValue({
+  //       ...existingActivity,
+  //       manualType: undefined,
   //     });
 
-  //     // Override model for this specific test
-  //     service['activityModel'] = mockActivityConstructor as any;
-
-  //     const result = await service.createManualActivity(validDto, userId, organizationId);
-
-  //     expect(mockActivityConstructor).toHaveBeenCalledWith({
-  //       name: validDto.name,
-  //       startTime: validDto.startTime,
-  //       endTime: validDto.endTime,
-  //       organization: expect.any(Types.ObjectId),
-  //       user: expect.any(Types.ObjectId),
-  //       manualType: validDto.manualType,
-  //     });
-
-  //     expect(mockSave).toHaveBeenCalled();
-  //     expect(result).toEqual(mockSavedActivity);
+  //     await expect(
+  //       service.editManualActivity(activityId, userId, organizationId, { name: 'Test' }),
+  //     ).rejects.toThrow(BadRequestException);
   //   });
   // });
 
-
   describe('editManualActivity', () => {
-    const userId = new Types.ObjectId().toString();
-    const organizationId = new Types.ObjectId().toString();
-    const activityId = new Types.ObjectId().toString();
+    const userId = new Types.ObjectId().toHexString();
+    const organizationId = new Types.ObjectId().toHexString();
+    const activityId = new Types.ObjectId().toHexString();
 
-    const existingActivity = {
-      _id: new Types.ObjectId(activityId),
+    const mockActivity = {
+      _id: activityId,
       name: 'Old Name',
-      manualType: 'Meeting',
-      startTime: new Date('2025-05-21T09:00:00Z'),
-      endTime: new Date('2025-05-21T10:00:00Z'),
-      user: new Types.ObjectId(userId),
+      manualType: 'Planning',
+      startTime: new Date('2025-05-20T10:00:00Z'),
+      endTime: new Date('2025-05-20T11:00:00Z'),
       organization: new Types.ObjectId(organizationId),
+      user: new Types.ObjectId(userId),
       save: jest.fn().mockResolvedValue(true),
     };
 
     beforeEach(() => {
-      mockActivityModel.findOne.mockResolvedValue(existingActivity);
+      jest.clearAllMocks();
+      mockActivityModel.findOne.mockReset();
     });
 
-    it('should update and return the manual activity when authorized', async () => {
-      const updateDto = {
-        name: 'Updated Meeting',
-        manualType: 'Collaboration',
-        startTime: new Date('2025-05-21T09:30:00Z').toISOString(),
-        endTime: new Date('2025-05-21T10:30:00Z').toISOString(),
+    it('should update the manual activity successfully', async () => {
+      mockActivityModel.findOne.mockResolvedValue(mockActivity);
+
+      const updateDto: Partial<CreateManualActivityDto> = {
+        name: 'Updated Name',
+        manualType: 'Researching',
+        startTime: '2025-05-20T12:00:00Z',
+        endTime: '2025-05-20T13:00:00Z',
       };
 
-      const result = await service.editManualActivity(activityId, userId, organizationId, updateDto);
-      expect(existingActivity.save).toHaveBeenCalled();
+      const result = await service.editManualActivity(
+        activityId,
+        userId,
+        organizationId,
+        updateDto,
+      );
+
+      expect(mockActivityModel.findOne).toHaveBeenCalledWith({
+        _id: new Types.ObjectId(activityId),
+      });
+
+      expect(mockActivity.save).toHaveBeenCalled();
       expect(result.name).toBe(updateDto.name);
       expect(result.manualType).toBe(updateDto.manualType);
     });
 
-    it('should throw BadRequestException when endTime is before startTime', async () => {
-      const updateDto = {
-        startTime: new Date('2025-05-21T10:30:00Z').toISOString(),
-        endTime: new Date('2025-05-21T09:30:00Z').toISOString(),
-      };
-
+    it('should throw BadRequestException for invalid ObjectId', async () => {
       await expect(
-        service.editManualActivity(activityId, userId, organizationId, updateDto),
+        service.editManualActivity(
+          'invalid-id',
+          userId,
+          organizationId,
+          {},
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw UnauthorizedException when user does not own activity', async () => {
-      const anotherUserId = new Types.ObjectId().toString();
+    it('should throw NotFoundException if activity is not found', async () => {
+      mockActivityModel.findOne.mockResolvedValue(null);
 
       await expect(
-        service.editManualActivity(activityId, anotherUserId, organizationId, { name: 'Test' }),
+        service.editManualActivity(activityId, userId, organizationId, {}),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw UnauthorizedException if user mismatch', async () => {
+      const unauthorizedActivity = { ...mockActivity, user: new Types.ObjectId() };
+      mockActivityModel.findOne.mockResolvedValue(unauthorizedActivity);
+
+      await expect(
+        service.editManualActivity(activityId, userId, organizationId, {}),
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw BadRequestException if activity is not manual', async () => {
-      mockActivityModel.findOne.mockResolvedValue({
-        ...existingActivity,
-        manualType: undefined,
-      });
+    it('should throw BadRequestException if not a manual activity', async () => {
+      const nonManualActivity = { ...mockActivity, manualType: undefined };
+      mockActivityModel.findOne.mockResolvedValue(nonManualActivity);
 
       await expect(
-        service.editManualActivity(activityId, userId, organizationId, { name: 'Test' }),
+        service.editManualActivity(activityId, userId, organizationId, {}),
       ).rejects.toThrow(BadRequestException);
     });
-  });
 
+    it('should throw BadRequestException if endTime is before startTime', async () => {
+      mockActivityModel.findOne.mockResolvedValue(mockActivity);
+
+      const invalidDto = {
+        startTime: '2025-05-20T13:00:00Z',
+        endTime: '2025-05-20T12:00:00Z',
+      };
+
+      await expect(
+        service.editManualActivity(
+          activityId,
+          userId,
+          organizationId,
+          invalidDto,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw InternalServerErrorException for unexpected error', async () => {
+      mockActivityModel.findOne.mockRejectedValue(new Error('Unexpected'));
+
+      await expect(
+        service.editManualActivity(activityId, userId, organizationId, {}),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+  
 });
