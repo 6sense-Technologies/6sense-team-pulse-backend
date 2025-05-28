@@ -401,6 +401,227 @@ export class WorksheetService {
     }
   }
 
+  // async getActivitiesForWorksheetEnh(
+  //   requesterId: string,
+  //   organizationId: string,
+  //   worksheetId: string,
+  //   timezoneRegion: string = 'UTC',
+  //   page: number = 1,
+  //   limit: number = 10,
+  //   sortOrder: 'latest' | 'oldest' = 'latest',
+  //   search?: string,
+  //   isAdmin: boolean = false,
+  // ): Promise<any> {
+  //   try {
+  //     const worksheet = await this.worksheetModel
+  //       .findById(worksheetId);
+  //       // .populate('users organization project');
+  //       // .select('users organization project updatedAt')
+
+  //     if (!worksheet) {
+  //       throw new BadRequestException('Worksheet not found.');
+  //     }
+
+  //     if (worksheet.organization.toString() !== organizationId) {
+  //       throw new UnauthorizedException('Invalid organization access.');
+  //     }
+
+  //     const isOwner = requesterId === worksheet.user.toString();
+
+  //     if (!isOwner) {
+  //       if (!isAdmin) {
+  //         throw new UnauthorizedException('You are not authorized to view this worksheet.');
+  //       }
+
+  //       // Check if requester is part of the worksheet's project using aggregation
+  //       const projectAccess = await this.worksheetModel.aggregate([
+  //         {
+  //           $match: {
+  //             _id: new Types.ObjectId(worksheetId),
+  //             organization: new Types.ObjectId(organizationId),
+  //           },
+  //         },
+  //         {
+  //           $lookup: {
+  //             from: 'organizationprojectusers',
+  //             localField: 'project',
+  //             foreignField: 'project',
+  //             as: 'memberships',
+  //           },
+  //         },
+  //         { $unwind: '$memberships' },
+  //         {
+  //           $match: {
+  //             'memberships.user': new Types.ObjectId(requesterId),
+  //           },
+  //         },
+  //         { $limit: 1 },
+  //         { $project: { _id: 1 } },
+  //       ]);
+
+  //       if (!projectAccess.length) {
+  //         throw new UnauthorizedException(
+  //           'Admin is not a member of the worksheet project.',
+  //         );
+  //       }
+  //     }
+
+  //     const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
+  //     const sortDirection = sortOrder === 'latest' ? -1 : 1;
+
+  //     const searchMatch = search
+  //       ? { 'activity.name': { $regex: search, $options: 'i' } }
+  //       : {};
+
+  //     const result = await this.worksheetActivityModel.aggregate([
+  //       { $match: { worksheet: new Types.ObjectId(worksheetId) } },
+
+  //       {
+  //         $lookup: {
+  //           from: 'activities',
+  //           localField: 'activity',
+  //           foreignField: '_id',
+  //           as: 'activity',
+  //         },
+  //       },
+  //       { $unwind: '$activity' },
+
+  //       {
+  //         $match: {
+  //           'activity.user': new Types.ObjectId(worksheet.user.toString()),
+  //           'activity.organization': new Types.ObjectId(organizationId),
+  //           ...searchMatch,
+  //         },
+  //       },
+
+  //       {
+  //         $lookup: {
+  //           from: 'applications',
+  //           localField: 'activity.application',
+  //           foreignField: '_id',
+  //           as: 'application',
+  //         },
+  //       },
+  //       {
+  //         $unwind: {
+  //           path: '$application',
+  //           preserveNullAndEmptyArrays: true,
+  //         },
+  //       },
+
+  //       {
+  //         $addFields: {
+  //           icon: {
+  //             $cond: {
+  //               if: { $ifNull: ['$activity.faviconUrl', false] },
+  //               then: '$activity.faviconUrl',
+  //               else: '$application.icon',
+  //             },
+  //           },
+  //           timeSpentSeconds: {
+  //             $divide: [
+  //               { $subtract: ['$activity.endTime', '$activity.startTime'] },
+  //               1000,
+  //             ],
+  //           },
+  //         },
+  //       },
+
+  //       {
+  //         $facet: {
+  //           data: [
+  //             { $sort: { 'activity.startTime': sortDirection } },
+  //             { $skip: skip },
+  //             { $limit: limit },
+  //             {
+  //               $project: {
+  //                 _id: 1,
+  //                 name: '$activity.name',
+  //                 startTime: '$activity.startTime',
+  //                 endTime: '$activity.endTime',
+  //                 icon: 1,
+  //                 timeSpentSeconds: 1,
+  //               },
+  //             },
+  //           ],
+  //           totalCount: [{ $count: 'count' }],
+  //           totalTime: [
+  //             {
+  //               $group: {
+  //                 _id: null,
+  //                 totalSeconds: { $sum: '$timeSpentSeconds' },
+  //               },
+  //             },
+  //           ],
+  //         },
+  //       },
+  //     ]);
+
+  //     const activities = result[0].data || [];
+  //     const totalCount = result[0].totalCount[0]?.count || 0;
+  //     const totalSeconds = Math.floor(result[0].totalTime[0]?.totalSeconds || 0);
+
+  //     const { hours, minutes, seconds } = calculateTimeSpent(
+  //       new Date(0),
+  //       new Date(totalSeconds * 1000),
+  //     );
+
+  //     const user = await this.userModel
+  //       .findById(worksheet.user, 'name profilePic')
+  //       .lean();
+
+  //     const transformed = activities.map((wa) => ({
+  //       name: wa.name,
+  //       startTime: wa.startTime,
+  //       endTime: wa.endTime,
+  //       icon: wa.icon,
+  //       timeSpent: calculateTimeSpent(wa.startTime, wa.endTime),
+  //     }));
+
+  //     return {
+  //       worksheetId: worksheet._id,
+  //       lastReportedOn: worksheet.updatedAt,
+  //       reportedBy: {
+  //         userId: worksheet.user,
+  //         name: user?.name || 'Unknown',
+  //         profilePic: user?.profilePic || null,
+  //       },
+  //       data: transformed,
+  //       totalLoggedTime: {
+  //         totalSeconds,
+  //         hours,
+  //         minutes,
+  //         seconds,
+  //       },
+  //       paginationMetadata: {
+  //         page,
+  //         limit,
+  //         totalCount,
+  //         totalPages: Math.ceil(totalCount / limit),
+  //       },
+  //     };
+  //   } catch (error) {
+  //     this.logger.error('Error fetching worksheet activities', {
+  //       requesterId,
+  //       worksheetId,
+  //       isAdmin,
+  //       error: error.message,
+  //     });
+
+  //     if (
+  //       error instanceof BadRequestException ||
+  //       error instanceof UnauthorizedException
+  //     ) {
+  //       throw error;
+  //     }
+
+  //     throw new InternalServerErrorException(
+  //       'Unable to fetch activities for worksheet.',
+  //     );
+  //   }
+  // }
+
+
   // private calculateTimeSpent(start: Date, end: Date) {
   //   if (!start || !end) {
   //     return { hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 };
@@ -571,4 +792,189 @@ export class WorksheetService {
       throw new InternalServerErrorException('Unable to retrieve worksheets.');
     }
   }
+
+  async getProjectMemberWorksheets(
+    projectId: string,
+    organizationId: string,
+    page: number = 1,
+    limit: number = 10,
+    sortBy: 'duration' | 'reportedTime' = 'reportedTime',
+    sortOrder: 'oldest' | 'latest' = 'latest',
+    startDate?: string,
+    endDate?: string,
+    search?: string,
+  ) {
+    try {
+      const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
+      const sortMultiplier = sortOrder === 'oldest' ? 1 : -1;
+
+      const matchStage: any = {
+        organization: new Types.ObjectId(organizationId),
+        project: new Types.ObjectId(projectId),
+      };
+
+      if (startDate || endDate) {
+        matchStage.date = {};
+        if (startDate) matchStage.date.$gte = new Date(startDate);
+        if (endDate) matchStage.date.$lte = new Date(endDate);
+      }
+
+      if (search) {
+        matchStage.name = { $regex: search, $options: 'i' }; // partial, case-insensitive
+      }
+
+      const rawData = await this.worksheetModel.aggregate([
+        { $match: matchStage },
+
+        {
+          $lookup: {
+            from: 'projects',
+            localField: 'project',
+            foreignField: '_id',
+            as: 'project',
+          },
+        },
+        { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
+            from: 'worksheetactivities',
+            localField: '_id',
+            foreignField: 'worksheet',
+            as: 'worksheetActivities',
+          },
+        },
+        { $unwind: { path: '$worksheetActivities', preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
+            from: 'activities',
+            localField: 'worksheetActivities.activity',
+            foreignField: '_id',
+            as: 'activity',
+          },
+        },
+        { $unwind: { path: '$activity', preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+      ]);
+
+      // Grouping + processing
+      const grouped: Record<string, any> = {};
+
+      for (const item of rawData) {
+        const worksheetId = item._id.toString();
+
+        if (!grouped[worksheetId]) {
+          grouped[worksheetId] = {
+            worksheetId: item._id,
+            name: item.name,
+            date: item.date,
+            createdAt: item.createdAt,
+            projectName: item.project?.name || null,
+            totalSeconds: 0,
+            totalActivities: 0,
+            containsManualActivity: false,
+            user: {
+              _id: item.user?._id,
+              displayName: item.user?.displayName,
+              avatarUrls: item.user?.avatarUrls,
+            },
+          };
+        }
+
+        const activity = item.activity;
+        if (activity) {
+          const start = activity.startTime ? new Date(activity.startTime) : null;
+          const end = activity.endTime ? new Date(activity.endTime) : null;
+
+          const timeSpent = calculateTimeSpent(start, end);
+          grouped[worksheetId].totalSeconds += timeSpent.totalSeconds;
+          grouped[worksheetId].totalActivities += 1;
+
+          if (activity.manualType) {
+            grouped[worksheetId].containsManualActivity = true;
+          }
+        }
+      }
+
+      const allWorksheets = Object.values(grouped).map((ws: any) => {
+        const { hours, minutes, seconds, totalSeconds } = calculateTimeSpent(
+          new Date(0),
+          new Date(ws.totalSeconds * 1000),
+        );
+
+        return {
+          worksheetId: ws.worksheetId,
+          name: ws.name,
+          date: ws.date,
+          createdAt: ws.createdAt,
+          projectName: ws.projectName,
+          containsManualActivity: ws.containsManualActivity,
+          totalActivities: ws.totalActivities,
+          totalLoggedTime: {
+            totalSeconds,
+            hours,
+            minutes,
+            seconds,
+          },
+          user: ws.user,
+        };
+      });
+
+      // Sorting
+      allWorksheets.sort((a, b) => {
+        const valA =
+          sortBy === 'duration'
+            ? a.totalLoggedTime.totalSeconds
+            : new Date(a.createdAt).getTime();
+        const valB =
+          sortBy === 'duration'
+            ? b.totalLoggedTime.totalSeconds
+            : new Date(b.createdAt).getTime();
+
+        return sortMultiplier * (valA - valB);
+      });
+
+      // Pagination
+      const paginated = allWorksheets.slice(skip, skip + limit);
+      const totalCount = allWorksheets.length;
+
+      return {
+        data: paginated,
+        paginationMetadata: {
+          page,
+          limit,
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to fetch project member worksheets', {
+        projectId,
+        organizationId,
+        startDate,
+        endDate,
+        error: error.message,
+      });
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException('Unable to retrieve project worksheets.');
+    }
+  }
+
 }
