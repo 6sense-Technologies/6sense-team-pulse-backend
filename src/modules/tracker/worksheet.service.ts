@@ -416,7 +416,8 @@ export class WorksheetService {
       // Populate just user's name and profilePic
       const worksheet = await this.worksheetModel
         .findById(worksheetId)
-        .populate('user', 'displayName avatarUrls');
+        .populate('user', 'displayName avatarUrls')
+        .populate('project', 'name');
 
       if (!worksheet) {
         throw new BadRequestException('Worksheet not found.');
@@ -580,6 +581,8 @@ export class WorksheetService {
 
       return {
         worksheetId: worksheet._id,
+        worksheetName: worksheet.name,
+        projectName: worksheet.project.name,
         lastReportedOn: worksheet.lastReportedOn,
         reportedBy: {
           userId: worksheet.user._id,
