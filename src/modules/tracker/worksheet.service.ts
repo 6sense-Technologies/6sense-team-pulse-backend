@@ -719,10 +719,11 @@ export class WorksheetService {
         const worksheetId = item._id.toString();
 
         if (!grouped[worksheetId]) {
+          const [year, month, day] = item.date.split('-');
           grouped[worksheetId] = {
             worksheetId: item._id,
             name: item.name,
-            date: item.date,
+            date: `${day}-${month}-${year}`,
             projectName: item.project?.name || null,
             totalSeconds: 0,
           };
