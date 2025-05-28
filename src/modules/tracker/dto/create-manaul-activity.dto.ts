@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsDateString,
-  IsIn,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 const ALLOWED_MANUAL_TYPES = [

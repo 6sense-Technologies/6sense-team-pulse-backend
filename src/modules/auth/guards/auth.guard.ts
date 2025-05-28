@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthService } from '../auth.service';
@@ -48,6 +49,7 @@ export class AuthGuard implements CanActivate {
       // Attach organizationId and userId to request for downstream use
       request.user.userId = user.userId;
       request.user.organizationId = organizationId;
+      request.user.role = orgUser.role.roleName;
 
       return true;
     } catch (err) {
@@ -55,7 +57,8 @@ export class AuthGuard implements CanActivate {
       if (
         err instanceof UnauthorizedException ||
         err instanceof BadRequestException ||
-        err instanceof ForbiddenException
+        err instanceof ForbiddenException ||
+        err instanceof NotFoundException
       ) {
         throw err;
       }

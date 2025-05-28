@@ -62,7 +62,9 @@ export class WorksheetsGetByProjectQueryDto {
   @IsEnum(['oldest', 'latest'])
   'sort-order': 'oldest' | 'latest' = 'latest';
 
-  @ApiPropertyOptional({ description: 'Search by worksheet name (partial match)' })
+  @ApiPropertyOptional({
+    description: 'Search by worksheet name (partial match)',
+  })
   @IsOptional()
   @IsString()
   search?: string;

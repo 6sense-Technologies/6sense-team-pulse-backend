@@ -273,7 +273,6 @@ describe('WorksheetService', () => {
     });
   });
 
-
   describe('getActivitiesForWorksheet', () => {
     const userId = new Types.ObjectId().toString();
     const organizationId = new Types.ObjectId().toString();
