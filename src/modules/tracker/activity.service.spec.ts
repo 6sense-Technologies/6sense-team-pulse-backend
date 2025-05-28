@@ -419,9 +419,7 @@ describe('ActivityService', () => {
 
     it('should throw InternalServerErrorException on unexpected error', async () => {
       const errorMessage = 'DB insert failed';
-      mockActivityModel.insertOne.mockRejectedValue(
-        new Error(errorMessage),
-      );
+      mockActivityModel.insertOne.mockRejectedValue(new Error(errorMessage));
 
       await expect(
         service.createManualActivity(validDto, userId, organizationId),
@@ -545,12 +543,7 @@ describe('ActivityService', () => {
 
     it('should throw BadRequestException for invalid ObjectId', async () => {
       await expect(
-        service.editManualActivity(
-          'invalid-id',
-          userId,
-          organizationId,
-          {},
-        ),
+        service.editManualActivity('invalid-id', userId, organizationId, {}),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -563,7 +556,10 @@ describe('ActivityService', () => {
     });
 
     it('should throw UnauthorizedException if user mismatch', async () => {
-      const unauthorizedActivity = { ...mockActivity, user: new Types.ObjectId() };
+      const unauthorizedActivity = {
+        ...mockActivity,
+        user: new Types.ObjectId(),
+      };
       mockActivityModel.findOne.mockResolvedValue(unauthorizedActivity);
 
       await expect(
@@ -606,5 +602,4 @@ describe('ActivityService', () => {
       ).rejects.toThrow(InternalServerErrorException);
     });
   });
-  
 });

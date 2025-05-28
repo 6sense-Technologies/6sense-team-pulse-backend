@@ -137,8 +137,7 @@ export class ActivityService {
     organizationId: string,
   ) {
     try {
-      const { name, startTime, endTime, manualType } =
-        createManualActivityDto;
+      const { name, startTime, endTime, manualType } = createManualActivityDto;
 
       if (new Date(endTime) <= new Date(startTime)) {
         throw new BadRequestException('End time must be after start time.');
@@ -167,7 +166,6 @@ export class ActivityService {
     updateDto: UpdateManualActivityDto,
   ): Promise<Activity> {
     try {
-
       if (!isValidObjectId(activityId)) {
         throw new BadRequestException('Invalid activity ID format.');
       }
@@ -184,7 +182,9 @@ export class ActivityService {
         activity.user.toString() !== userId ||
         activity.organization.toString() !== organizationId
       ) {
-        throw new UnauthorizedException('You do not have permission to edit this activity.');
+        throw new UnauthorizedException(
+          'You do not have permission to edit this activity.',
+        );
       }
 
       if (activity.manualType == undefined) {
@@ -215,7 +215,9 @@ export class ActivityService {
         throw error;
       }
       this.logger.error('Failed to update manual activity', error.message);
-      throw new InternalServerErrorException('Could not update manual activity');
+      throw new InternalServerErrorException(
+        'Could not update manual activity',
+      );
     }
   }
 

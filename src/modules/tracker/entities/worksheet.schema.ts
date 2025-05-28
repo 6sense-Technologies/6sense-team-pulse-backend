@@ -3,7 +3,7 @@ import { HydratedDocument } from 'mongoose';
 import { Types } from 'mongoose';
 import { Project } from '../../../schemas/Project.schema';
 import { Organization } from 'src/schemas/Organization.schema';
-import { User } from 'src/schemas/user.schema';
+import { Users } from 'src/schemas/users.schema';
 
 export type WorksheetDocument = HydratedDocument<Worksheet>;
 
@@ -15,8 +15,8 @@ export class Worksheet {
   @Prop({ type: Types.ObjectId, ref: Project.name, required: true })
   organization: Organization;
 
-  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
-  user: User;
+  @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
+  user: Users;
 
   @Prop({ type: Types.ObjectId, ref: Project.name, required: true })
   project: Project;
