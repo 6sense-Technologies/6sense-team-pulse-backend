@@ -29,6 +29,7 @@ import { WorksheetGetNamesQueryDto } from './dto/worksheet-get-names.query';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
 import { UpdateManualActivityDto } from './dto/update-manaul-activity.dto';
+import { WorksheetsGetByProjectQueryDto } from './dto/worksheet-get-project.query';
 
 @Controller('timelog')
 export class TimelogController {
@@ -227,6 +228,50 @@ export class TimelogController {
       endDate,
     );
   }
+
+  @Get('worksheet/project-member-list')
+  @ApiOperation({ summary: 'Get all worksheets of a project\'s members (admin only)' })
+  @ApiBearerAuth()
+  @Auth() // You can add role-based check here if needed
+  @ApiQuery({ name: 'projectId', type: String, required: true })
+  @ApiQuery({ name: 'page', type: Number, required: false, example: 1 })
+  @ApiQuery({ name: 'limit', type: Number, required: false, example: 10 })
+  @ApiQuery({ name: 'start-date', type: String, required: false, example: '2025-05-01' })
+  @ApiQuery({ name: 'end-date', type: String, required: false, example: '2025-05-22' })
+  @ApiQuery({ name: 'sort-by', enum: ['duration', 'reportedTime'], required: false, example: 'reportedTime' })
+  @ApiQuery({ name: 'sort-order', enum: ['asc', 'desc'], required: false, example: 'desc' })
+  @ApiQuery({ name: 'search', type: String, required: false, example: 'sprint planning' })
+  @ApiResponse({ status: 200, description: 'List of worksheets by project members' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getProjectMemberWorksheets(
+    @Req() req: any,
+    @Query() query: WorksheetsGetByProjectQueryDto,
+    // @Query('projectId') projectId: string,
+    // @Query('page') page = '1',
+    // @Query('limit') limit = '10',
+    // @Query('start-date') startDate?: string,
+    // @Query('end-date') endDate?: string,
+    // @Query('sort-by') sortBy: 'duration' | 'reportedTime' = 'reportedTime',
+    // @Query('sort-order') sortOrder: 'oldest' | 'latest' = 'latest',
+    // @Query('search') search?: string,
+  ): Promise<any> {
+
+    const organizationId = req.user.organizationId;
+
+    return this.worksheetService.getProjectMemberWorksheets(
+      query['project-id'],
+      organizationId,
+      query.page,
+      query.limit,
+      query['sort-by'],
+      query['sort-order'],
+      query['start-date'],
+      query['end-date'],
+      query.search,
+    );
+  }
+
 
   @Auth()
   @ApiBearerAuth()
