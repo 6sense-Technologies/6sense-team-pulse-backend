@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { IsMongoId, IsOptional, Matches } from 'class-validator';
 import { RequestMetadataDto } from './request-metadata.dto';
 
 // Decorator part
@@ -17,7 +16,7 @@ export const RequestMetadata = createParamDecorator(
 
     // Extract headers and map to DTO
     const metadata = plainToInstance(RequestMetadataDto, {
-      organizationId: headers['organization-id'],
+      // organizationId: headers['organization-id'],
       // timezoneOffset: headers['x-timezone-offset'],
       timezoneRegion: headers['timezone-region'] || 'Etc/UTC',
     });

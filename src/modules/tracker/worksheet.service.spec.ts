@@ -2,13 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WorksheetService } from './worksheet.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { getConnectionToken } from '@nestjs/mongoose';
-import { OrganizationService } from '../organization/organization.service';
 import { ActivityService } from './activity.service';
 import { Worksheet } from './entities/worksheet.schema';
 import { WorksheetActivity } from './entities/worksheetActivity.schema';
 import {
   BadRequestException,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Types } from 'mongoose';
@@ -21,12 +21,15 @@ describe('WorksheetService', () => {
     aggregate: jest.fn(),
     findOneAndUpdate: jest.fn(),
     findById: jest.fn(),
+    deleteOne: jest.fn(),
   };
 
   const mockWorksheetActivityModel = {
     aggregate: jest.fn(),
     find: jest.fn(),
     insertMany: jest.fn(),
+    deleteMany: jest.fn(),
+    countDocuments: jest.fn(),
   };
 
   const mockConnection = {
@@ -91,7 +94,7 @@ describe('WorksheetService', () => {
       ];
 
       // Mock the aggregate method
-      (mockWorksheetModel.aggregate as jest.Mock).mockResolvedValueOnce(
+      (mockWorksheetModel.aggregate).mockResolvedValueOnce(
         mockAggregationResult,
       );
 
@@ -337,7 +340,6 @@ describe('WorksheetService', () => {
         userId,
         organizationId,
         worksheetId,
-        timezoneRegion,
         page,
         limit,
         sortOrder,
@@ -381,7 +383,6 @@ describe('WorksheetService', () => {
           userId,
           organizationId,
           worksheetId,
-          timezoneRegion,
           page,
           limit,
           sortOrder,
@@ -499,4 +500,129 @@ describe('WorksheetService', () => {
       expect(sessionMock.endSession).toHaveBeenCalled();
     });
   });
+
+  describe('removeActivitiesFromWorksheet', () => {
+    const userId = new Types.ObjectId().toString();
+    const organizationId = new Types.ObjectId().toString();
+    const worksheetId = new Types.ObjectId().toString();
+    const activityIds = [new Types.ObjectId().toString(), new Types.ObjectId().toString()];
+    const activityObjectIds = activityIds.map((id) => new Types.ObjectId(id));
+
+    let sessionMock;
+
+    beforeEach(() => {
+      sessionMock = {
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        abortTransaction: jest.fn(),
+        endSession: jest.fn(),
+      };
+
+      mockConnection.startSession = jest.fn().mockReturnValue(sessionMock);
+    });
+
+    it('should remove activities and return summary if successful', async () => {
+      const mockWorksheet = {
+        _id: new Types.ObjectId(),
+        user: userId,
+        organization: organizationId,
+      };
+
+      const mockDeleteResult = { deletedCount: 2 };
+
+      mockWorksheetModel.findById = jest.fn().mockResolvedValue(mockWorksheet);
+
+      mockWorksheetActivityModel.find = jest.fn().mockReturnValueOnce({
+        session: jest.fn().mockResolvedValue(
+          activityObjectIds.map((id) => ({ activity: id })),
+        ),
+      });
+
+      mockWorksheetActivityModel.deleteMany = jest.fn().mockReturnValueOnce({
+        session: jest.fn().mockResolvedValue(mockDeleteResult),
+      });
+
+      mockWorksheetActivityModel.countDocuments = jest.fn().mockReturnValueOnce({
+        session: jest.fn().mockResolvedValue(0),
+      });
+
+      mockWorksheetModel.deleteOne = jest.fn().mockReturnValueOnce({
+        session: jest.fn().mockResolvedValue({}),
+      });
+
+      const result = await service.removeActivitiesFromWorksheet(
+        userId,
+        organizationId,
+        worksheetId,
+        activityIds,
+      );
+
+      expect(result).toEqual({
+        worksheetId: mockWorksheet._id,
+        removedCount: 2,
+        worksheetDeleted: true,
+      });
+      expect(sessionMock.commitTransaction).toHaveBeenCalled();
+      expect(sessionMock.endSession).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if worksheet not found', async () => {
+      mockWorksheetModel.findById = jest.fn().mockResolvedValue(null);
+
+      await expect(
+        service.removeActivitiesFromWorksheet(userId, organizationId, worksheetId, activityIds),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw UnauthorizedException if user/org mismatch', async () => {
+      const mockWorksheet = {
+        _id: worksheetId,
+        user: new Types.ObjectId().toString(),
+        organization: new Types.ObjectId().toString(),
+      };
+
+      mockWorksheetModel.findById = jest.fn().mockResolvedValue(mockWorksheet);
+
+      await expect(
+        service.removeActivitiesFromWorksheet(userId, organizationId, worksheetId, activityIds),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw BadRequestException if some activityIds are not linked to the worksheet', async () => {
+      const mockWorksheet = {
+        _id: worksheetId,
+        user: userId,
+        organization: organizationId,
+      };
+
+      mockWorksheetModel.findById = jest.fn().mockResolvedValue(mockWorksheet);
+
+      mockWorksheetActivityModel.find = jest.fn().mockReturnValueOnce({
+        session: jest.fn().mockResolvedValue([]), // No valid activities
+      });
+
+      await expect(
+        service.removeActivitiesFromWorksheet(userId, organizationId, worksheetId, activityIds),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw InternalServerErrorException on unknown errors', async () => {
+      const mockWorksheet = {
+        _id: worksheetId,
+        user: userId,
+        organization: organizationId,
+      };
+
+      mockWorksheetModel.findById = jest.fn().mockResolvedValue(mockWorksheet);
+
+      mockWorksheetActivityModel.find = jest.fn().mockImplementation(() => {
+        throw new Error('Unexpected DB Error');
+      });
+
+      await expect(
+        service.removeActivitiesFromWorksheet(userId, organizationId, worksheetId, activityIds),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+
 });
