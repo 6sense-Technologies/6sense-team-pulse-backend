@@ -21,7 +21,6 @@ import { ActivitySession } from './tracker.interface';
 import { ApplicationService } from './application.service';
 import { calculateTimeSpent } from './time.utils';
 import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
-import { Create } from 'sharp';
 import { UpdateManualActivityDto } from './dto/update-manaul-activity.dto';
 
 @Injectable()

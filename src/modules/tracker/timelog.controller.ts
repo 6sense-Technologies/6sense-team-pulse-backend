@@ -9,6 +9,7 @@ import {
   Query,
   BadRequestException,
   Patch,
+  Delete,
 } from '@nestjs/common';
 // import { TrackerService } from './tracker.service';
 import { ActivityService } from './activity.service';
@@ -30,6 +31,7 @@ import { Auth } from '../auth/decorators/auth.decorator';
 import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
 import { UpdateManualActivityDto } from './dto/update-manaul-activity.dto';
 import { WorksheetsGetByProjectQueryDto } from './dto/worksheet-get-project.query';
+import { RemoveActivitiesDto } from './dto/remove-activities.dto';
 
 @Controller('timelog')
 export class TimelogController {
@@ -171,6 +173,25 @@ export class TimelogController {
       userId,
       req['user'].organizationId,
       assignActivitiesDto,
+    );
+  }
+
+  @Auth()
+  @ApiBearerAuth()
+  @Delete('worksheet/remove-activities')
+  @ApiOperation({ summary: 'Remove activities from a worksheet' })
+  async removeActivitiesFromWorksheet(
+    @Req() req: any,
+    @Body() removeActivitiesDto: RemoveActivitiesDto,
+  ): Promise<any> {
+    const userId = req.user.userId;
+    const organizationId = req.user.organizationId;
+
+    return await this.worksheetService.removeActivitiesFromWorksheet(
+      userId,
+      organizationId,
+      removeActivitiesDto.worksheetId,
+      removeActivitiesDto.activityIds,
     );
   }
 

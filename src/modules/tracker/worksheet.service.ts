@@ -14,7 +14,6 @@ import { WorksheetActivity } from './entities/worksheetActivity.schema';
 import { ActivityService } from './activity.service';
 import { AssignActivitiesDto } from './dto/assign-activities.dto';
 import { calculateTimeSpent } from './time.utils';
-import { Users } from 'src/schemas/users.schema';
 
 @Injectable()
 export class WorksheetService {
@@ -262,6 +261,101 @@ export class WorksheetService {
       );
     }
   }
+
+  async removeActivitiesFromWorksheet(
+    userId: string,
+    organizationId: string,
+    worksheetId: string,
+    activityIds: string[],
+  ) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      const worksheet = await this.worksheetModel.findById(worksheetId);
+
+      if (!worksheet) {
+        throw new NotFoundException('Worksheet not found.');
+      }
+
+      if (
+        worksheet.user.toString() !== userId ||
+        worksheet.organization.toString() !== organizationId
+      ) {
+        throw new UnauthorizedException(
+          'You are not authorized to remove activities from this worksheet.',
+        );
+      }
+
+      const activityObjectIds = activityIds.map((id) => new Types.ObjectId(id));
+
+      // 🔍 Validate that all activityIds belong to this worksheet
+      const validLinks = await this.worksheetActivityModel
+        .find({
+          worksheet: worksheet._id,
+          activity: { $in: activityObjectIds },
+        })
+        .session(session);
+
+      const validActivityIds = validLinks.map((link) =>
+        link.activity.toString(),
+      );
+      if (validActivityIds.length !== activityIds.length) {
+        throw new BadRequestException(
+          'One or more activities are not part of this worksheet.',
+        );
+      }
+
+      // 🧹 Remove valid activities
+      const result = await this.worksheetActivityModel.deleteMany({
+        worksheet: worksheet._id,
+        activity: { $in: activityObjectIds },
+      }).session(session);
+
+      // 📉 Check if worksheet has any activities left
+      const remainingActivities = await this.worksheetActivityModel
+        .countDocuments({ worksheet: worksheet._id })
+        .session(session);
+
+      // 🗑️ If no activities left, remove the worksheet itself
+      if (remainingActivities === 0) {
+        await this.worksheetModel.deleteOne({ _id: worksheet._id }).session(session);
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return {
+        worksheetId: worksheet._id,
+        removedCount: result.deletedCount,
+        worksheetDeleted: remainingActivities === 0,
+      };
+    } catch (error) {
+      this.logger.error('Failed to remove activities from worksheet', {
+        userId,
+        organizationId,
+        worksheetId,
+        activityIds,
+        error: error.message,
+      });
+
+      await session.abortTransaction();
+      session.endSession();
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Could not remove activities from worksheet',
+      );
+    }
+  }
+
 
   async getActivitiesForWorksheetold(
     userId: string,
@@ -538,11 +632,12 @@ export class WorksheetService {
               { $limit: limit },
               {
                 $project: {
-                  _id: 1,
+                  _id: '$activity._id',
                   name: '$activity.name',
                   startTime: '$activity.startTime',
                   endTime: '$activity.endTime',
                   icon: 1,
+                  manualType: '$activity.manualType',
                   timeSpentSeconds: 1,
                 },
               },
@@ -572,10 +667,12 @@ export class WorksheetService {
       );
 
       const transformed = activities.map((wa) => ({
+        _id: wa._id,
         name: wa.name,
         startTime: wa.startTime,
         endTime: wa.endTime,
         icon: wa.icon,
+        manualType: wa.manualType,
         timeSpent: calculateTimeSpent(wa.startTime, wa.endTime),
       }));
 
