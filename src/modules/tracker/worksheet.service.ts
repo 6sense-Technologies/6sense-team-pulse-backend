@@ -356,7 +356,7 @@ export class WorksheetService {
     }
   }
 
-
+  // istanbul ignore next
   async getActivitiesForWorksheetold(
     userId: string,
     organizationId: string,
@@ -511,7 +511,8 @@ export class WorksheetService {
       const worksheet = await this.worksheetModel
         .findById(worksheetId)
         .populate('user', 'displayName avatarUrls')
-        .populate('project', 'name');
+        .populate('project', 'name')
+        .exec();
 
       if (!worksheet) {
         throw new BadRequestException('Worksheet not found.');

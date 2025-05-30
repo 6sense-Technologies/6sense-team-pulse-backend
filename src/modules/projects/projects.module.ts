@@ -29,6 +29,7 @@ import {
 } from '../../schemas/OrganizationUserRole.schema';
 import { JwtService } from '@nestjs/jwt';
 import { OrganizationModule } from '../organization/organization.module';
+import { TrackerModule } from '../tracker/tracker.module';
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -50,6 +51,7 @@ import { OrganizationModule } from '../organization/organization.module';
       },
     ]),
     OrganizationModule,
+    TrackerModule,
   ],
   controllers: [ProjectsController],
   providers: [ProjectsService, JwtService],

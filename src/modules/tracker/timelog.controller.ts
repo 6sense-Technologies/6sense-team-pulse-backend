@@ -30,7 +30,6 @@ import { WorksheetGetNamesQueryDto } from './dto/worksheet-get-names.query';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { CreateManualActivityDto } from './dto/create-manaul-activity.dto';
 import { UpdateManualActivityDto } from './dto/update-manaul-activity.dto';
-import { WorksheetsGetByProjectQueryDto } from './dto/worksheet-get-project.query';
 import { RemoveActivitiesDto } from './dto/remove-activities.dto';
 
 @Controller('timelog')
@@ -256,110 +255,6 @@ export class TimelogController {
     );
   }
 
-  @Get('worksheet/project-member-list')
-  @ApiOperation({
-    summary: "Get all worksheets of a project's members",
-  })
-  @ApiBearerAuth()
-  @Auth(['admin']) // You can add role-based check here if needed
-  @ApiQuery({ name: 'projectId', type: String, required: true })
-  @ApiQuery({ name: 'page', type: Number, required: false, example: 1 })
-  @ApiQuery({ name: 'limit', type: Number, required: false, example: 10 })
-  @ApiQuery({
-    name: 'start-date',
-    type: String,
-    required: false,
-    example: '2025-05-01',
-  })
-  @ApiQuery({
-    name: 'end-date',
-    type: String,
-    required: false,
-    example: '2025-05-22',
-  })
-  @ApiQuery({
-    name: 'sort-by',
-    enum: ['duration', 'reportedTime'],
-    required: false,
-    example: 'reportedTime',
-  })
-  @ApiQuery({
-    name: 'sort-order',
-    enum: ['asc', 'desc'],
-    required: false,
-    example: 'desc',
-  })
-  @ApiQuery({
-    name: 'search',
-    type: String,
-    required: false,
-    example: 'sprint planning',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'List of worksheets by project members',
-  })
-  @ApiResponse({ status: 400, description: 'Invalid input' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProjectMemberWorksheets(
-    @Req() req: any,
-    @Query() query: WorksheetsGetByProjectQueryDto,
-    // @Query('projectId') projectId: string,
-    // @Query('page') page = '1',
-    // @Query('limit') limit = '10',
-    // @Query('start-date') startDate?: string,
-    // @Query('end-date') endDate?: string,
-    // @Query('sort-by') sortBy: 'duration' | 'reportedTime' = 'reportedTime',
-    // @Query('sort-order') sortOrder: 'oldest' | 'latest' = 'latest',
-    // @Query('search') search?: string,
-  ): Promise<any> {
-    const organizationId = req.user.organizationId;
-
-    return this.worksheetService.getProjectMemberWorksheets(
-      query['project-id'],
-      organizationId,
-      query.page,
-      query.limit,
-      query['sort-by'],
-      query['sort-order'],
-      query['start-date'],
-      query['end-date'],
-      query.search,
-    );
-  }
-
-  // @Auth()
-  // @ApiBearerAuth()
-  // @Get('worksheet/:worksheetId')
-  // @ApiOperation({ summary: 'Get activities in a worksheet' })
-  // @ApiQuery({ name: 'page', required: false, type: Number })
-  // @ApiQuery({ name: 'limit', required: false, type: Number })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'List of activities in the worksheet',
-  // })
-  // @ApiResponse({ status: 401, description: 'Unauthorized access' })
-  // async getActivitiesInWorksheet(
-  //   @Req() req: any,
-  //   @RequestMetadata() metadata: RequestMetadataDto,
-  //   @Param('worksheetId') worksheetId: string,
-  //   @Query('page') page: string = '1',
-  //   @Query('limit') limit: string = '10',
-  //   @Query('sort-order') sortOrder: 'latest' | 'oldest' = 'latest',
-  // ): Promise<any> {
-  //   const userId = req.user.userId;
-
-  //   return this.worksheetService.getActivitiesForWorksheet(
-  //     userId,
-  //     req['user'].organizationId,
-  //     worksheetId,
-  //     metadata.timezoneRegion,
-  //     parseInt(page),
-  //     parseInt(limit),
-  //     sortOrder,
-  //   );
-  // }
-
   @Auth()
   @ApiBearerAuth()
   @Get('worksheet/:worksheetId')
@@ -388,7 +283,7 @@ export class TimelogController {
   ): Promise<any> {
     const userId = req.user.userId;
     const organizationId = req.user.organizationId;
-    const isAdmin = req.user.role === 'admin'; // Assuming role is part of user object
+    const isAdmin = false; // Assuming role is part of user object
 
     return this.worksheetService.getActivitiesForWorksheet(
       userId,

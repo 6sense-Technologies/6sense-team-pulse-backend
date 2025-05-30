@@ -12,7 +12,7 @@ import {
   IsMongoId,
 } from 'class-validator';
 
-export class WorksheetsGetByProjectQueryDto {
+export class WorksheetListOfProjectQueryDto {
   @ApiProperty({
     description: 'Project ID (required)',
     example: '6652e92f1b57c2a0d842c218',
