@@ -1086,4 +1086,151 @@ export class WorksheetService {
       );
     }
   }
+
+  async getProjectWorksheetAnalytics(
+    projectId: string,
+    organizationId: string,
+  ): Promise<{
+    today: ReturnType<typeof calculateTimeSpent> & { percentChangeFromYesterday: number };
+    thisWeek: ReturnType<typeof calculateTimeSpent> & { percentChangeFromLastWeek: number };
+    thisMonth: ReturnType<typeof calculateTimeSpent> & { percentChangeFromLastMonth: number };
+    allTime: ReturnType<typeof calculateTimeSpent>;
+  }> {
+    try {
+      const now = new Date();
+
+      // Time boundaries
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+
+      const yesterdayStart = new Date(todayStart);
+      yesterdayStart.setDate(todayStart.getDate() - 1);
+
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay()); // Sunday
+
+      const lastWeekStart = new Date(weekStart);
+      lastWeekStart.setDate(weekStart.getDate() - 7);
+
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(monthStart);
+
+      const getActivityDurations = async (start: Date, end: Date): Promise<Array<{ startTime: Date; endTime: Date }>> => {
+        const startDateStr = start.toISOString().split('T')[0];
+        const endDateStr = end.toISOString().split('T')[0];
+
+        return await this.worksheetModel.aggregate([
+          {
+            $match: {
+              organization: new Types.ObjectId(organizationId),
+              project: new Types.ObjectId(projectId),
+              date: { $gt: startDateStr, $lte: endDateStr },
+            },
+          },
+          {
+            $lookup: {
+              from: 'worksheetactivities',
+              localField: '_id',
+              foreignField: 'worksheet',
+              as: 'activities',
+            },
+          },
+          { $unwind: { path: '$activities', preserveNullAndEmptyArrays: true } },
+          {
+            $lookup: {
+              from: 'activities',
+              localField: 'activities.activity',
+              foreignField: '_id',
+              as: 'activityDetails',
+            },
+          },
+          { $unwind: { path: '$activityDetails', preserveNullAndEmptyArrays: true } },
+          {
+            $project: {
+              startTime: '$activityDetails.startTime',
+              endTime: '$activityDetails.endTime',
+            },
+          },
+        ]);
+      };
+
+      const [
+        todayDurations,
+        yesterdayDurations,
+        thisWeekDurations,
+        lastWeekDurations,
+        thisMonthDurations,
+        lastMonthDurations,
+        allTimeDurations,
+      ] = await Promise.all([
+        getActivityDurations(todayStart, now),
+        getActivityDurations(yesterdayStart, todayStart),
+        getActivityDurations(weekStart, now),
+        getActivityDurations(lastWeekStart, weekStart),
+        getActivityDurations(monthStart, now),
+        getActivityDurations(lastMonthStart, lastMonthEnd),
+        getActivityDurations(new Date(0), now),
+      ]);
+
+      const sumDurations = (activities: { startTime: Date; endTime: Date }[]) => {
+        let totalSeconds = 0;
+        for (const a of activities) {
+          if (!a.startTime || !a.endTime) {
+            this.logger.warn(`Skipping activity with missing times: ${JSON.stringify(a)}`);
+            continue;
+          }
+          const { totalSeconds: seconds } = calculateTimeSpent(new Date(a.startTime), new Date(a.endTime));
+          totalSeconds += seconds;
+        }
+        return calculateTimeSpent(new Date(0), new Date(totalSeconds * 1000));
+      };
+
+      const today = sumDurations(todayDurations);
+      const yesterday = sumDurations(yesterdayDurations);
+      const thisWeek = sumDurations(thisWeekDurations);
+      const lastWeek = sumDurations(lastWeekDurations);
+      const thisMonth = sumDurations(thisMonthDurations);
+      const lastMonth = sumDurations(lastMonthDurations);
+      const allTime = sumDurations(allTimeDurations);
+
+      const computePercentChange = (current: number, previous: number): number => {
+        if (previous === 0) return current === 0 ? 0 : 100;
+        return ((current - previous) / previous) * 100;
+      };
+
+      return {
+        today: {
+          ...today,
+          percentChangeFromYesterday: computePercentChange(today.totalSeconds, yesterday.totalSeconds),
+        },
+        thisWeek: {
+          ...thisWeek,
+          percentChangeFromLastWeek: computePercentChange(thisWeek.totalSeconds, lastWeek.totalSeconds),
+        },
+        thisMonth: {
+          ...thisMonth,
+          percentChangeFromLastMonth: computePercentChange(thisMonth.totalSeconds, lastMonth.totalSeconds),
+        },
+        allTime: allTime,
+      };
+    } catch (error) {
+      this.logger.error('Failed to compute worksheet analytics', {
+        projectId,
+        organizationId,
+        error: error.message,
+      });
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException('Unable to compute project worksheet analytics.');
+    }
+  }
+
+
 }
