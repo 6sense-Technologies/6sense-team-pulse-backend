@@ -16,7 +16,12 @@ import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Role } from '../auth/enums/role.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -31,7 +36,7 @@ import { isValidObjectId } from 'mongoose';
 export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
-    private readonly worksheetService: WorksheetService, 
+    private readonly worksheetService: WorksheetService,
   ) {}
 
   @Get('worksheet-list')
@@ -109,9 +114,9 @@ export class ProjectsController {
     @Req() req: any,
     @Query('project-id') projectId: string,
   ): Promise<any> {
-    if (!projectId || !projectId.trim() || !isValidObjectId(projectId)) { 
+    if (!projectId || !projectId.trim() || !isValidObjectId(projectId)) {
       throw new BadRequestException('Invalid/Missing project ID');
-    } 
+    }
 
     const organizationId = req.user.organizationId;
 
@@ -162,7 +167,6 @@ export class ProjectsController {
       isAdmin,
     );
   }
-
 
   @UseGuards(RolesGuard)
   @UseGuards(AccessTokenGuard)
