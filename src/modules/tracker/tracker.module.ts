@@ -35,6 +35,6 @@ import {
     WorksheetService,
     ActivityLogsProcessor,
   ],
-  exports: [ActivityService],
+  exports: [ActivityService, WorksheetService],
 })
 export class TrackerModule {}
