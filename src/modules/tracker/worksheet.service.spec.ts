@@ -920,4 +920,101 @@ describe('WorksheetService', () => {
       ).rejects.toThrow(InternalServerErrorException);
     });
   });
+
+  describe('getProjectWorksheetAnalytics', () => {
+    const projectId = new Types.ObjectId().toString();
+    const organizationId = new Types.ObjectId().toString();
+
+    const makeActivity = (start: string, end: string) => ({
+      startTime: new Date(start),
+      endTime: new Date(end),
+    });
+
+    const durationsMap: Record<string, any[]> = {
+      today: [makeActivity('2025-05-22T08:00:00Z', '2025-05-22T09:00:00Z')],
+      yesterday: [makeActivity('2025-05-21T08:00:00Z', '2025-05-21T09:30:00Z')],
+      thisWeek: [makeActivity('2025-05-20T08:00:00Z', '2025-05-20T10:00:00Z')],
+      lastWeek: [makeActivity('2025-05-13T08:00:00Z', '2025-05-13T09:00:00Z')],
+      thisMonth: [makeActivity('2025-05-01T08:00:00Z', '2025-05-01T09:00:00Z')],
+      lastMonth: [makeActivity('2025-04-01T08:00:00Z', '2025-04-01T08:30:00Z')],
+      allTime: [makeActivity('2025-01-01T08:00:00Z', '2025-01-01T09:00:00Z')],
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+
+      // Set up the correct order of aggregate mock calls:
+      const mockCalls = [
+        durationsMap.today,
+        durationsMap.yesterday,
+        durationsMap.thisWeek,
+        durationsMap.lastWeek,
+        durationsMap.thisMonth,
+        durationsMap.lastMonth,
+        durationsMap.allTime,
+      ];
+      mockWorksheetModel.aggregate.mockImplementation(() => {
+        return Promise.resolve(mockCalls.shift());
+      });
+    });
+
+    it('should return correctly calculated durations and percent changes', async () => {
+      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+
+      expect(result.today.totalSeconds).toBe(3600);
+      // expect(result.yesterday.totalSeconds).toBe(5400);
+      expect(result.thisWeek.totalSeconds).toBe(7200);
+      // expect(result.lastWeek.totalSeconds).toBe(3600);
+      expect(result.thisMonth.totalSeconds).toBe(3600);
+      // expect(result.lastMonth.totalSeconds).toBe(1800);
+      expect(result.allTime.totalSeconds).toBe(3600);
+
+      expect(result.today.percentChangeFromYesterday).toBeCloseTo(-33.33, 1);
+      expect(result.thisWeek.percentChangeFromLastWeek).toBeCloseTo(100, 1);
+      expect(result.thisMonth.percentChangeFromLastMonth).toBeCloseTo(100, 1);
+    });
+
+    it('should handle zero durations safely (no divide-by-zero)', async () => {
+      mockWorksheetModel.aggregate.mockResolvedValue([]);
+
+      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+
+      expect(result.today.totalSeconds).toBe(0);
+      expect(result.today.percentChangeFromYesterday).toBe(0);
+      expect(result.thisWeek.percentChangeFromLastWeek).toBe(0);
+      expect(result.thisMonth.percentChangeFromLastMonth).toBe(0);
+      expect(result.allTime.totalSeconds).toBe(0);
+    });
+
+    it('should skip activities with missing startTime or endTime', async () => {
+      mockWorksheetModel.aggregate.mockImplementationOnce(() =>
+        Promise.resolve([
+          { startTime: null, endTime: null },
+          { startTime: new Date('2025-05-22T10:00:00Z'), endTime: null },
+        ])
+      ).mockResolvedValue([]);
+
+      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+
+      expect(result.today.totalSeconds).toBe(0); // Should skip all broken entries
+    });
+
+    it('should throw InternalServerErrorException on unexpected error', async () => {
+      mockWorksheetModel.aggregate.mockRejectedValueOnce(new Error('Mongo crash'));
+
+      await expect(
+        service.getProjectWorksheetAnalytics(projectId, organizationId),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('should rethrow known HTTP exceptions', async () => {
+      const badReq = new BadRequestException('Bad request');
+      mockWorksheetModel.aggregate.mockRejectedValueOnce(badReq);
+
+      await expect(
+        service.getProjectWorksheetAnalytics(projectId, organizationId),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
 });

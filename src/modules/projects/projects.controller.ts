@@ -10,6 +10,7 @@ import {
   Req,
   Query,
   Headers,
+  BadRequestException,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -24,6 +25,7 @@ import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata
 import { Auth } from '../auth/decorators/auth.decorator';
 import { WorksheetService } from '../tracker/worksheet.service';
 import { WorksheetListOfProjectQueryDto } from './dto/worksheet-list-of-project.query.dto';
+import { isValidObjectId } from 'mongoose';
 
 @Controller('projects')
 export class ProjectsController {
@@ -93,6 +95,29 @@ export class ProjectsController {
       query['start-date'],
       query['end-date'],
       query.search,
+    );
+  }
+
+  @Get('worksheet-analytics')
+  @ApiOperation({
+    summary: "Get analytics of a project's worksheets",
+  })
+  @ApiBearerAuth()
+  @Auth(['admin']) // You can add role-based check here if needed
+  @ApiQuery({ name: 'projectId', type: String, required: true })
+  async getProjectWorksheetAnalytics(
+    @Req() req: any,
+    @Query('project-id') projectId: string,
+  ): Promise<any> {
+    if (!projectId || !projectId.trim() || !isValidObjectId(projectId)) { 
+      throw new BadRequestException('Invalid/Missing project ID');
+    } 
+
+    const organizationId = req.user.organizationId;
+
+    return this.worksheetService.getProjectWorksheetAnalytics(
+      projectId,
+      organizationId,
     );
   }
 
