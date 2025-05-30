@@ -123,7 +123,7 @@ describe('WorksheetService', () => {
 
     it('should throw InternalServerErrorException on failure', async () => {
       // Arrange: force aggregate to throw
-      (mockWorksheetModel.aggregate).mockRejectedValueOnce(
+      mockWorksheetModel.aggregate.mockRejectedValueOnce(
         new Error('Database failure'),
       );
 
@@ -169,9 +169,7 @@ describe('WorksheetService', () => {
     });
 
     it('should return worksheet data with calculated time and pagination', async () => {
-      (mockWorksheetModel.aggregate).mockResolvedValueOnce(
-        mockAggregationResult,
-      );
+      mockWorksheetModel.aggregate.mockResolvedValueOnce(mockAggregationResult);
 
       const result = await service.getWorksheets(userId, organizationId, 1, 10);
 
@@ -212,7 +210,7 @@ describe('WorksheetService', () => {
           activity: null,
         },
       ];
-      (mockWorksheetModel.aggregate).mockResolvedValueOnce(noActivityResult);
+      mockWorksheetModel.aggregate.mockResolvedValueOnce(noActivityResult);
 
       const result = await service.getWorksheets(userId, organizationId);
 
@@ -227,7 +225,7 @@ describe('WorksheetService', () => {
         date: '2025-05-21',
       }));
 
-      (mockWorksheetModel.aggregate).mockResolvedValueOnce(manyResults);
+      mockWorksheetModel.aggregate.mockResolvedValueOnce(manyResults);
 
       const result = await service.getWorksheets(userId, organizationId, 2, 10);
 
@@ -241,7 +239,7 @@ describe('WorksheetService', () => {
     });
 
     it('should use correct sort order when "oldest" is specified', async () => {
-      (mockWorksheetModel.aggregate).mockResolvedValueOnce(mockAggregationResult);
+      mockWorksheetModel.aggregate.mockResolvedValueOnce(mockAggregationResult);
 
       await service.getWorksheets(userId, organizationId, 1, 10, 'oldest');
 
@@ -253,14 +251,22 @@ describe('WorksheetService', () => {
     });
 
     it('should apply date filters when startDate and endDate are provided', async () => {
-      (mockWorksheetModel.aggregate).mockResolvedValueOnce(mockAggregationResult);
+      mockWorksheetModel.aggregate.mockResolvedValueOnce(mockAggregationResult);
 
       const startDate = '2025-01-01';
       const endDate = '2025-12-31';
 
-      await service.getWorksheets(userId, organizationId, 1, 10, 'latest', startDate, endDate);
+      await service.getWorksheets(
+        userId,
+        organizationId,
+        1,
+        10,
+        'latest',
+        startDate,
+        endDate,
+      );
 
-      const calledArgs = (mockWorksheetModel.aggregate).mock.calls[0][0];
+      const calledArgs = mockWorksheetModel.aggregate.mock.calls[0][0];
       const matchStage = calledArgs.find((s: any) => s.$match)?.$match;
 
       expect(matchStage.date).toMatchObject({
@@ -270,7 +276,7 @@ describe('WorksheetService', () => {
     });
 
     it('should throw InternalServerErrorException on unexpected error', async () => {
-      (mockWorksheetModel.aggregate).mockRejectedValueOnce(
+      mockWorksheetModel.aggregate.mockRejectedValueOnce(
         new Error('Mongo failure'),
       );
 
@@ -281,20 +287,20 @@ describe('WorksheetService', () => {
 
     it('should re-throw known HTTP exceptions (BadRequest)', async () => {
       const badRequest = new BadRequestException('Invalid ID');
-      (mockWorksheetModel.aggregate).mockRejectedValueOnce(badRequest);
+      mockWorksheetModel.aggregate.mockRejectedValueOnce(badRequest);
 
-      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.getWorksheets(userId, organizationId),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should re-throw known HTTP exceptions (Unauthorized)', async () => {
       const unauthorized = new UnauthorizedException('Not allowed');
-      (mockWorksheetModel.aggregate).mockRejectedValueOnce(unauthorized);
+      mockWorksheetModel.aggregate.mockRejectedValueOnce(unauthorized);
 
-      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.getWorksheets(userId, organizationId),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -330,13 +336,11 @@ describe('WorksheetService', () => {
     ];
 
     beforeEach(() => {
-      (mockWorksheetModel.aggregate).mockReset();
+      mockWorksheetModel.aggregate.mockReset();
     });
 
     it('should return worksheets with calculated total time and pagination', async () => {
-      (mockWorksheetModel.aggregate).mockResolvedValueOnce(
-        mockAggregationResult,
-      );
+      mockWorksheetModel.aggregate.mockResolvedValueOnce(mockAggregationResult);
 
       const result = await service.getProjectMemberWorksheets(
         projectId,
@@ -390,9 +394,7 @@ describe('WorksheetService', () => {
         },
       ];
 
-      (mockWorksheetModel.aggregate).mockResolvedValueOnce(
-        extendedResult,
-      );
+      mockWorksheetModel.aggregate.mockResolvedValueOnce(extendedResult);
 
       const result = await service.getProjectMemberWorksheets(
         projectId,
@@ -409,9 +411,7 @@ describe('WorksheetService', () => {
     });
 
     it('should handle search filter correctly', async () => {
-      (mockWorksheetModel.aggregate).mockResolvedValueOnce(
-        mockAggregationResult,
-      );
+      mockWorksheetModel.aggregate.mockResolvedValueOnce(mockAggregationResult);
 
       const result = await service.getProjectMemberWorksheets(
         projectId,
@@ -439,7 +439,7 @@ describe('WorksheetService', () => {
     });
 
     it('should throw InternalServerErrorException on aggregation failure', async () => {
-      (mockWorksheetModel.aggregate).mockRejectedValueOnce(
+      mockWorksheetModel.aggregate.mockRejectedValueOnce(
         new Error('Aggregation failed'),
       );
 
@@ -487,10 +487,17 @@ describe('WorksheetService', () => {
       // Setup
       const mockPopulateChain = {
         populate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue({ ...worksheetDoc, user: { ...worksheetDoc.user, _id: requesterId } }),
+        exec: jest
+          .fn()
+          .mockResolvedValue({
+            ...worksheetDoc,
+            user: { ...worksheetDoc.user, _id: requesterId },
+          }),
       };
 
-      mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
+      mockWorksheetModel.findById = jest
+        .fn()
+        .mockReturnValue(mockPopulateChain);
 
       mockWorksheetActivityModel.aggregate = jest.fn().mockResolvedValue([
         {
@@ -517,9 +524,13 @@ describe('WorksheetService', () => {
         populate: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue({ ...worksheetDoc }),
       };
-      mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
+      mockWorksheetModel.findById = jest
+        .fn()
+        .mockReturnValue(mockPopulateChain);
 
-      mockWorksheetModel.aggregate = jest.fn().mockResolvedValue([{ _id: worksheetId }]);
+      mockWorksheetModel.aggregate = jest
+        .fn()
+        .mockResolvedValue([{ _id: worksheetId }]);
 
       mockWorksheetActivityModel.aggregate = jest.fn().mockResolvedValue([
         {
@@ -548,7 +559,9 @@ describe('WorksheetService', () => {
         populate: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue({ ...worksheetDoc }),
       };
-      mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
+      mockWorksheetModel.findById = jest
+        .fn()
+        .mockReturnValue(mockPopulateChain);
 
       mockWorksheetModel.aggregate = jest.fn().mockResolvedValue([]);
 
@@ -570,9 +583,16 @@ describe('WorksheetService', () => {
       const searchTerm = 'Activity A';
       const mockPopulateChain = {
         populate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue({ ...worksheetDoc, user: { ...worksheetDoc.user, _id: requesterId } }),
+        exec: jest
+          .fn()
+          .mockResolvedValue({
+            ...worksheetDoc,
+            user: { ...worksheetDoc.user, _id: requesterId },
+          }),
       };
-      mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
+      mockWorksheetModel.findById = jest
+        .fn()
+        .mockReturnValue(mockPopulateChain);
 
       mockWorksheetActivityModel.aggregate = jest.fn().mockResolvedValue([
         {
@@ -592,17 +612,27 @@ describe('WorksheetService', () => {
         searchTerm,
       );
 
-      const calledAggregation = mockWorksheetActivityModel.aggregate.mock.calls[0][0];
-      expect(calledAggregation.find(s => s.$match && s.$match['activity.name'])).toBeDefined();
+      const calledAggregation =
+        mockWorksheetActivityModel.aggregate.mock.calls[0][0];
+      expect(
+        calledAggregation.find((s) => s.$match && s.$match['activity.name']),
+      ).toBeDefined();
       expect(result.data).toHaveLength(1);
     });
 
     it('should return empty data if no activities found', async () => {
       const mockPopulateChain = {
         populate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue({ ...worksheetDoc, user: { ...worksheetDoc.user, _id: requesterId } }),
+        exec: jest
+          .fn()
+          .mockResolvedValue({
+            ...worksheetDoc,
+            user: { ...worksheetDoc.user, _id: requesterId },
+          }),
       };
-      mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
+      mockWorksheetModel.findById = jest
+        .fn()
+        .mockReturnValue(mockPopulateChain);
 
       mockWorksheetActivityModel.aggregate = jest.fn().mockResolvedValue([
         {
@@ -628,7 +658,9 @@ describe('WorksheetService', () => {
         populate: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(null),
       };
-      mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
+      mockWorksheetModel.findById = jest
+        .fn()
+        .mockReturnValue(mockPopulateChain);
 
       await expect(
         service.getActivitiesForWorksheet(
@@ -647,7 +679,9 @@ describe('WorksheetService', () => {
           organization: new Types.ObjectId().toString(), // different org
         }),
       };
-      mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
+      mockWorksheetModel.findById = jest
+        .fn()
+        .mockReturnValue(mockPopulateChain);
 
       await expect(
         service.getActivitiesForWorksheet(
@@ -663,7 +697,9 @@ describe('WorksheetService', () => {
         populate: jest.fn().mockReturnThis(),
         exec: jest.fn().mockRejectedValue(new Error('Unexpected')),
       };
-      mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
+      mockWorksheetModel.findById = jest
+        .fn()
+        .mockReturnValue(mockPopulateChain);
 
       await expect(
         service.getActivitiesForWorksheet(
@@ -959,7 +995,10 @@ describe('WorksheetService', () => {
     });
 
     it('should return correctly calculated durations and percent changes', async () => {
-      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+      const result = await service.getProjectWorksheetAnalytics(
+        projectId,
+        organizationId,
+      );
 
       expect(result.today.totalSeconds).toBe(3600);
       // expect(result.yesterday.totalSeconds).toBe(5400);
@@ -977,7 +1016,10 @@ describe('WorksheetService', () => {
     it('should handle zero durations safely (no divide-by-zero)', async () => {
       mockWorksheetModel.aggregate.mockResolvedValue([]);
 
-      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+      const result = await service.getProjectWorksheetAnalytics(
+        projectId,
+        organizationId,
+      );
 
       expect(result.today.totalSeconds).toBe(0);
       expect(result.today.percentChangeFromYesterday).toBe(0);
@@ -987,20 +1029,27 @@ describe('WorksheetService', () => {
     });
 
     it('should skip activities with missing startTime or endTime', async () => {
-      mockWorksheetModel.aggregate.mockImplementationOnce(() =>
-        Promise.resolve([
-          { startTime: null, endTime: null },
-          { startTime: new Date('2025-05-22T10:00:00Z'), endTime: null },
-        ])
-      ).mockResolvedValue([]);
+      mockWorksheetModel.aggregate
+        .mockImplementationOnce(() =>
+          Promise.resolve([
+            { startTime: null, endTime: null },
+            { startTime: new Date('2025-05-22T10:00:00Z'), endTime: null },
+          ]),
+        )
+        .mockResolvedValue([]);
 
-      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+      const result = await service.getProjectWorksheetAnalytics(
+        projectId,
+        organizationId,
+      );
 
       expect(result.today.totalSeconds).toBe(0); // Should skip all broken entries
     });
 
     it('should throw InternalServerErrorException on unexpected error', async () => {
-      mockWorksheetModel.aggregate.mockRejectedValueOnce(new Error('Mongo crash'));
+      mockWorksheetModel.aggregate.mockRejectedValueOnce(
+        new Error('Mongo crash'),
+      );
 
       await expect(
         service.getProjectWorksheetAnalytics(projectId, organizationId),
@@ -1016,5 +1065,4 @@ describe('WorksheetService', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
-
 });

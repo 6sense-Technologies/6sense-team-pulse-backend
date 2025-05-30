@@ -307,10 +307,12 @@ export class WorksheetService {
       }
 
       // 🧹 Remove valid activities
-      const result = await this.worksheetActivityModel.deleteMany({
-        worksheet: worksheet._id,
-        activity: { $in: activityObjectIds },
-      }).session(session);
+      const result = await this.worksheetActivityModel
+        .deleteMany({
+          worksheet: worksheet._id,
+          activity: { $in: activityObjectIds },
+        })
+        .session(session);
 
       // 📉 Check if worksheet has any activities left
       const remainingActivities = await this.worksheetActivityModel
@@ -319,7 +321,9 @@ export class WorksheetService {
 
       // 🗑️ If no activities left, remove the worksheet itself
       if (remainingActivities === 0) {
-        await this.worksheetModel.deleteOne({ _id: worksheet._id }).session(session);
+        await this.worksheetModel
+          .deleteOne({ _id: worksheet._id })
+          .session(session);
       }
 
       await session.commitTransaction();
@@ -1091,9 +1095,15 @@ export class WorksheetService {
     projectId: string,
     organizationId: string,
   ): Promise<{
-    today: ReturnType<typeof calculateTimeSpent> & { percentChangeFromYesterday: number };
-    thisWeek: ReturnType<typeof calculateTimeSpent> & { percentChangeFromLastWeek: number };
-    thisMonth: ReturnType<typeof calculateTimeSpent> & { percentChangeFromLastMonth: number };
+    today: ReturnType<typeof calculateTimeSpent> & {
+      percentChangeFromYesterday: number;
+    };
+    thisWeek: ReturnType<typeof calculateTimeSpent> & {
+      percentChangeFromLastWeek: number;
+    };
+    thisMonth: ReturnType<typeof calculateTimeSpent> & {
+      percentChangeFromLastMonth: number;
+    };
     allTime: ReturnType<typeof calculateTimeSpent>;
   }> {
     try {
@@ -1116,7 +1126,10 @@ export class WorksheetService {
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastMonthEnd = new Date(monthStart);
 
-      const getActivityDurations = async (start: Date, end: Date): Promise<Array<{ startTime: Date; endTime: Date }>> => {
+      const getActivityDurations = async (
+        start: Date,
+        end: Date,
+      ): Promise<Array<{ startTime: Date; endTime: Date }>> => {
         const startDateStr = start.toISOString().split('T')[0];
         const endDateStr = end.toISOString().split('T')[0];
 
@@ -1136,7 +1149,9 @@ export class WorksheetService {
               as: 'activities',
             },
           },
-          { $unwind: { path: '$activities', preserveNullAndEmptyArrays: true } },
+          {
+            $unwind: { path: '$activities', preserveNullAndEmptyArrays: true },
+          },
           {
             $lookup: {
               from: 'activities',
@@ -1145,7 +1160,12 @@ export class WorksheetService {
               as: 'activityDetails',
             },
           },
-          { $unwind: { path: '$activityDetails', preserveNullAndEmptyArrays: true } },
+          {
+            $unwind: {
+              path: '$activityDetails',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
           {
             $project: {
               startTime: '$activityDetails.startTime',
@@ -1173,14 +1193,21 @@ export class WorksheetService {
         getActivityDurations(new Date(0), now),
       ]);
 
-      const sumDurations = (activities: { startTime: Date; endTime: Date }[]) => {
+      const sumDurations = (
+        activities: { startTime: Date; endTime: Date }[],
+      ) => {
         let totalSeconds = 0;
         for (const a of activities) {
           if (!a.startTime || !a.endTime) {
-            this.logger.warn(`Skipping activity with missing times: ${JSON.stringify(a)}`);
+            this.logger.warn(
+              `Skipping activity with missing times: ${JSON.stringify(a)}`,
+            );
             continue;
           }
-          const { totalSeconds: seconds } = calculateTimeSpent(new Date(a.startTime), new Date(a.endTime));
+          const { totalSeconds: seconds } = calculateTimeSpent(
+            new Date(a.startTime),
+            new Date(a.endTime),
+          );
           totalSeconds += seconds;
         }
         return calculateTimeSpent(new Date(0), new Date(totalSeconds * 1000));
@@ -1194,7 +1221,10 @@ export class WorksheetService {
       const lastMonth = sumDurations(lastMonthDurations);
       const allTime = sumDurations(allTimeDurations);
 
-      const computePercentChange = (current: number, previous: number): number => {
+      const computePercentChange = (
+        current: number,
+        previous: number,
+      ): number => {
         if (previous === 0) return current === 0 ? 0 : 100;
         return ((current - previous) / previous) * 100;
       };
@@ -1202,15 +1232,24 @@ export class WorksheetService {
       return {
         today: {
           ...today,
-          percentChangeFromYesterday: computePercentChange(today.totalSeconds, yesterday.totalSeconds),
+          percentChangeFromYesterday: computePercentChange(
+            today.totalSeconds,
+            yesterday.totalSeconds,
+          ),
         },
         thisWeek: {
           ...thisWeek,
-          percentChangeFromLastWeek: computePercentChange(thisWeek.totalSeconds, lastWeek.totalSeconds),
+          percentChangeFromLastWeek: computePercentChange(
+            thisWeek.totalSeconds,
+            lastWeek.totalSeconds,
+          ),
         },
         thisMonth: {
           ...thisMonth,
-          percentChangeFromLastMonth: computePercentChange(thisMonth.totalSeconds, lastMonth.totalSeconds),
+          percentChangeFromLastMonth: computePercentChange(
+            thisMonth.totalSeconds,
+            lastMonth.totalSeconds,
+          ),
         },
         allTime: allTime,
       };
@@ -1228,9 +1267,9 @@ export class WorksheetService {
         throw error;
       }
 
-      throw new InternalServerErrorException('Unable to compute project worksheet analytics.');
+      throw new InternalServerErrorException(
+        'Unable to compute project worksheet analytics.',
+      );
     }
   }
-
-
 }
