@@ -68,6 +68,7 @@ module.exports = {
       '@typescript-eslint/no-implied-eval': 'error',
       'no-use-before-define': 'off',
       '@typescript-eslint/no-use-before-define': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'off',
       "arrow-body-style": ["error", "always"],
       "block-scoped-var": "error",
       "default-case-last": "error",
