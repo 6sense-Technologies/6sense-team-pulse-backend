@@ -519,7 +519,7 @@ export class WorksheetService {
         .exec();
 
       if (!worksheet) {
-        throw new BadRequestException('Worksheet not found.');
+        throw new NotFoundException('Worksheet not found.');
       }
 
       if (worksheet.organization.toString() !== organizationId) {
@@ -715,8 +715,10 @@ export class WorksheetService {
 
       if (
         error instanceof BadRequestException ||
-        error instanceof UnauthorizedException
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException
       ) {
+        error.getStatus = () => 200; // Ensure NotFoundException returns 404 status
         throw error;
       }
 
