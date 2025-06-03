@@ -487,12 +487,10 @@ describe('WorksheetService', () => {
       // Setup
       const mockPopulateChain = {
         populate: jest.fn().mockReturnThis(),
-        exec: jest
-          .fn()
-          .mockResolvedValue({
-            ...worksheetDoc,
-            user: { ...worksheetDoc.user, _id: requesterId },
-          }),
+        exec: jest.fn().mockResolvedValue({
+          ...worksheetDoc,
+          user: { ...worksheetDoc.user, _id: requesterId },
+        }),
       };
 
       mockWorksheetModel.findById = jest
@@ -583,12 +581,10 @@ describe('WorksheetService', () => {
       const searchTerm = 'Activity A';
       const mockPopulateChain = {
         populate: jest.fn().mockReturnThis(),
-        exec: jest
-          .fn()
-          .mockResolvedValue({
-            ...worksheetDoc,
-            user: { ...worksheetDoc.user, _id: requesterId },
-          }),
+        exec: jest.fn().mockResolvedValue({
+          ...worksheetDoc,
+          user: { ...worksheetDoc.user, _id: requesterId },
+        }),
       };
       mockWorksheetModel.findById = jest
         .fn()
@@ -623,12 +619,10 @@ describe('WorksheetService', () => {
     it('should return empty data if no activities found', async () => {
       const mockPopulateChain = {
         populate: jest.fn().mockReturnThis(),
-        exec: jest
-          .fn()
-          .mockResolvedValue({
-            ...worksheetDoc,
-            user: { ...worksheetDoc.user, _id: requesterId },
-          }),
+        exec: jest.fn().mockResolvedValue({
+          ...worksheetDoc,
+          user: { ...worksheetDoc.user, _id: requesterId },
+        }),
       };
       mockWorksheetModel.findById = jest
         .fn()
@@ -668,7 +662,7 @@ describe('WorksheetService', () => {
           organizationId,
           worksheetId,
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw for org mismatch', async () => {
