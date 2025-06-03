@@ -718,7 +718,7 @@ export class WorksheetService {
         error instanceof UnauthorizedException ||
         error instanceof NotFoundException
       ) {
-        error.getStatus = () => 200; // Ensure NotFoundException returns 404 status
+        error.getStatus = () => 200;
         throw error;
       }
 
