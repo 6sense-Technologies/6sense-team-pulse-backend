@@ -90,6 +90,7 @@ export class ActivityService {
         .findOne({
           user: new Types.ObjectId(userId),
           organization: new Types.ObjectId(organizationId),
+          manualType: { $exists: false },
         })
         .sort({ endTime: -1 });
 
