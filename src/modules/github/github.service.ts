@@ -42,16 +42,15 @@ export class GithubService {
   async summary(
     userId: string,
     date: string,
-    page: number = 1,
-    limit: number = 10,
+    timezoneRegion: string = 'UTC', // Default to UTC if not provided
   ) {
     const inputDate = new Date(date); // Replace `date` with your input date
     const dateStart = DateTime.fromJSDate(inputDate, {
-      zone: 'Asia/Dhaka',
+      zone: timezoneRegion,
     }).startOf('day');
 
     const dateEnd = DateTime.fromJSDate(inputDate, {
-      zone: 'Asia/Dhaka',
+      zone: timezoneRegion,
     }).endOf('day');
 
     const results = await this.gitContributionModel.aggregate([
@@ -116,6 +115,7 @@ export class GithubService {
 
     return results[0];
   }
+
   async getContributions(
     userId: string,
     date: string,
@@ -295,7 +295,8 @@ export class GithubService {
     };
   }
 
-  async getBranches(gitRepo: any) {
+  async getBranches(gitRepo: GitRepo) {
+    // this.logger.log('Fetching branches for repo:', gitRepo);
     const branchesUrl = `${this.configService.get('GITHUB_API_URL')}${gitRepo.organization}/${gitRepo.repo}/branches`;
     const token = this.configService.get('GITHUB_TOKEN');
 
@@ -344,8 +345,8 @@ export class GithubService {
       }),
     );
 
-    if (response.data) {
-      this.logger.log(`branch response data: ${response.data}`);
+    if (response.data && response.data.length > 0) {
+      // this.logger.log('branch response data:', response.data);
 
       response.data.forEach(async (commit) => {
         const data = await this.getLinesChanged(commit, url);
