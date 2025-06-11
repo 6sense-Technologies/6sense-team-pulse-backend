@@ -34,7 +34,11 @@ export class GithubController {
     @Query('date') date: string,
     @RequestMetadata() requestMetadata: RequestMetadataDto,
   ) {
-    return this.githubService.summary(userId, date, requestMetadata.timezoneRegion);
+    return this.githubService.summary(
+      userId,
+      date,
+      requestMetadata.timezoneRegion,
+    );
   }
 
   @Get('get-contributions')

@@ -49,7 +49,7 @@ export class GitConsumer extends WorkerHost {
         await this.getCommitReport(job.data);
         break;
       case 'get-commits-by-branch':
-        this.logger.log(`Processing ${job.data.sha} branch`)
+        this.logger.log(`Processing ${job.data.sha} branch`);
         await this.getCommitsByBranch(job.data);
         break;
       default:
