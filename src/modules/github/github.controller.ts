@@ -11,6 +11,8 @@ import {
 import { GithubService } from './github.service';
 import { CreateGithubDto } from './dto/create-github.dto';
 import { UpdateGithubDto } from './dto/update-github.dto';
+import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
+import { RequestMetadata } from 'src/common/request-metadata/request-metadata.decorator';
 
 @Controller('github')
 export class GithubController {
@@ -30,10 +32,9 @@ export class GithubController {
   getSummary(
     @Query('userId') userId: string,
     @Query('date') date: string,
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @RequestMetadata() requestMetadata: RequestMetadataDto,
   ) {
-    return this.githubService.summary(userId, date, +page, +limit);
+    return this.githubService.summary(userId, date, requestMetadata.timezoneRegion);
   }
 
   @Get('get-contributions')
