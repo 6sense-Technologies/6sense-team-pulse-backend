@@ -9,7 +9,6 @@ import {
   UseGuards,
   Req,
   Query,
-  Headers,
   BadRequestException,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
@@ -23,10 +22,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Role } from '../auth/enums/role.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { RequestMetadata } from 'src/common/request-metadata/request-metadata.decorator';
-import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { WorksheetService } from '../tracker/worksheet.service';
 import { WorksheetListOfProjectQueryDto } from './dto/worksheet-list-of-project.query.dto';
@@ -168,49 +164,48 @@ export class ProjectsController {
     );
   }
 
-  @UseGuards(RolesGuard)
-  @UseGuards(AccessTokenGuard)
+  @Auth()
   @ApiBearerAuth()
-  @Roles(['Admin', 'Member'])
   @Get('names')
-  findProjectNames(
-    @Req() req: Request,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ) {
-    console.log(`USERID: ${req['user'].userId}`);
-    return this.projectsService.getNames(+page, +limit, req['user'].userId);
+  findProjectNames(@Req() req: Request) {
+    return this.projectsService.getNames(
+      req['user'].userId,
+      req['user'].organizationId,
+    );
   }
-  @UseGuards(AccessTokenGuard)
+
+  @Auth(['admin'])
   @ApiBearerAuth()
-  @Roles(['Admin'])
-  @UseGuards(RolesGuard)
   @Post()
   create(@Body() createProjectDto: CreateProjectDto, @Req() req: Request) {
-    return this.projectsService.create(createProjectDto, req['user'].userId);
+    return this.projectsService.create(createProjectDto, req['user'].userId, req['user'].organizationId);
   }
-  @UseGuards(AccessTokenGuard)
+
+  @Auth()
   @ApiBearerAuth()
-  @Roles(['Admin', 'Member'])
-  @UseGuards(RolesGuard)
   @Get()
   findAll(
     @Req() req: Request,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    return this.projectsService.findAll(+page, +limit, req['user'].userId);
-  }
-
-  @Auth()
-  @ApiBearerAuth()
-  @Get('get-user-projects-by-organization')
-  async getUserProjectsByOrganization(@Req() req: Request) {
-    return await this.projectsService.getUserProjectsByOrganization(
+    return this.projectsService.findAll(
+      +page,
+      +limit,
       req['user'].userId,
       req['user'].organizationId,
     );
   }
+
+  // @Auth()
+  // @ApiBearerAuth()
+  // @Get('get-user-projects-by-organization')
+  // async getUserProjectsByOrganization(@Req() req: Request) {
+  //   return await this.projectsService.getUserProjectsByOrganization(
+  //     req['user'].userId,
+  //     req['user'].organizationId,
+  //   );
+  // }
 
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
