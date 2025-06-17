@@ -141,7 +141,7 @@ export class OrganizationService {
         throw new ForbiddenException('Insufficient role permissions');
       }
     }
-    
+
     return orgUser;
   }
 
