@@ -2,7 +2,6 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
 import {
   BadRequestException,
-  Body,
   ConflictException,
   Injectable,
   NotFoundException,
