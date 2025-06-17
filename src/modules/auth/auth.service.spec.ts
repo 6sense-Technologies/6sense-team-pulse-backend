@@ -1,20 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service';
-import { EmailService } from '../email-service/email-service.service';
-import { JwtService } from '@nestjs/jwt';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { getModelToken } from '@nestjs/mongoose';
+import { Test, TestingModule } from '@nestjs/testing';
+import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
-import { Users } from '../../schemas/users.schema';
+import { OrganizationUserRole } from 'src/schemas/OrganizationUserRole.schema';
 import { OTPSecret } from '../../schemas/OTPSecret.schema';
 import { Organization } from '../../schemas/Organization.schema';
-import {
-  ConflictException,
-  BadRequestException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import { Users } from '../../schemas/users.schema';
+import { EmailService } from '../email-service/email-service.service';
+import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -49,6 +45,7 @@ describe('AuthService', () => {
             create: jest.fn(),
             findOne: jest.fn(),
             find: jest.fn(),
+            exists: jest.fn(),
           },
         },
         {
@@ -61,6 +58,14 @@ describe('AuthService', () => {
           provide: getModelToken(Organization.name),
           useValue: {
             find: jest.fn(),
+          },
+        },
+        {
+          provide: getModelToken(OrganizationUserRole.name),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            exists: jest.fn(),
           },
         },
         {
@@ -107,6 +112,10 @@ describe('AuthService', () => {
     emailService = module.get<EmailService>(EmailService);
     jwtService = module.get<JwtService>(JwtService);
     configService = module.get<ConfigService>(ConfigService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
   describe('registerEmailPassword', () => {

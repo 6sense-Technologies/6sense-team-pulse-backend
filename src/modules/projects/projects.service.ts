@@ -7,30 +7,23 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model, Types } from 'mongoose';
+import { OrganizationProjectUser } from '../../schemas/OrganizationProjectUser.schema';
+import { Project } from '../../schemas/Project.schema';
+import { Tool } from '../../schemas/Tool.schema';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Project } from '../../schemas/Project.schema';
-import { Connection, isValidObjectId, Model, Types } from 'mongoose';
-import { Tool } from '../../schemas/Tool.schema';
-import { ProjectTool } from '../../schemas/ProjectTool.schema';
-import { Organization } from '../../schemas/Organization.schema';
-import { OrganizationProjectUser } from '../../schemas/OrganizationProjectUser.schema';
-import { error } from 'console';
-import { OrganizationService } from '../organization/organization.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectModel(Project.name) private readonly projectModel: Model<Project>,
     @InjectModel(Tool.name) private readonly toolModel: Model<Tool>,
-    // @InjectModel(ProjectTool.name)
-    // private readonly ProjectTool: Model<ProjectTool>,
     @InjectConnection()
     private readonly connection: Connection,
     @InjectModel(OrganizationProjectUser.name)
     private readonly OrganizationProjectUser: Model<OrganizationProjectUser>,
-    // private readonly organizationService: OrganizationService,
   ) {}
   private readonly logger = new Logger(ProjectsService.name);
 

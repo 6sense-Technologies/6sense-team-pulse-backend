@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreateGoalDto } from './dto/create-goal.dto';
-import { UpdateGoalDto } from './dto/update-goal.dto';
-import { Goal } from './entities/goal.entity';
-import mongoose, { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { CreateGoalActionDto } from './dto/create-goal-action.dto';
+import mongoose, { Model } from 'mongoose';
 import { GoalAction } from '../../schemas/GoalAction.schema';
+import { CreateGoalActionDto } from './dto/create-goal-action.dto';
+import { CreateGoalDto } from './dto/create-goal.dto';
+import { Goal } from './entities/goal.entity';
 
 @Injectable()
 export class GoalsService {
