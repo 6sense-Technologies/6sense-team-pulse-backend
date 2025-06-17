@@ -57,7 +57,10 @@ export class WorksheetListOfProjectQueryDto {
   @IsEnum(['duration', 'reportedTime'])
   'sort-by': 'duration' | 'reportedTime' = 'reportedTime';
 
-  @ApiPropertyOptional({ enum: ['oldest', 'latest', 'highest', 'lowest'], default: 'latest' })
+  @ApiPropertyOptional({
+    enum: ['oldest', 'latest', 'highest', 'lowest'],
+    default: 'latest',
+  })
   @IsOptional()
   @IsEnum(['oldest', 'latest', 'highest', 'lowest'])
   'sort-order': 'oldest' | 'latest' | 'highest' | 'lowest' = 'latest';
