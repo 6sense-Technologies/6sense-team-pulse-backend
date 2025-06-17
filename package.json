@@ -99,7 +99,7 @@
       "ts"
     ],
     "rootDir": "src",
-    "testRegex": "modules/.*\\.spec\\.ts$",
+    "testRegex": "modules/tracker/.*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },

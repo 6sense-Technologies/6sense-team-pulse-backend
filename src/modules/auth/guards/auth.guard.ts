@@ -31,7 +31,7 @@ export class AuthGuard implements CanActivate {
     }
 
     if (!user.organizationId) {
-      throw new BadRequestException('Missing "organization-id" header');
+      throw new BadRequestException('Missing "organizationId" in JWT');
     }
 
     if (!isValidObjectId(user.organizationId)) {
