@@ -141,6 +141,7 @@ export class OrganizationService {
         throw new ForbiddenException('Insufficient role permissions');
       }
     }
+    
     return orgUser;
   }
 
@@ -154,10 +155,7 @@ export class OrganizationService {
         `No organization found for user with ID ${userId}`,
       );
     }
-    await this.updateLastAccessed(
-      userId,
-      organizationUserRole[0].organization,
-    );
+    await this.updateLastAccessed(userId, organizationUserRole[0].organization);
     return organizationUserRole[0].organization;
   }
 
@@ -168,7 +166,7 @@ export class OrganizationService {
     if (!isValidObjectId(userId) || !isValidObjectId(organizationId)) {
       throw new BadRequestException('Invalid userId or organizationId');
     }
-    
+
     const orgUser = await this.organizationUserRoleModel.findOne({
       user: userId,
       organization: organizationId,
@@ -183,5 +181,4 @@ export class OrganizationService {
     orgUser.lastAccessed = new Date();
     await orgUser.save();
   }
-
 }
