@@ -43,11 +43,7 @@ export class AuthService {
   ) {}
   private readonly logger = new Logger(AuthService.name);
 
-   generateTokens(
-    userId: string,
-    email: string,
-    organizationId: string,
-  ) {
+  generateTokens(userId: string, email: string, organizationId: string) {
     const accessToken = this.jwtService.sign(
       { userId, email, organizationId },
       {
@@ -177,48 +173,48 @@ export class AuthService {
         loginUserEmailPasswordDTO.password,
         user.password,
       );
-    
+
       if (!checkPassword) {
         throw new BadRequestException('Invalid Credentials');
-      } 
+      }
     }
 
-      // Find the last organization accessed by the user
-      const lastOrg = await this.organizationService.lastOrganization(
-        user._id as Types.ObjectId,
-      );
+    // Find the last organization accessed by the user
+    const lastOrg = await this.organizationService.lastOrganization(
+      user._id as Types.ObjectId,
+    );
 
-      const { accessToken, refreshToken } = this.generateTokens(
-        user.id,
-        user.emailAddress,
-        lastOrg.toString(),
-      );
+    const { accessToken, refreshToken } = this.generateTokens(
+      user.id,
+      user.emailAddress,
+      lastOrg.toString(),
+    );
 
-      const userInfo = user.toObject();
+    const userInfo = user.toObject();
 
-      delete userInfo.password;
-      const organizations = await this.organizationModel.find({
-        createdBy: userInfo._id,
-      });
-      if (organizations.length > 0) {
-        // Todo need to fix this
+    delete userInfo.password;
+    const organizations = await this.organizationModel.find({
+      createdBy: userInfo._id,
+    });
+    if (organizations.length > 0) {
+      // Todo need to fix this
+      userInfo['hasOrganization'] = true;
+      userInfo['role'] = 'admin';
+    } else {
+      userInfo['hasOrganization'] = false;
+      userInfo['role'] = 'member';
+    }
+
+    if ('isInvited' in userInfo) {
+      if (userInfo['isInvited'] === true) {
         userInfo['hasOrganization'] = true;
-        userInfo['role'] = 'admin';
-      } else {
-        userInfo['hasOrganization'] = false;
-        userInfo['role'] = 'member';
       }
-
-      if ('isInvited' in userInfo) {
-        if (userInfo['isInvited'] === true) {
-          userInfo['hasOrganization'] = true;
-        }
-      }
-      return {
-        userInfo,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      };
+    }
+    return {
+      userInfo,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    };
   }
 
   public async chooseOrganization(chooseOrg: ChooseOrganization) {

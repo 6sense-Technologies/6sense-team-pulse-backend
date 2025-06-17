@@ -25,7 +25,6 @@ import { JWTRefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { OrganizationModule } from '../organization/organization.module';
 
-
 @Global()
 @Module({
   imports: [

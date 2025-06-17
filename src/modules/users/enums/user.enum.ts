@@ -24,5 +24,5 @@ export enum Project {
   Pattern50 = 'Pattern 50',
   ChargeOnSite = 'Charge on Site',
   Ome = 'Ome',
-  name = "name",
+  name = 'name',
 }
