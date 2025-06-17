@@ -99,39 +99,15 @@
       "ts"
     ],
     "rootDir": "src",
-    "testRegex": "modules/tracker/.*\\.spec\\.ts$",
+    "testRegex": "modules/.*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "modules/tracker/**/*.service.ts"
+      "modules/**/*.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/dist/",
-      "/src/modules/git-repo/",
-      "/src/modules/github/",
-      "/src/modules/goals/",
-      "/src/modules/organization/",
-      "/src/modules/queue-handler/",
-      "/src/modules/tool/",
-      "/src/modules/trello/",
-      "/src/modules/jira/",
-      "/src/modules/users/"
-    ],
-    "modulePathIgnorePatterns": [
-      "/src/modules/git-repo/",
-      "/src/modules/github/",
-      "/src/modules/goals/",
-      "/src/modules/organization/",
-      "/src/modules/queue-handler/",
-      "/src/modules/tool/",
-      "/src/modules/trello/",
-      "/src/modules/jira/",
-      "/src/modules/users/"
-    ],
     "moduleNameMapper": {
       "^src/(.*)$": "<rootDir>/$1"
     }

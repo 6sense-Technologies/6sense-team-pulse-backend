@@ -1,16 +1,15 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
-  Patch,
   Param,
-  Delete,
+  Patch,
+  Post,
   Query,
 } from '@nestjs/common';
-import { GitRepoService } from './git-repo.service';
 import { CreateGitRepoDto } from './dto/create-git-repo.dto';
 import { UpdateGitRepoDto } from './dto/update-git-repo.dto';
+import { GitRepoService } from './git-repo.service';
 
 @Controller('git-repo')
 export class GitRepoController {
@@ -34,10 +33,5 @@ export class GitRepoController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateGitRepoDto: UpdateGitRepoDto) {
     return this.gitRepoService.update(id, updateGitRepoDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.gitRepoService.remove(+id);
   }
 }

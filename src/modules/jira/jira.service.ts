@@ -1,3 +1,4 @@
+import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   ConflictException,
@@ -6,11 +7,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model, Mongoose, Schema, Types } from 'mongoose';
-import { IIssue, User } from '../../schemas/user.schema';
+import * as dotenv from 'dotenv';
+import mongoose, { Model } from 'mongoose';
+import { firstValueFrom, lastValueFrom } from 'rxjs';
+import { handleError } from '../../common/helpers/error.helper';
+import {
+  validateAccountId,
+  validateDate,
+} from '../../common/helpers/validation.helper';
 import {
   IDailyMetrics,
   IJiraIssue,
@@ -18,18 +23,11 @@ import {
   IJirsUserIssues,
   ISuccessResponse,
 } from '../../common/interfaces/jira.interfaces';
-import { TrelloService } from '../trello/trello.service';
-import { UserService } from '../users/users.service';
-import { firstValueFrom, lastValueFrom } from 'rxjs';
-import { handleError } from '../../common/helpers/error.helper';
-import { Designation, Project } from '../users/enums/user.enum';
-import {
-  validateAccountId,
-  validateDate,
-} from '../../common/helpers/validation.helper';
 import { IssueEntry } from '../../schemas/IssueEntry.schema';
-import { ClientMqtt } from '@nestjs/microservices';
-import * as moment from 'moment';
+import { IIssue, User } from '../../schemas/user.schema';
+import { TrelloService } from '../trello/trello.service';
+import { Designation, Project } from '../users/enums/user.enum';
+import { UserService } from '../users/users.service';
 dotenv.config();
 
 @Injectable()
@@ -46,6 +44,7 @@ export class JiraService {
 
   constructor(
     private readonly httpService: HttpService,
+    @Inject(forwardRef(() => TrelloService))
     private readonly trelloService: TrelloService,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,

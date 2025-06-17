@@ -1,15 +1,21 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
-  Injectable,
   Logger,
+  Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { isValidObjectId, Model, Types } from 'mongoose';
-import { Users } from '../../schemas/users.schema';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import * as bcrypt from 'bcrypt';
+import { Model, Types } from 'mongoose';
+import { OTPSecret } from '../../schemas/OTPSecret.schema';
+import { Organization } from '../../schemas/Organization.schema';
+import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema';
+import { Users } from '../../schemas/users.schema';
+import { EmailService } from '../email-service/email-service.service';
 import {
   ChooseOrganization,
   CreateUserEmail,
@@ -18,14 +24,6 @@ import {
   VerifyEmailDto,
   VerifyInviteDTO,
 } from './dto/auth.dto';
-import * as bcrypt from 'bcrypt';
-import { ConfigService } from '@nestjs/config';
-import { EmailService } from '../email-service/email-service.service';
-import { JwtService } from '@nestjs/jwt';
-import { OTPSecret } from '../../schemas/OTPSecret.schema';
-import { Organization } from '../../schemas/Organization.schema';
-import { InviteUserDTO } from '../users/dto/invite-user.dto';
-import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema';
 import { OrganizationService } from '../organization/organization.service';
 
 @Injectable()
@@ -45,11 +43,7 @@ export class AuthService {
   ) {}
   private readonly logger = new Logger(AuthService.name);
 
-  private generateTokens(
-    userId: string,
-    email: string,
-    organizationId: string,
-  ) {
+  generateTokens(userId: string, email: string, organizationId: string) {
     const accessToken = this.jwtService.sign(
       { userId, email, organizationId },
       {
@@ -179,49 +173,48 @@ export class AuthService {
         loginUserEmailPasswordDTO.password,
         user.password,
       );
+
       if (!checkPassword) {
         throw new BadRequestException('Invalid Credentials');
-      } else {
-        // Find the last organization accessed by the user
-        const lastOrg = await this.organizationService.lastOrganization(
-          user._id as Types.ObjectId,
-        );
-
-        const { accessToken, refreshToken } = this.generateTokens(
-          user.id,
-          user.emailAddress,
-          lastOrg.toString(),
-        );
-
-        const userInfo = user.toObject();
-
-        delete userInfo.password;
-        const organizations = await this.organizationModel.find({
-          createdBy: userInfo._id,
-        });
-        if (organizations.length > 0) {
-          // Todo need to fix this
-          userInfo['hasOrganization'] = true;
-          userInfo['role'] = 'admin';
-        } else {
-          userInfo['hasOrganization'] = false;
-          userInfo['role'] = 'member';
-        }
-
-        if ('isInvited' in userInfo) {
-          if (userInfo['isInvited'] === true) {
-            userInfo['hasOrganization'] = true;
-          }
-        }
-        return {
-          userInfo,
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        };
       }
-    } else {
-      throw new NotFoundException('User does not exists');
     }
+
+    // Find the last organization accessed by the user
+    const lastOrg = await this.organizationService.lastOrganization(
+      user._id as Types.ObjectId,
+    );
+
+    const { accessToken, refreshToken } = this.generateTokens(
+      user.id,
+      user.emailAddress,
+      lastOrg.toString(),
+    );
+
+    const userInfo = user.toObject();
+
+    delete userInfo.password;
+    const organizations = await this.organizationModel.find({
+      createdBy: userInfo._id,
+    });
+    if (organizations.length > 0) {
+      // Todo need to fix this
+      userInfo['hasOrganization'] = true;
+      userInfo['role'] = 'admin';
+    } else {
+      userInfo['hasOrganization'] = false;
+      userInfo['role'] = 'member';
+    }
+
+    if ('isInvited' in userInfo) {
+      if (userInfo['isInvited'] === true) {
+        userInfo['hasOrganization'] = true;
+      }
+    }
+    return {
+      userInfo,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    };
   }
 
   public async chooseOrganization(chooseOrg: ChooseOrganization) {
