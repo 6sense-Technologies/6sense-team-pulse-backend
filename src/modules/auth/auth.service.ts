@@ -24,9 +24,9 @@ import { EmailService } from '../email-service/email-service.service';
 import { JwtService } from '@nestjs/jwt';
 import { OTPSecret } from '../../schemas/OTPSecret.schema';
 import { Organization } from '../../schemas/Organization.schema';
-import { userInfo } from 'os';
 import { InviteUserDTO } from '../users/dto/invite-user.dto';
 import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema';
+import { OrganizationService } from '../organization/organization.service';
 
 @Injectable()
 export class AuthService {
@@ -41,18 +41,24 @@ export class AuthService {
     private readonly organizationUserRoleModel: Model<OrganizationUserRole>,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
+    private readonly organizationService: OrganizationService,
   ) {}
+  private readonly logger = new Logger(AuthService.name);
 
-  private generateTokens(userId: string, email: string) {
+  private generateTokens(
+    userId: string,
+    email: string,
+    organizationId: string,
+  ) {
     const accessToken = this.jwtService.sign(
-      { userId, email },
+      { userId, email, organizationId },
       {
         secret: this.configService.get('JWT_SECRET'),
         expiresIn: this.configService.get('JWT_EXPIRE'),
       },
     );
     const refreshToken = this.jwtService.sign(
-      { userId, email },
+      { userId, email, organizationId },
       {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
         expiresIn: this.configService.get('JWT_EXPIRE_REFRESH_TOKEN'),
@@ -87,6 +93,7 @@ export class AuthService {
           const { accessToken, refreshToken } = this.generateTokens(
             userExist._id as string,
             userExist.emailAddress,
+            '', // Fix: organizationId should be passed here if available
           );
 
           await userExist.save();
@@ -123,6 +130,7 @@ export class AuthService {
     const { accessToken, refreshToken } = this.generateTokens(
       userObject._id as string,
       userObject.emailAddress,
+      '', // Fix: organizationId should be passed here if available
     );
     //TODO: CURRENTLY IT IS ASSUMED THAT WHOEVER CREATED THE ORG IS ADMIN. NEED TO FIX THIS BY ADDING INFO IN USERORGANIZATIONROLE MODEL
     const organizations = await this.organizationModel.find({
@@ -159,10 +167,13 @@ export class AuthService {
   ) {
     const user = await this.userModel.findOne({
       emailAddress: loginUserEmailPasswordDTO.emailAddress,
+      isDisabled: false,
     });
-    // if(!user.isVerified){
-    //   throw new BadRequestException('User is not verified')
-    // }
+
+    if (!user) {
+      throw new BadRequestException('User does not exist');
+    }
+
     if (user && user.password !== null) {
       const checkPassword = await bcrypt.compare(
         loginUserEmailPasswordDTO.password,
@@ -171,10 +182,17 @@ export class AuthService {
       if (!checkPassword) {
         throw new BadRequestException('Invalid Credentials');
       } else {
+        // Find the last organization accessed by the user
+        const lastOrg = await this.organizationService.lastOrganization(
+          user._id as Types.ObjectId,
+        );
+
         const { accessToken, refreshToken } = this.generateTokens(
           user.id,
           user.emailAddress,
+          lastOrg.toString(),
         );
+
         const userInfo = user.toObject();
 
         delete userInfo.password;
@@ -205,6 +223,7 @@ export class AuthService {
       throw new NotFoundException('User does not exists');
     }
   }
+
   public async chooseOrganization(chooseOrg: ChooseOrganization) {
     console.log(chooseOrg.organizationId);
     const orgnization = await this.organizationModel.findOne({
@@ -218,6 +237,7 @@ export class AuthService {
       throw new NotFoundException('Organization Not found');
     }
   }
+
   public async listOrganizations(userId: string) {
     const organizations = await this.organizationModel.find({
       users: { $in: [userId] },
@@ -240,7 +260,11 @@ export class AuthService {
     }
     const decoded = this.jwtService.decode(refreshToken);
     console.log(decoded);
-    const tokens = this.generateTokens(decoded.userId, decoded.email);
+    const tokens = this.generateTokens(
+      decoded.userId,
+      decoded.email,
+      decoded.organizationId,
+    );
     return tokens;
   }
 
@@ -296,6 +320,7 @@ export class AuthService {
       };
     }
   }
+
   public async verifyInvite(verifyInviteDTO: VerifyInviteDTO) {
     try {
       await this.jwtService.verifyAsync(verifyInviteDTO.jwtToken, {
@@ -331,6 +356,7 @@ export class AuthService {
     const { accessToken, refreshToken } = this.generateTokens(
       user.id,
       user.emailAddress,
+      '', // Fix: organizationId should be passed here if available
     );
     user['hasOrganization'] = true;
     return {
@@ -338,51 +364,5 @@ export class AuthService {
       accessToken: accessToken,
       refreshToken: refreshToken,
     };
-  }
-
-  async validateOrgAccess(userId: string, orgId: string, roles?: string[]) {
-    if (!isValidObjectId(userId) || !isValidObjectId(orgId)) {
-      throw new BadRequestException('Invalid userId or organizationId');
-    }
-
-    const orgUser = await this.organizationUserRoleModel
-      .findOne({
-        user: new Types.ObjectId(userId),
-        organization: new Types.ObjectId(orgId),
-        isDisabled: false,
-      })
-      .populate('role');
-
-    if (!orgUser) {
-      const [userExists, orgExists] = await Promise.all([
-        this.userModel.exists({ _id: userId, isDisabled: false }),
-        this.organizationModel.exists({ _id: orgId, isDisabled: false }),
-      ]);
-
-      const errors = [];
-      if (!userExists) {
-        errors.push(`User not found (user: ${userId})`);
-      }
-      if (!orgExists) {
-        errors.push(`Organization not found (org: ${orgId})`);
-      }
-      if (errors.length) {
-        throw new NotFoundException(errors.join(' and '));
-      }
-
-      throw new ForbiddenException(
-        `User ${userId} does not belong to organization ${orgId}`,
-      );
-    }
-
-    if (roles?.length) {
-      const userRole = orgUser.role?.roleName?.toLowerCase();
-      const hasRole = roles.some((r) => r.toLowerCase() === userRole);
-      if (!hasRole) {
-        throw new ForbiddenException('Insufficient role permissions');
-      }
-    }
-
-    return orgUser;
   }
 }

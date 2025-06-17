@@ -25,11 +25,13 @@ import {
   OrganizationProjectUser,
   OrganizationProjectUserSchema,
 } from '../../schemas/OrganizationProjectUser.schema';
+import { OrganizationModule } from '../organization/organization.module';
 
 @Global()
 @Module({
   imports: [
     PassportModule,
+    OrganizationModule,
     JwtModule.register({}),
     MongooseModule.forFeature([
       { name: Users.name, schema: UsersSchema },
@@ -50,7 +52,6 @@ import {
     JwtStrategy,
     JWTRefreshTokenStrategy,
     EmailService,
-    OrganizationService,
   ],
   exports: [AuthService],
 })

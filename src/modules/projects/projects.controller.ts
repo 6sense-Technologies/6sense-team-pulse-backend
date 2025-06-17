@@ -178,7 +178,11 @@ export class ProjectsController {
   @ApiBearerAuth()
   @Post()
   create(@Body() createProjectDto: CreateProjectDto, @Req() req: Request) {
-    return this.projectsService.create(createProjectDto, req['user'].userId, req['user'].organizationId);
+    return this.projectsService.create(
+      createProjectDto,
+      req['user'].userId,
+      req['user'].organizationId,
+    );
   }
 
   @Auth()

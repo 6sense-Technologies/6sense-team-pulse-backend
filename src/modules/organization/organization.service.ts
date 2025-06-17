@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Organization } from '../../schemas/Organization.schema';
 import { InjectModel } from '@nestjs/mongoose';
@@ -24,7 +25,7 @@ export class OrganizationService {
     @InjectModel(Users.name)
     private readonly usersModel: Model<Users>,
     @InjectModel(OrganizationUserRole.name)
-    private readonly organizationUserRole: Model<OrganizationUserRole>,
+    private readonly organizationUserRoleModel: Model<OrganizationUserRole>,
     @InjectModel(Role.name)
     private readonly roleModel: Model<Role>,
   ) {}
@@ -72,7 +73,7 @@ export class OrganizationService {
           },
         );
       }
-      await this.organizationUserRole.create(
+      await this.organizationUserRoleModel.create(
         [
           {
             organization: organization[0],
@@ -97,4 +98,90 @@ export class OrganizationService {
     const roles = await this.roleModel.find({});
     return roles;
   }
+
+  async validateOrgAccess(userId: string, orgId: string, roles?: string[]) {
+    if (!isValidObjectId(userId) || !isValidObjectId(orgId)) {
+      throw new BadRequestException('Invalid userId or organizationId');
+    }
+
+    const orgUser = await this.organizationUserRoleModel
+      .findOne({
+        user: new Types.ObjectId(userId),
+        organization: new Types.ObjectId(orgId),
+        isDisabled: false,
+      })
+      .populate('role');
+
+    if (!orgUser) {
+      const [userExists, orgExists] = await Promise.all([
+        this.usersModel.exists({ _id: userId, isDisabled: false }),
+        this.organizationModel.exists({ _id: orgId, isDisabled: false }),
+      ]);
+
+      const errors = [];
+      if (!userExists) {
+        errors.push(`User not found (user: ${userId})`);
+      }
+      if (!orgExists) {
+        errors.push(`Organization not found (org: ${orgId})`);
+      }
+      if (errors.length) {
+        throw new NotFoundException(errors.join(' and '));
+      }
+
+      throw new ForbiddenException(
+        `User ${userId} does not belong to organization ${orgId}`,
+      );
+    }
+
+    if (roles?.length) {
+      const userRole = orgUser.role?.roleName?.toLowerCase();
+      const hasRole = roles.some((r) => r.toLowerCase() === userRole);
+      if (!hasRole) {
+        throw new ForbiddenException('Insufficient role permissions');
+      }
+    }
+    return orgUser;
+  }
+
+  async lastOrganization(userId: Types.ObjectId) {
+    const organizationUserRole = await this.organizationUserRoleModel
+      .find({ user: userId, isDisabled: false })
+      .sort({ lastAccessed: -1 })
+      .limit(1);
+    if (!organizationUserRole || organizationUserRole.length === 0) {
+      throw new NotFoundException(
+        `No organization found for user with ID ${userId}`,
+      );
+    }
+    await this.updateLastAccessed(
+      userId,
+      organizationUserRole[0].organization,
+    );
+    return organizationUserRole[0].organization;
+  }
+
+  async updateLastAccessed(
+    userId: Types.ObjectId,
+    organizationId: Types.ObjectId,
+  ): Promise<void> {
+    if (!isValidObjectId(userId) || !isValidObjectId(organizationId)) {
+      throw new BadRequestException('Invalid userId or organizationId');
+    }
+
+    const orgUser = await this.organizationUserRoleModel.findOne({
+      user: userId,
+      organization: organizationId,
+    });
+
+    if (!orgUser) {
+      throw new NotFoundException(
+        `User ${userId} does not belong to organization ${organizationId}`,
+      );
+    }
+
+    orgUser.lastAccessed = new Date();
+    await orgUser.save();
+  }
+
 }

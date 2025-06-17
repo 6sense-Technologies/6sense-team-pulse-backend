@@ -25,6 +25,9 @@ export class OrganizationUserRole {
 
   @Prop({ type: Boolean, default: false })
   isDisabled: boolean;
+
+  @Prop({ type: Date, default: Date.now })
+  lastAccessed: Date;
 }
 
 export const OrganizationUserRoleSchema =
