@@ -906,14 +906,15 @@ export class WorksheetService {
     page: number = 1,
     limit: number = 10,
     sortBy: 'duration' | 'reportedTime' = 'reportedTime',
-    sortOrder: 'oldest' | 'latest' = 'latest',
+    sortOrder: 'oldest' | 'latest' | 'highest' | 'lowest' = 'latest',
     startDate?: string,
     endDate?: string,
     search?: string,
   ) {
     try {
       const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
-      const sortMultiplier = sortOrder === 'oldest' ? 1 : -1;
+      const sortMultiplier =
+        sortOrder === 'oldest' || sortOrder === 'lowest' ? 1 : -1;
 
       const matchStage: any = {
         organization: new Types.ObjectId(organizationId),
