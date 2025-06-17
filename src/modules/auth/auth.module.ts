@@ -23,12 +23,6 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JWTRefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
 import { JwtStrategy } from './strategy/jwt.strategy';
-import { APP_GUARD } from '@nestjs/core';
-import { RolesGuard } from './guards/roles.guard';
-import {
-  OrganizationProjectUser,
-  OrganizationProjectUserSchema,
-} from '../../schemas/OrganizationProjectUser.schema';
 import { OrganizationModule } from '../organization/organization.module';
 
 
