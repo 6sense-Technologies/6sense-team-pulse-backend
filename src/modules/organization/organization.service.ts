@@ -1,3 +1,6 @@
+import { ConflictException, Injectable } from '@nestjs/common';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 import {
   BadRequestException,
   Body,
@@ -7,14 +10,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Organization } from '../../schemas/Organization.schema';
-import { InjectModel } from '@nestjs/mongoose';
-import { Connection, isValidObjectId, Model, Mongoose, Types } from 'mongoose';
-import { CreateOrganizationDTO } from './dto/organization.dto';
-import { Users } from '../../schemas/users.schema';
 import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema';
 import { Role } from '../../schemas/Role.schema';
-import { InjectConnection } from '@nestjs/mongoose';
-import { AuthService } from '../auth/auth.service';
+import { Users } from '../../schemas/users.schema';
+import { CreateOrganizationDTO } from './dto/organization.dto';
 
 @Injectable()
 export class OrganizationService {

@@ -3,13 +3,19 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
-  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { isValidObjectId, Model, Types } from 'mongoose';
-import { Users } from '../../schemas/users.schema';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import * as bcrypt from 'bcrypt';
+import { isValidObjectId, Model, Types } from 'mongoose';
+import { OTPSecret } from '../../schemas/OTPSecret.schema';
+import { Organization } from '../../schemas/Organization.schema';
+import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema';
+import { Users } from '../../schemas/users.schema';
+import { EmailService } from '../email-service/email-service.service';
 import {
   ChooseOrganization,
   CreateUserEmail,
