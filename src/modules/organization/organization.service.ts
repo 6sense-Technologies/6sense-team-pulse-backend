@@ -168,7 +168,7 @@ export class OrganizationService {
     if (!isValidObjectId(userId) || !isValidObjectId(organizationId)) {
       throw new BadRequestException('Invalid userId or organizationId');
     }
-
+    
     const orgUser = await this.organizationUserRoleModel.findOne({
       user: userId,
       organization: organizationId,
