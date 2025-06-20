@@ -46,6 +46,7 @@ export class DataFetcherService {
     // Return the result as an object
     return { hour, minute, amPm };
   }
+
   async dataFetchFromJIRA(dataFetcherdto: DataFetcherDTO) {
     // console.log(dataFetcherdto);
     const emailAddress = this.configService.get('EMAIL_ADDRESS');
@@ -203,6 +204,7 @@ export class DataFetcherService {
       );
     }
   }
+  
   async dataFetchFromTrello(dataFetcherDto: DataFetcherDTO) {
     try {
       console.log('Fetching data from....');
@@ -429,6 +431,7 @@ export class DataFetcherService {
     console.log('DONE..');
     return 'DONE';
   }
+
   async saveTrelloIssueToEntry(rawData: any) {
     console.log('INVOKED');
 
@@ -509,6 +512,7 @@ export class DataFetcherService {
     console.log('DONE..');
     return 'DONE';
   }
+
   async fetchDataFromAllToolUrls(verdict: boolean = false) {
     const tools = await this.toolModel.find({});
     const urls = tools.map((tool) => tool.toolUrl);
