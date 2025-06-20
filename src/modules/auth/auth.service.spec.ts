@@ -1,4 +1,4 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { getModelToken } from '@nestjs/mongoose';
@@ -10,8 +10,8 @@ import { OTPSecret } from '../../schemas/OTPSecret.schema';
 import { Organization } from '../../schemas/Organization.schema';
 import { Users } from '../../schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
-import { AuthService } from './auth.service';
 import { OrganizationService } from '../organization/organization.service';
+import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -60,6 +60,7 @@ describe('AuthService', () => {
           provide: getModelToken(Organization.name),
           useValue: {
             find: jest.fn(),
+            findOne: jest.fn(),
           },
         },
         {
@@ -112,15 +113,12 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userModel = module.get<Model<Users>>(getModelToken(Users.name));
-    otpSecretModel = module.get<Model<OTPSecret>>(
-      getModelToken(OTPSecret.name),
-    );
-    organizationModel = module.get<Model<Organization>>(
-      getModelToken(Organization.name),
-    );
+    otpSecretModel = module.get<Model<OTPSecret>>(getModelToken(OTPSecret.name));
+    organizationModel = module.get<Model<Organization>>(getModelToken(Organization.name));
     emailService = module.get<EmailService>(EmailService);
     jwtService = module.get<JwtService>(JwtService);
     configService = module.get<ConfigService>(ConfigService);
+    organizationService = module.get<OrganizationService>(OrganizationService);
   });
 
   it('should be defined', () => {
@@ -152,9 +150,33 @@ describe('AuthService', () => {
         emailAddress: registerDto.emailAddress,
         password: hashedPassword,
       });
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
-        registerDto.emailAddress,
-      );
+      expect(emailService.sendEmail).toHaveBeenCalledWith(registerDto.emailAddress);
+      expect(result.userInfo).not.toHaveProperty('password');
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+      // expect(result.userInfo.hasOrganization).toBeFalsy();
+    });
+
+    it('should create a new user when email does not exist (hasOrganization: true)', async () => {
+      const hashedPassword = 'hashedPassword123';
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(null);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue(hashedPassword);
+      jest.spyOn(userModel, 'create').mockResolvedValue({
+        ...mockUser,
+        hasOrganization: true,
+        password: hashedPassword,
+      } as any);
+      jest.spyOn(organizationModel, 'find').mockResolvedValue([{}]);
+      jest.spyOn(emailService, 'sendEmail').mockResolvedValue(undefined);
+
+      const result = await service.registerEmailPassword(registerDto);
+
+      expect(userModel.create).toHaveBeenCalledWith({
+        displayName: registerDto.displayName,
+        emailAddress: registerDto.emailAddress,
+        password: hashedPassword,
+      });
+      expect(emailService.sendEmail).toHaveBeenCalledWith(registerDto.emailAddress);
       expect(result.userInfo).not.toHaveProperty('password');
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
@@ -187,9 +209,30 @@ describe('AuthService', () => {
 
       jest.spyOn(userModel, 'findOne').mockResolvedValue(invitedUser as any);
 
-      await expect(service.registerEmailPassword(registerDto)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.registerEmailPassword(registerDto)).rejects.toThrow(ConflictException);
+    });
+
+    it('should throw ConflictException for not invited user', async () => {
+      const invitedUser = {
+        ...mockUser,
+        isInvited: false,
+        password: 'existingPassword',
+      };
+
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(invitedUser as any);
+
+      await expect(service.registerEmailPassword(registerDto)).rejects.toThrow(ConflictException);
+    });
+
+    it('should throw ConflictException for if user not exists', async () => {
+      const invitedUser = {
+        ...mockUser,
+        password: 'existingPassword',
+      };
+
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(invitedUser as any);
+
+      await expect(service.registerEmailPassword(registerDto)).rejects.toThrow(ConflictException);
     });
   });
 
@@ -216,94 +259,133 @@ describe('AuthService', () => {
     it('should throw ConflictException when email exists', async () => {
       jest.spyOn(userModel, 'findOne').mockResolvedValue(mockUser as any);
 
-      await expect(service.registerEmail(registerEmailDto)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.registerEmail(registerEmailDto)).rejects.toThrow(ConflictException);
     });
   });
 
-  //   describe('loginEmailPassword', () => {
-  //     const loginDto = {
-  //       emailAddress: 'test@example.com',
-  //       password: 'password123',
-  //     };
+  describe('loginEmailPassword', () => {
+    const loginDto = {
+      emailAddress: 'test@example.com',
+      password: 'password123',
+    };
 
-  //     it('should successfully login user with valid credentials', async () => {
-  //       const mockUserWithPassword = {
-  //   ...mockUser,
-  //   password: 'hashedPassword',
-  //   toObject: () => ({
-  //     ...mockUser,
-  //     _id: new Types.ObjectId('683ecb27eeecb27e220557f1'),
-  //     emailAddress: 'test@example.com',
-  //   }),
-  // };
+    it('should successfully login user with valid credentials', async () => {
+      const mockUserWithPassword = {
+        ...mockUser,
+        password: 'hashedPassword',
+        toObject: () => ({
+          ...mockUser,
+          _id: new Types.ObjectId('683ecb27eeecb27e220557f1'),
+          emailAddress: 'test@example.com',
+        }),
+      };
 
-  //       jest
-  //         .spyOn(userModel, 'findOne')
-  //         .mockResolvedValue(mockUserWithPassword as any);
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockUserWithPassword as any);
 
-  //       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
-  //       jest.spyOn(organizationService, 'lastOrganization').mockResolvedValueOnce(
-  //         new Types.ObjectId('683ecb27eeecb27e220557f3') as any,
-  //       );
+      jest
+        .spyOn(organizationService, 'lastOrganization')
+        .mockResolvedValueOnce(new Types.ObjectId('683ecb27eeecb27e220557f3') as any);
 
-  //       jest.spyOn(service, 'generateTokens').mockResolvedValueOnce({
-  //   accessToken: 'fake-access-token',
-  //   refreshToken: 'fake-refresh-token',
-  // } as any as never);
+      // jest.spyOn(service, 'generateTokens').mockResolvedValueOnce({
+      // accessToken: 'fake-access-token',
+      // refreshToken: 'fake-refresh-token',
+      // } as any as never);
 
-  //       jest.spyOn(organizationModel, 'find').mockResolvedValue([{ id: 'org1' }]);
+      jest.spyOn(organizationModel, 'find').mockResolvedValue([{ id: 'org1' }]);
 
-  //       const result = await service.loginEmailPassword(loginDto);
+      const result = await service.loginEmailPassword(loginDto);
 
-  //       // expect(result.userInfo.role).toBe('admin');
-  //       // expect(result.userInfo.hasOrganization).toBeTruthy();
-  //       expect(result.accessToken).toBeDefined();
-  //       expect(result.refreshToken).toBeDefined();
-  //     });
+      // expect(result.userInfo.role).toBe('admin');
+      // expect(result.userInfo.hasOrganization).toBeTruthy();
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+    });
 
-  //     it('should set correct role for non-admin user', async () => {
-  //       const mockUserWithPassword = {
-  //         ...mockUser,
-  //         password: 'hashedPassword',
-  //       };
+    it('should set correct role for non-admin user', async () => {
+      const mockUserWithPassword = {
+        ...mockUser,
+        password: 'hashedPassword',
+      };
 
-  //       jest
-  //         .spyOn(userModel, 'findOne')
-  //         .mockResolvedValue(mockUserWithPassword as any);
-  //       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
-  //       jest.spyOn(organizationModel, 'find').mockResolvedValue([]);
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockUserWithPassword as any);
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      jest.spyOn(organizationModel, 'find').mockResolvedValue([]);
 
-  //       const result = await service.loginEmailPassword(loginDto);
+      const result = await service.loginEmailPassword(loginDto);
 
-  //       // expect(result.userInfo.role).toBe('member');
-  //       // expect(result.userInfo.hasOrganization).toBeFalsy();
-  //     });
+      // expect(result.userInfo.role).toBe('member');
+      // expect(result.userInfo.hasOrganization).toBeFalsy();
+    });
 
-  //     it('should handle invited user login', async () => {
-  //       const mockInvitedUser = {
-  //         ...mockUser,
-  //         password: 'hashedPassword',
-  //         isInvited: true,
-  //         toObject: jest.fn().mockReturnValue({
-  //           ...mockUser.toObject(),
-  //           isInvited: true,
-  //         }),
-  //       };
+    it('should handle invited user login', async () => {
+      const mockInvitedUser = {
+        ...mockUser,
+        password: 'hashedPassword',
+        isInvited: true,
+        toObject: jest.fn().mockReturnValue({
+          ...mockUser.toObject(),
+          isInvited: true,
+        }),
+      };
 
-  //       jest
-  //         .spyOn(userModel, 'findOne')
-  //         .mockResolvedValue(mockInvitedUser as any);
-  //       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
-  //       jest.spyOn(organizationModel, 'find').mockResolvedValue([]);
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockInvitedUser as any);
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      jest.spyOn(organizationModel, 'find').mockResolvedValue([]);
 
-  //       const result = await service.loginEmailPassword(loginDto);
+      const result = await service.loginEmailPassword(loginDto);
 
-  //       // expect(result.userInfo.hasOrganization).toBeTruthy();
-  //     });
-  //   });
+      // expect(result.userInfo.hasOrganization).toBeTruthy();
+    });
+
+    it('should return user not found', async () => {
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(null);
+
+      await expect(service.loginEmailPassword(loginDto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should handle invited user login', async () => {
+      const mockInvitedUser = {
+        ...mockUser,
+        password: 'abc',
+      };
+
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockInvitedUser as any);
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+
+      await expect(service.loginEmailPassword(loginDto)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('chooseOrganization', () => {
+    it('should return organization not found', async () => {
+      jest.spyOn(organizationModel, 'findOne').mockResolvedValue(null);
+      await expect(
+        service.chooseOrganization({
+          organizationId: '670f5cb7fcec534287bf881a',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should return organization', async () => {
+      jest.spyOn(organizationModel, 'findOne').mockResolvedValue({ _id: '670f5cb7fcec534287bf881a' } as any);
+      const result = await service.chooseOrganization({
+        organizationId: '670f5cb7fcec534287bf881a',
+      });
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('listOrganizations', () => {
+    it('should return last accessed organization', async () => {
+      jest
+        .spyOn(organizationModel, 'find')
+        .mockResolvedValue([{ _id: '670f5cb7fcec534287bf881a', name: 'abc' }] as any);
+      const result = await service.listOrganizations('670f5cb7fcec534287bf881a');
+      expect(result).toBeDefined();
+    });
+  });
 
   describe('generateRefreshTokens', () => {
     it('should generate new tokens with valid refresh token', async () => {
@@ -322,9 +404,103 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid refresh token', async () => {
       // jest.spyOn(jwtService, 'verify').mockResolvedValue(false);
 
-      await expect(
-        service.generateRefreshTokens('invalidToken'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.generateRefreshTokens('invalidToken')).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('verifyToken', () => {
+    const verifyTokenDto = {
+      token: 'validToken',
+      email: 'test@example.com',
+    };
+
+    it('should throw invalid token', async () => {
+      jest.spyOn(otpSecretModel, 'findOne').mockResolvedValue(null);
+
+      await expect(service.verifyToken(verifyTokenDto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw invalid token', async () => {
+      jest.spyOn(otpSecretModel, 'findOne').mockResolvedValue({
+        secret: 'validToken1',
+        emailAddress: 'test@example.com',
+        updatedAt: new Date(),
+      });
+
+      await expect(service.verifyToken(verifyTokenDto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw "Token Expired" if time difference > 120 seconds', async () => {
+      const expiredDate = new Date(Date.now() - 121 * 1000); // 121 seconds ago
+
+      jest.spyOn(otpSecretModel, 'findOne').mockResolvedValue({
+        secret: 'validToken',
+        emailAddress: 'test@example.com',
+        updatedAt: expiredDate,
+      });
+
+      await expect(service.verifyToken(verifyTokenDto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should verify the user if token is valid and within time limit', async () => {
+      const recentDate = new Date(); // current time
+
+      const otpDocMock = {
+        secret: 'validToken',
+        emailAddress: 'test@example.com',
+        updatedAt: recentDate,
+      };
+
+      const userDocMock = {
+        emailAddress: 'test@example.com',
+        isVerified: false,
+        save: jest.fn(),
+      };
+
+      jest.spyOn(otpSecretModel, 'findOne').mockResolvedValue(otpDocMock);
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(userDocMock);
+
+      const result = await service.verifyToken(verifyTokenDto);
+
+      expect(result).toEqual({ isValidated: true });
+    });
+  });
+
+  describe('checkStatus', () => {
+    const email = 'test@example.com';
+    const userId = 'userId123';
+
+    it('should throw NotFoundException if user is not found', async () => {
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(null);
+
+      await expect(service.checkStatus(email)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should return verified: false and hasOrganization: false if user exists but no organizations', async () => {
+      const mockUser = { _id: userId, isVerified: false };
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(organizationModel, 'find').mockResolvedValue([]);
+
+      const result = await service.checkStatus(email);
+
+      expect(result).toEqual({
+        verified: false,
+        hasOrganization: false,
+      });
+    });
+
+    it('should return verified: true and hasOrganization: true if user exists and has organizations', async () => {
+      const mockUser = { _id: userId, isVerified: true };
+      const mockOrganizations = [{ name: 'Org1' }, { name: 'Org2' }];
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(organizationModel, 'find').mockResolvedValue(mockOrganizations);
+
+      const result = await service.checkStatus(email);
+
+      expect(result).toEqual({
+        verified: true,
+        hasOrganization: true,
+      });
     });
   });
 
@@ -347,21 +523,15 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for expired token', async () => {
-      jest
-        .spyOn(jwtService, 'verifyAsync')
-        .mockRejectedValue({ name: 'TokenExpiredError' });
+      jest.spyOn(jwtService, 'verifyAsync').mockRejectedValue({ name: 'TokenExpiredError' });
 
-      await expect(service.verifyInvite(verifyInviteDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.verifyInvite(verifyInviteDto)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException for invalid token', async () => {
       jest.spyOn(jwtService, 'verifyAsync').mockRejectedValue(new Error());
 
-      await expect(service.verifyInvite(verifyInviteDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.verifyInvite(verifyInviteDto)).rejects.toThrow(UnauthorizedException);
     });
   });
 

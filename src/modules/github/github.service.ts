@@ -11,8 +11,6 @@ import { firstValueFrom } from 'rxjs';
 import { GitContribution } from '../../schemas/GitContribution.schema';
 import { GitRepo } from '../../schemas/GitRepo.schema';
 import { User } from '../../schemas/user.schema';
-import { CreateGithubDto } from './dto/create-github.dto';
-import { UpdateGithubDto } from './dto/update-github.dto';
 
 @Injectable()
 export class GithubService {
@@ -27,17 +25,18 @@ export class GithubService {
     @InjectQueue('git') private gitQueue: Queue,
   ) {}
 
-  async getChart(userId: string, date: string) {
-    console.log(`UserId: ${userId} Date: ${date}`);
-    return 'To be implemented';
-  }
-  create(createGithubDto: CreateGithubDto) {
-    return 'This action adds a new github';
-  }
+  // async getChart(userId: string, date: string) {
+  //   console.log(`UserId: ${userId} Date: ${date}`);
+  //   return 'To be implemented';
+  // }
+  // create(createGithubDto: CreateGithubDto) {
+  //   return 'This action adds a new github';
+  // }
 
-  findAll() {
-    return `This action returns all github`;
-  }
+  // findAll() {
+  //   return `This action returns all github`;
+  // }
+
   async summary(
     userId: string,
     date: string,
@@ -115,12 +114,7 @@ export class GithubService {
     return results[0];
   }
 
-  async getContributions(
-    userId: string,
-    date: string,
-    page: number = 1,
-    limit: number = 10,
-  ) {
+  async getContributions(userId: string, date: string, page: number = 1, limit: number = 10) {
     const inputDate = new Date(date); // Replace `date` with your input date
     const dateStart = DateTime.fromJSDate(inputDate, {
       zone: 'Asia/Dhaka',
@@ -227,17 +221,17 @@ export class GithubService {
     return results[0];
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} github`;
-  }
+  // findOne(id: number) {
+  //   return `This action returns a #${id} github`;
+  // }
 
-  update(id: number, updateGithubDto: UpdateGithubDto) {
-    return `This action updates a #${id} github`;
-  }
+  // update(id: number, updateGithubDto: UpdateGithubDto) {
+  //   return `This action updates a #${id} github`;
+  // }
 
-  remove(id: number) {
-    return `This action removes a #${id} github`;
-  }
+  // remove(id: number) {
+  //   return `This action removes a #${id} github`;
+  // }
 
   async getLinesChanged(commit, url: string) {
     let totalAdditions = 0;
@@ -350,11 +344,7 @@ export class GithubService {
       response.data.forEach(async (commit) => {
         const data = await this.getLinesChanged(commit, url);
 
-        if (
-          data.totalAdditions != 0 ||
-          data.totalDeletions != 0 ||
-          data.totalChanges != 0
-        ) {
+        if (data.totalAdditions != 0 || data.totalDeletions != 0 || data.totalChanges != 0) {
           this.logger.log(`data:`);
           this.logger.log(data);
           const res = await this.gitContributionModel.findOneAndUpdate(
@@ -397,10 +387,7 @@ export class GithubService {
 
     const jobs = [];
     const today = DateTime.now().setZone('Asia/Dhaka').startOf('day');
-    const yesterday = DateTime.now()
-      .setZone('Asia/Dhaka')
-      .startOf('day')
-      .minus({ days: 1 });
+    const yesterday = DateTime.now().setZone('Asia/Dhaka').startOf('day').minus({ days: 1 });
     branches.forEach(async (branch) => {
       // this.logger.log(gitRepo.gitUsername);
       // await this.getCommitReport(gitRepo._id.toString());
