@@ -1,8 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
-  Logger,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -16,6 +16,7 @@ import { Organization } from '../../schemas/Organization.schema';
 import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema';
 import { Users } from '../../schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
+import { OrganizationService } from '../organization/organization.service';
 import {
   ChooseOrganization,
   CreateUserEmail,
@@ -24,7 +25,6 @@ import {
   VerifyEmailDto,
   VerifyInviteDTO,
 } from './dto/auth.dto';
-import { OrganizationService } from '../organization/organization.service';
 
 @Injectable()
 export class AuthService {
@@ -187,7 +187,7 @@ export class AuthService {
     const { accessToken, refreshToken } = this.generateTokens(
       user.id,
       user.emailAddress,
-      lastOrg.toString(),
+      lastOrg ? lastOrg.toString() : '',
     );
 
     const userInfo = user.toObject();
@@ -219,12 +219,12 @@ export class AuthService {
 
   public async chooseOrganization(chooseOrg: ChooseOrganization) {
     console.log(chooseOrg.organizationId);
-    const orgnization = await this.organizationModel.findOne({
+    const organization = await this.organizationModel.findOne({
       _id: new Types.ObjectId(chooseOrg.organizationId),
     });
-    if (orgnization) {
+    if (organization) {
       return {
-        organizationId: orgnization._id.toString(),
+        organizationId: organization._id.toString(),
       };
     } else {
       throw new NotFoundException('Organization Not found');

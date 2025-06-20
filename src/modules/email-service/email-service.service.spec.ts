@@ -1,12 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { EmailService } from './email-service.service';
-import { getModelToken } from '@nestjs/mongoose';
-import { OTPSecret } from '../../schemas/OTPSecret.schema';
-import { Users } from '../../schemas/users.schema';
 import { MailerService } from '@nestjs-modules/mailer';
+import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { NotFoundException } from '@nestjs/common';
+import { getModelToken } from '@nestjs/mongoose';
+import { Test, TestingModule } from '@nestjs/testing';
+import { OTPSecret } from '../../schemas/OTPSecret.schema';
+import { Users } from '../../schemas/users.schema';
+import { EmailService } from './email-service.service';
 import { EmailTemplate } from './templates/email-template.template';
 
 describe('EmailService', () => {
@@ -63,31 +63,57 @@ describe('EmailService', () => {
     jwtService = module.get<JwtService>(JwtService);
   });
 
+  describe('generateCode', () => {
+    it('should generate a 6-digit code', () => {
+      const code = (emailService as any).generateCode();
+      expect(code).toMatch(/^\d{6}$/);
+    });
+  });
+
   describe('sendEmail', () => {
     it('should throw NotFoundException if user does not exist', async () => {
       usersModel.findOne.mockResolvedValue(null);
-      await expect(emailService.sendEmail('test@example.com')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(emailService.sendEmail('test@example.com')).rejects.toThrow(NotFoundException);
     });
 
-    it('should send an email with a verification code', async () => {
+    it('should send an email with a verification code (no existing OTP entry)', async () => {
       usersModel.findOne.mockResolvedValue({ displayName: 'Test User' });
       otpSecretModel.findOne.mockResolvedValue(null);
       otpSecretModel.create.mockResolvedValue({});
-      jest
-        .spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate')
-        .mockReturnValue('<html>Mock Email</html>');
+
+      jest.spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate').mockReturnValue('<html>Mock Email</html>');
+
       mailerService.sendMail.mockResolvedValue({ success: true });
+      configService.get.mockReturnValue('mock@email.com');
 
       const response = await emailService.sendEmail('test@example.com');
 
       expect(mailerService.sendMail).toHaveBeenCalledWith({
-        from: expect.any(String),
+        from: '6sense Projects mock@email.com',
         to: 'test@example.com',
         subject: `Please Verify your account for test@example.com`,
         html: '<html>Mock Email</html>',
       });
+      expect(response).toEqual({ success: true });
+    });
+
+    it('should update existing OTP entry instead of creating new', async () => {
+      const saveMock = jest.fn();
+      usersModel.findOne.mockResolvedValue({ displayName: 'Test User' });
+
+      otpSecretModel.findOne.mockResolvedValue({
+        secret: 'old',
+        save: saveMock,
+      });
+
+      jest.spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate').mockReturnValue('<html>Updated OTP</html>');
+
+      mailerService.sendMail.mockResolvedValue({ success: true });
+      configService.get.mockReturnValue('mock@email.com');
+
+      const response = await emailService.sendEmail('test@example.com');
+
+      expect(saveMock).toHaveBeenCalled(); // OTP was updated
       expect(response).toEqual({ success: true });
     });
   });
@@ -95,45 +121,45 @@ describe('EmailService', () => {
   describe('sendInvitationEmail', () => {
     it('should throw NotFoundException if user does not exist', async () => {
       usersModel.findOne.mockResolvedValue(null);
-      await expect(
-        emailService.sendInvitationEmail(
-          'test@example.com',
-          'Admin',
-          'TestOrg',
-        ),
-      ).rejects.toThrow(NotFoundException);
+
+      await expect(emailService.sendInvitationEmail('test@example.com', 'Admin', 'Org')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should send an invitation email', async () => {
       usersModel.findOne.mockResolvedValue({ displayName: 'Test User' });
+
       configService.get.mockImplementation((key) => {
         if (key === 'INVITE_SECRET') return 'secret';
         if (key === 'INVITE_EXPIRE') return '1d';
-        return 'mock-email-sender@example.com';
+        if (key === 'EMAIL_SENDER') return 'mock@email.com';
       });
-      jwtService.sign.mockReturnValue('mock-jwt-token');
-      jest
-        .spyOn(EmailTemplate, 'invitationEmail')
-        .mockReturnValue('<html>Mock Invite Email</html>');
+
+      jwtService.sign.mockReturnValue('jwt-token-123');
+
+      jest.spyOn(EmailTemplate, 'invitationEmail').mockReturnValue('<html>Invite Email</html>');
+
       mailerService.sendMail.mockResolvedValue({ success: true });
 
-      const response = await emailService.sendInvitationEmail(
-        'test@example.com',
-        'Admin',
-        'TestOrg',
-      );
+      const result = await emailService.sendInvitationEmail('test@example.com', 'Admin', 'Org');
 
       expect(jwtService.sign).toHaveBeenCalledWith(
         { emailAddress: 'test@example.com' },
-        { secret: 'secret', expiresIn: '1d' },
+        {
+          secret: 'secret',
+          expiresIn: '1d',
+        },
       );
+
       expect(mailerService.sendMail).toHaveBeenCalledWith({
-        from: expect.any(String),
+        from: '6sense Projects mock@email.com',
         to: 'test@example.com',
         subject: `Invitation for test@example.com`,
-        html: '<html>Mock Invite Email</html>',
+        html: '<html>Invite Email</html>',
       });
-      expect(response).toEqual({ success: true });
+
+      expect(result).toEqual({ success: true });
     });
   });
 });
