@@ -9,6 +9,12 @@ export class Tool extends Document {
   @Prop({ type: String, default: '' })
   toolUrl: string;
 
+  @Prop({ type: String, default: '' })
+  apiKey: string;
+
+  @Prop({ type: String, default: '' })
+  projectId: string;
+
   @Prop({
     type: [{ type: MongooseSchema.Types.ObjectId, ref: 'ProjectTool' }],
   })

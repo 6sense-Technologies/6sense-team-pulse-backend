@@ -27,6 +27,24 @@ class ToolDto {
   @IsString()
   @IsUrl()
   toolUrl: string;
+
+  @ApiProperty({
+    description: 'API Key for the tool (This is for Linear)',
+    type: String,
+    example: 'xxx_xxx_jvvvLaaa8ZAaaaabpOBbbbyRwbbbRGQcccgRcccx', // Example value for apiKey
+    required: false,
+  })
+  @IsString()
+  apiKey?: string; // Optional field for API key
+
+  @ApiProperty({
+    description: "Project ID associated with the tool (this is for Linear)",
+    type: String,
+    example: '4daaaa4b-aaaa-aaaa-aaaa-aaadcbbf4aaa', // Example value for projectId
+    required: false,
+  })
+  @IsString()
+  projectId?: string; // Optional field for project ID
 }
 
 export class CreateProjectDto {
