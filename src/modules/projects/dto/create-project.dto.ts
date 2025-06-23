@@ -4,6 +4,7 @@ import {
   IsArray,
   ValidateNested,
   IsUrl,
+  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -35,6 +36,7 @@ class ToolDto {
     required: false,
   })
   @IsString()
+  @IsOptional()
   apiKey?: string; // Optional field for API key
 
   @ApiProperty({
@@ -44,6 +46,7 @@ class ToolDto {
     required: false,
   })
   @IsString()
+  @IsOptional()
   projectId?: string; // Optional field for project ID
 }
 
