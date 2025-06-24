@@ -16,5 +16,4 @@ export class RolePermission extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   createdBy: Types.ObjectId;
 }
-export const RolePermissionSchema =
-  SchemaFactory.createForClass(RolePermission);
+export const RolePermissionSchema = SchemaFactory.createForClass(RolePermission);

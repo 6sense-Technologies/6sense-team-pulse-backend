@@ -29,18 +29,14 @@ export class ActivityLogsProcessor implements OnModuleInit {
       .then((res) => this.logger.log(`✅ Redis connection successful: ${res}`))
       .catch((err) => this.logger.error('❌ Redis connection failed', err));
 
-    this.worker = new Worker(
-      'activity-log',
-      async (job: Job) => this.handleActivityLog(job),
-      {
-        connection: {
-          host: this.configService.get('REDIS_HOST'),
-          port: +this.configService.get('REDIS_PORT'),
-          username: this.configService.get('REDIS_USERNAME'),
-          password: this.configService.get('REDIS_PASSWORD'),
-        },
+    this.worker = new Worker('activity-log', async (job: Job) => this.handleActivityLog(job), {
+      connection: {
+        host: this.configService.get('REDIS_HOST'),
+        port: +this.configService.get('REDIS_PORT'),
+        username: this.configService.get('REDIS_USERNAME'),
+        password: this.configService.get('REDIS_PASSWORD'),
       },
-    );
+    });
   }
 
   async handleActivityLog(job: Job<any>) {
@@ -48,9 +44,7 @@ export class ActivityLogsProcessor implements OnModuleInit {
 
     try {
       const { organization_id, user_id, logs } = this.validateJobData(job);
-      this.logger.log(
-        `Processing job ${job.id} for ${organization_id}:${user_id}`,
-      );
+      this.logger.log(`Processing job ${job.id} for ${organization_id}:${user_id}`);
 
       const sortedLogs = this.sortLogs(logs);
       const lastContext = await this.getLastContext(organization_id, user_id);
@@ -73,11 +67,7 @@ export class ActivityLogsProcessor implements OnModuleInit {
 
       const allSessions = [...crossBatchSessions, ...currentSessions];
 
-      await this.updateLastLogInRedis(
-        organization_id,
-        user_id,
-        sortedLogs.at(-1),
-      );
+      await this.updateLastLogInRedis(organization_id, user_id, sortedLogs.at(-1));
       await this.persistSessions(allSessions, organization_id, user_id);
     } catch (error) {
       this.logger.error(`❌ Error processing job ${job.id}`, error.stack);
@@ -94,16 +84,10 @@ export class ActivityLogsProcessor implements OnModuleInit {
   }
 
   private sortLogs(logs: ActivityLog[]): ActivityLog[] {
-    return logs.sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-    );
+    return logs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
 
-  private async getLastContext(
-    orgId: string,
-    userId: string,
-  ): Promise<ActivityLog | null> {
+  private async getLastContext(orgId: string, userId: string): Promise<ActivityLog | null> {
     const redisKey = this.getRedisKeyForLastActivityLog(orgId, userId);
     const lastLogStr = await this.redis.get(redisKey);
     this.logger.debug(`Last log for ${orgId}:${userId} is ${lastLogStr}`);
@@ -165,9 +149,7 @@ export class ActivityLogsProcessor implements OnModuleInit {
       const log = logs[i];
       const prevLog = i > 0 ? logs[i - 1] : lastContext;
 
-      this.logger.debug(
-        `Comparing logs: ${JSON.stringify(log)} with ${JSON.stringify(prevLog)}`,
-      );
+      this.logger.debug(`Comparing logs: ${JSON.stringify(log)} with ${JSON.stringify(prevLog)}`);
 
       const isSameContext =
         prevLog &&
@@ -204,29 +186,17 @@ export class ActivityLogsProcessor implements OnModuleInit {
     return sessions;
   }
 
-  private async updateLastLogInRedis(
-    orgId: string,
-    userId: string,
-    lastLog: ActivityLog | undefined,
-  ) {
+  private async updateLastLogInRedis(orgId: string, userId: string, lastLog: ActivityLog | undefined) {
     if (!lastLog) return;
     const redisKey = this.getRedisKeyForLastActivityLog(orgId, userId);
     await this.redis.set(redisKey, JSON.stringify(lastLog), 'EX', 600);
     this.logger.debug(`🔁 Redis updated for ${redisKey}`);
   }
 
-  private async persistSessions(
-    sessions: ActivitySession[],
-    orgId: string,
-    userId: string,
-  ) {
+  private async persistSessions(sessions: ActivitySession[], orgId: string, userId: string) {
     if (!sessions.length) return;
     // this.logger.log(`💾 Saving ${sessions.length} sessions for ${userId}`);
-    await this.activityService.createActivitiesFromSession(
-      sessions,
-      userId,
-      orgId,
-    );
+    await this.activityService.createActivitiesFromSession(sessions, userId, orgId);
   }
 
   private getRedisKeyForLastActivityLog(orgId: string, userId: string): string {

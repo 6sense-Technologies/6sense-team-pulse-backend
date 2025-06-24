@@ -69,9 +69,7 @@ describe('ApplicationService', () => {
     });
 
     it('should handle and log internal errors', async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const error = new Error('Database error');
 
       mockAppModel.findOneAndUpdate.mockRejectedValue(error);

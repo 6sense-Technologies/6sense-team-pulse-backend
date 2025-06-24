@@ -31,13 +31,7 @@ export class WorksheetService {
     private readonly activityService: ActivityService,
   ) {}
 
-  async getWorksheetNames(
-    userId: string,
-    organizationId: string,
-    projectId: string,
-    name: string,
-    date: string,
-  ) {
+  async getWorksheetNames(userId: string, organizationId: string, projectId: string, name: string, date: string) {
     try {
       const worksheets = await this.worksheetModel.aggregate([
         {
@@ -79,10 +73,7 @@ export class WorksheetService {
               $cond: {
                 if: { $and: ['$activity.startTime', '$activity.endTime'] },
                 then: {
-                  $divide: [
-                    { $subtract: ['$activity.endTime', '$activity.startTime'] },
-                    1000,
-                  ],
+                  $divide: [{ $subtract: ['$activity.endTime', '$activity.startTime'] }, 1000],
                 },
                 else: 0,
               },
@@ -135,17 +126,11 @@ export class WorksheetService {
         date,
         error: error.message,
       });
-      throw new InternalServerErrorException(
-        'Unable to retrieve worksheet summary',
-      );
+      throw new InternalServerErrorException('Unable to retrieve worksheet summary');
     }
   }
 
-  async assignActivitiesToWorksheet(
-    userId: string,
-    organizationId: string,
-    assignActivitiesDto: AssignActivitiesDto,
-  ) {
+  async assignActivitiesToWorksheet(userId: string, organizationId: string, assignActivitiesDto: AssignActivitiesDto) {
     const { projectId, worksheetName, activityIds, date } = assignActivitiesDto;
 
     const session = await this.connection.startSession();
@@ -182,12 +167,11 @@ export class WorksheetService {
       );
 
       // Validate activities belong to user/org
-      const validActivities =
-        await this.activityService.validateActivitiesForUser(
-          userObjectId,
-          organizationObjectId,
-          activityIds,
-        );
+      const validActivities = await this.activityService.validateActivitiesForUser(
+        userObjectId,
+        organizationObjectId,
+        activityIds,
+      );
 
       const activityIdsToCheck = validActivities.map((a) => a._id);
 
@@ -197,22 +181,14 @@ export class WorksheetService {
       });
 
       if (alreadyLinked.length > 0) {
-        this.logger.debug(
-          `Already linked activities: ${alreadyLinked.map((a) => a.activity.toString())}`,
-        );
-        throw new BadRequestException(
-          'One or more activities are already linked to a worksheet.',
-        );
+        this.logger.debug(`Already linked activities: ${alreadyLinked.map((a) => a.activity.toString())}`);
+        throw new BadRequestException('One or more activities are already linked to a worksheet.');
       }
 
-      const alreadyLinkedSet = new Set(
-        alreadyLinked.map((a) => a.activity.toString()),
-      );
+      const alreadyLinkedSet = new Set(alreadyLinked.map((a) => a.activity.toString()));
 
       // Filter unlinked activities
-      const unlinkedActivities = validActivities.filter(
-        (a) => !alreadyLinkedSet.has(a._id.toString()),
-      );
+      const unlinkedActivities = validActivities.filter((a) => !alreadyLinkedSet.has(a._id.toString()));
 
       // Prepare links
       const links = unlinkedActivities.map((activity) => ({
@@ -256,9 +232,7 @@ export class WorksheetService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException(
-        'Could not assign activities to worksheet',
-      );
+      throw new InternalServerErrorException('Could not assign activities to worksheet');
     }
   }
 
@@ -278,13 +252,8 @@ export class WorksheetService {
         throw new NotFoundException('Worksheet not found.');
       }
 
-      if (
-        worksheet.user.toString() !== userId ||
-        worksheet.organization.toString() !== organizationId
-      ) {
-        throw new UnauthorizedException(
-          'You are not authorized to remove activities from this worksheet.',
-        );
+      if (worksheet.user.toString() !== userId || worksheet.organization.toString() !== organizationId) {
+        throw new UnauthorizedException('You are not authorized to remove activities from this worksheet.');
       }
 
       const activityObjectIds = activityIds.map((id) => new Types.ObjectId(id));
@@ -297,13 +266,9 @@ export class WorksheetService {
         })
         .session(session);
 
-      const validActivityIds = validLinks.map((link) =>
-        link.activity.toString(),
-      );
+      const validActivityIds = validLinks.map((link) => link.activity.toString());
       if (validActivityIds.length !== activityIds.length) {
-        throw new BadRequestException(
-          'One or more activities are not part of this worksheet.',
-        );
+        throw new BadRequestException('One or more activities are not part of this worksheet.');
       }
 
       // 🧹 Remove valid activities
@@ -321,9 +286,7 @@ export class WorksheetService {
 
       // 🗑️ If no activities left, remove the worksheet itself
       if (remainingActivities === 0) {
-        await this.worksheetModel
-          .deleteOne({ _id: worksheet._id })
-          .session(session);
+        await this.worksheetModel.deleteOne({ _id: worksheet._id }).session(session);
       }
 
       await session.commitTransaction();
@@ -354,9 +317,7 @@ export class WorksheetService {
         throw error;
       }
 
-      throw new InternalServerErrorException(
-        'Could not remove activities from worksheet',
-      );
+      throw new InternalServerErrorException('Could not remove activities from worksheet');
     }
   }
 
@@ -376,13 +337,8 @@ export class WorksheetService {
         throw new BadRequestException('Worksheet not found.');
       }
 
-      if (
-        worksheet.user.toString() !== userId ||
-        worksheet.organization.toString() !== organizationId
-      ) {
-        throw new UnauthorizedException(
-          'You are not authorized to access this worksheet.',
-        );
+      if (worksheet.user.toString() !== userId || worksheet.organization.toString() !== organizationId) {
+        throw new UnauthorizedException('You are not authorized to access this worksheet.');
       }
 
       const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
@@ -487,16 +443,11 @@ export class WorksheetService {
         error: error.message,
       });
 
-      if (
-        error instanceof BadRequestException ||
-        error instanceof UnauthorizedException
-      ) {
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
         throw error;
       }
 
-      throw new InternalServerErrorException(
-        'Unable to fetch activities for worksheet.',
-      );
+      throw new InternalServerErrorException('Unable to fetch activities for worksheet.');
     }
   }
 
@@ -530,9 +481,7 @@ export class WorksheetService {
 
       if (!isOwner) {
         if (!isAdmin) {
-          throw new UnauthorizedException(
-            'You are not authorized to view this worksheet.',
-          );
+          throw new UnauthorizedException('You are not authorized to view this worksheet.');
         }
 
         // Check if requester is part of the worksheet's project using aggregation
@@ -562,18 +511,14 @@ export class WorksheetService {
         ]);
 
         if (!projectAccess.length) {
-          throw new UnauthorizedException(
-            'Admin is not a member of the worksheet project.',
-          );
+          throw new UnauthorizedException('Admin is not a member of the worksheet project.');
         }
       }
 
       const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
       const sortDirection = sortOrder === 'latest' ? -1 : 1;
 
-      const searchMatch = search
-        ? { 'activity.name': { $regex: search, $options: 'i' } }
-        : {};
+      const searchMatch = search ? { 'activity.name': { $regex: search, $options: 'i' } } : {};
 
       const result = await this.worksheetActivityModel.aggregate([
         { $match: { worksheet: new Types.ObjectId(worksheetId) } },
@@ -621,10 +566,7 @@ export class WorksheetService {
               },
             },
             timeSpentSeconds: {
-              $divide: [
-                { $subtract: ['$activity.endTime', '$activity.startTime'] },
-                1000,
-              ],
+              $divide: [{ $subtract: ['$activity.endTime', '$activity.startTime'] }, 1000],
             },
           },
         },
@@ -662,14 +604,9 @@ export class WorksheetService {
 
       const activities = result[0].data || [];
       const totalCount = result[0].totalCount[0]?.count || 0;
-      const totalSeconds = Math.floor(
-        result[0].totalTime[0]?.totalSeconds || 0,
-      );
+      const totalSeconds = Math.floor(result[0].totalTime[0]?.totalSeconds || 0);
 
-      const { hours, minutes, seconds } = calculateTimeSpent(
-        new Date(0),
-        new Date(totalSeconds * 1000),
-      );
+      const { hours, minutes, seconds } = calculateTimeSpent(new Date(0), new Date(totalSeconds * 1000));
 
       const transformed = activities.map((wa) => ({
         _id: wa._id,
@@ -722,9 +659,7 @@ export class WorksheetService {
         throw error;
       }
 
-      throw new InternalServerErrorException(
-        'Unable to fetch activities for worksheet.',
-      );
+      throw new InternalServerErrorException('Unable to fetch activities for worksheet.');
     }
   }
 
@@ -836,12 +771,8 @@ export class WorksheetService {
           };
         }
 
-        const start = item.activity?.startTime
-          ? new Date(item.activity.startTime)
-          : null;
-        const end = item.activity?.endTime
-          ? new Date(item.activity.endTime)
-          : null;
+        const start = item.activity?.startTime ? new Date(item.activity.startTime) : null;
+        const end = item.activity?.endTime ? new Date(item.activity.endTime) : null;
 
         const timeSpent = calculateTimeSpent(start, end);
         grouped[worksheetId].totalSeconds += timeSpent.totalSeconds;
@@ -889,10 +820,7 @@ export class WorksheetService {
         error: error.message,
       });
 
-      if (
-        error instanceof BadRequestException ||
-        error instanceof UnauthorizedException
-      ) {
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
         throw error;
       }
 
@@ -913,8 +841,7 @@ export class WorksheetService {
   ) {
     try {
       const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
-      const sortMultiplier =
-        sortOrder === 'oldest' || sortOrder === 'lowest' ? 1 : -1;
+      const sortMultiplier = sortOrder === 'oldest' || sortOrder === 'lowest' ? 1 : -1;
 
       const matchStage: any = {
         organization: new Types.ObjectId(organizationId),
@@ -1006,9 +933,7 @@ export class WorksheetService {
 
         const activity = item.activity;
         if (activity) {
-          const start = activity.startTime
-            ? new Date(activity.startTime)
-            : null;
+          const start = activity.startTime ? new Date(activity.startTime) : null;
           const end = activity.endTime ? new Date(activity.endTime) : null;
 
           const timeSpent = calculateTimeSpent(start, end);
@@ -1047,14 +972,8 @@ export class WorksheetService {
 
       // Sorting
       allWorksheets.sort((a, b) => {
-        const valA =
-          sortBy === 'duration'
-            ? a.totalLoggedTime.totalSeconds
-            : new Date(a.createdAt).getTime();
-        const valB =
-          sortBy === 'duration'
-            ? b.totalLoggedTime.totalSeconds
-            : new Date(b.createdAt).getTime();
+        const valA = sortBy === 'duration' ? a.totalLoggedTime.totalSeconds : new Date(a.createdAt).getTime();
+        const valB = sortBy === 'duration' ? b.totalLoggedTime.totalSeconds : new Date(b.createdAt).getTime();
 
         return sortMultiplier * (valA - valB);
       });
@@ -1081,16 +1000,11 @@ export class WorksheetService {
         error: error.message,
       });
 
-      if (
-        error instanceof BadRequestException ||
-        error instanceof UnauthorizedException
-      ) {
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
         throw error;
       }
 
-      throw new InternalServerErrorException(
-        'Unable to retrieve project worksheets.',
-      );
+      throw new InternalServerErrorException('Unable to retrieve project worksheets.');
     }
   }
 
@@ -1196,21 +1110,14 @@ export class WorksheetService {
         getActivityDurations(new Date(0), now),
       ]);
 
-      const sumDurations = (
-        activities: { startTime: Date; endTime: Date }[],
-      ) => {
+      const sumDurations = (activities: { startTime: Date; endTime: Date }[]) => {
         let totalSeconds = 0;
         for (const a of activities) {
           if (!a.startTime || !a.endTime) {
-            this.logger.warn(
-              `Skipping activity with missing times: ${JSON.stringify(a)}`,
-            );
+            this.logger.warn(`Skipping activity with missing times: ${JSON.stringify(a)}`);
             continue;
           }
-          const { totalSeconds: seconds } = calculateTimeSpent(
-            new Date(a.startTime),
-            new Date(a.endTime),
-          );
+          const { totalSeconds: seconds } = calculateTimeSpent(new Date(a.startTime), new Date(a.endTime));
           totalSeconds += seconds;
         }
         return calculateTimeSpent(new Date(0), new Date(totalSeconds * 1000));
@@ -1224,10 +1131,7 @@ export class WorksheetService {
       const lastMonth = sumDurations(lastMonthDurations);
       const allTime = sumDurations(allTimeDurations);
 
-      const computePercentChange = (
-        current: number,
-        previous: number,
-      ): number => {
+      const computePercentChange = (current: number, previous: number): number => {
         if (previous === 0) return current === 0 ? 0 : 100;
         return ((current - previous) / previous) * 100;
       };
@@ -1235,24 +1139,15 @@ export class WorksheetService {
       return {
         today: {
           ...today,
-          percentChangeFromYesterday: computePercentChange(
-            today.totalSeconds,
-            yesterday.totalSeconds,
-          ),
+          percentChangeFromYesterday: computePercentChange(today.totalSeconds, yesterday.totalSeconds),
         },
         thisWeek: {
           ...thisWeek,
-          percentChangeFromLastWeek: computePercentChange(
-            thisWeek.totalSeconds,
-            lastWeek.totalSeconds,
-          ),
+          percentChangeFromLastWeek: computePercentChange(thisWeek.totalSeconds, lastWeek.totalSeconds),
         },
         thisMonth: {
           ...thisMonth,
-          percentChangeFromLastMonth: computePercentChange(
-            thisMonth.totalSeconds,
-            lastMonth.totalSeconds,
-          ),
+          percentChangeFromLastMonth: computePercentChange(thisMonth.totalSeconds, lastMonth.totalSeconds),
         },
         allTime: allTime,
       };
@@ -1263,16 +1158,11 @@ export class WorksheetService {
         error: error.message,
       });
 
-      if (
-        error instanceof BadRequestException ||
-        error instanceof UnauthorizedException
-      ) {
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
         throw error;
       }
 
-      throw new InternalServerErrorException(
-        'Unable to compute project worksheet analytics.',
-      );
+      throw new InternalServerErrorException('Unable to compute project worksheet analytics.');
     }
   }
 }

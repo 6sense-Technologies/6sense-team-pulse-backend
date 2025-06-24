@@ -57,9 +57,7 @@ describe('ProjectsService', () => {
     service = module.get<ProjectsService>(ProjectsService);
     projectModel = module.get<Model<Project>>('ProjectModel');
     toolModel = module.get<Model<Tool>>('ToolModel');
-    organizationProjectUserModel = module.get<Model<OrganizationProjectUser>>(
-      'OrganizationProjectUserModel',
-    );
+    organizationProjectUserModel = module.get<Model<OrganizationProjectUser>>('OrganizationProjectUserModel');
   });
 
   // describe('create', () => {
@@ -190,9 +188,7 @@ describe('ProjectsService', () => {
         },
       ];
 
-      jest
-        .spyOn(organizationProjectUserModel, 'find')
-        .mockResolvedValueOnce([{ project: 'project' }] as any);
+      jest.spyOn(organizationProjectUserModel, 'find').mockResolvedValueOnce([{ project: 'project' }] as any);
 
       jest.spyOn(projectModel, 'aggregate').mockResolvedValue([
         {
@@ -201,12 +197,7 @@ describe('ProjectsService', () => {
         },
       ]);
 
-      const result = await service.findAll(
-        1,
-        10,
-        userId.toHexString(),
-        '670f5cb7fcec534287bf881a',
-      );
+      const result = await service.findAll(1, 10, userId.toHexString(), '670f5cb7fcec534287bf881a');
 
       expect(result).toEqual({
         total: 1,
@@ -219,9 +210,7 @@ describe('ProjectsService', () => {
     it('should return empty array if no projects found', async () => {
       const userId = new Types.ObjectId();
 
-      jest
-        .spyOn(organizationProjectUserModel, 'find')
-        .mockResolvedValueOnce([{ project: 'project' }] as any);
+      jest.spyOn(organizationProjectUserModel, 'find').mockResolvedValueOnce([{ project: 'project' }] as any);
 
       jest.spyOn(projectModel, 'aggregate').mockResolvedValue([
         {
@@ -230,12 +219,7 @@ describe('ProjectsService', () => {
         },
       ]);
 
-      const result = await service.findAll(
-        1,
-        10,
-        userId.toHexString(),
-        '670f5cb7fcec534287bf881a',
-      );
+      const result = await service.findAll(1, 10, userId.toHexString(), '670f5cb7fcec534287bf881a');
 
       expect(result).toEqual({
         total: 0,
@@ -253,28 +237,18 @@ describe('ProjectsService', () => {
         projects: [{ name: 'Project 1' }, { name: 'Project 2' }],
       };
 
-      jest
-        .spyOn(organizationProjectUserModel, 'aggregate')
-        .mockResolvedValue(mockOrganization as any);
+      jest.spyOn(organizationProjectUserModel, 'aggregate').mockResolvedValue(mockOrganization as any);
 
-      const result = await service.getNames(
-        userId.toHexString(),
-        '670f5cb7fcec534287bf881a',
-      );
+      const result = await service.getNames(userId.toHexString(), '670f5cb7fcec534287bf881a');
       expect(result).toEqual(mockOrganization);
     });
 
     it('should return empty array if no projects found', async () => {
       const userId = new Types.ObjectId();
 
-      jest
-        .spyOn(organizationProjectUserModel, 'aggregate')
-        .mockResolvedValueOnce(null);
+      jest.spyOn(organizationProjectUserModel, 'aggregate').mockResolvedValueOnce(null);
 
-      const result = await service.getNames(
-        userId.toHexString(),
-        '670f5cb7fcec534287bf881a',
-      );
+      const result = await service.getNames(userId.toHexString(), '670f5cb7fcec534287bf881a');
       expect(result).toEqual(null);
     });
   });
@@ -313,14 +287,9 @@ describe('ProjectsService', () => {
         name: 'Updated Project',
       };
 
-      const result = await service.update(
-        projectId.toHexString(),
-        updateProjectDto,
-      );
+      const result = await service.update(projectId.toHexString(), updateProjectDto);
 
-      expect(result).toEqual(
-        `This action updates a #${projectId.toHexString()} project`,
-      );
+      expect(result).toEqual(`This action updates a #${projectId.toHexString()} project`);
     });
   });
 
@@ -332,9 +301,7 @@ describe('ProjectsService', () => {
         name: 'Test Project',
       };
 
-      jest
-        .spyOn(projectModel, 'findByIdAndDelete')
-        .mockResolvedValue(mockProject);
+      jest.spyOn(projectModel, 'findByIdAndDelete').mockResolvedValue(mockProject);
 
       const result = await service.remove(projectId.toHexString());
 

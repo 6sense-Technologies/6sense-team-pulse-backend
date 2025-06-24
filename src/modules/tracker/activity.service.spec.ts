@@ -96,11 +96,7 @@ describe('ActivityService', () => {
     it('should queue logs and return count when input is valid', async () => {
       mockActivityLogQueue.add.mockResolvedValue({});
 
-      const result = await service.addActivityLogsToQueue(
-        userId,
-        organizationId,
-        sampleLogs,
-      );
+      const result = await service.addActivityLogsToQueue(userId, organizationId, sampleLogs);
 
       expect(mockActivityLogQueue.add).toHaveBeenCalledWith(
         'process-activity',
@@ -147,11 +143,7 @@ describe('ActivityService', () => {
         }),
       });
 
-      const result = await service.createActivitiesFromSession(
-        [baseSession],
-        userId,
-        organizationId,
-      );
+      const result = await service.createActivitiesFromSession([baseSession], userId, organizationId);
 
       expect(result).toEqual([]);
       expect(mockActivityModel.insertMany).not.toHaveBeenCalled();
@@ -166,15 +158,9 @@ describe('ActivityService', () => {
         _id: new Types.ObjectId(),
       });
 
-      mockActivityModel.insertMany.mockResolvedValue([
-        { name: 'Google', pid: 1234 },
-      ]);
+      mockActivityModel.insertMany.mockResolvedValue([{ name: 'Google', pid: 1234 }]);
 
-      const result = await service.createActivitiesFromSession(
-        [baseSession],
-        userId,
-        organizationId,
-      );
+      const result = await service.createActivitiesFromSession([baseSession], userId, organizationId);
 
       expect(result.length).toBe(1);
       expect(mockActivityModel.insertMany).toHaveBeenCalledWith(
@@ -195,11 +181,7 @@ describe('ActivityService', () => {
         }),
       });
 
-      const result = await service.createActivitiesFromSession(
-        [baseSession],
-        userId,
-        organizationId,
-      );
+      const result = await service.createActivitiesFromSession([baseSession], userId, organizationId);
 
       expect(result).toEqual([]);
     });
@@ -209,17 +191,11 @@ describe('ActivityService', () => {
         sort: jest.fn().mockResolvedValue(null),
       });
 
-      mockApplicationService.findOrCreate.mockRejectedValue(
-        new Error('DB error'),
-      );
+      mockApplicationService.findOrCreate.mockRejectedValue(new Error('DB error'));
 
-      await expect(
-        service.createActivitiesFromSession(
-          [baseSession],
-          userId,
-          organizationId,
-        ),
-      ).rejects.toThrow('DB error');
+      await expect(service.createActivitiesFromSession([baseSession], userId, organizationId)).rejects.toThrow(
+        'DB error',
+      );
     });
   });
 
@@ -258,16 +234,9 @@ describe('ActivityService', () => {
     });
 
     it("should default to today's date if date is not provided", async () => {
-      mockActivityModel.aggregate.mockResolvedValue([
-        { data: [], totalCount: [] },
-      ]);
+      mockActivityModel.aggregate.mockResolvedValue([{ data: [], totalCount: [] }]);
 
-      const result = await service.findUnreportedActivitiesForCurrentUser(
-        userId,
-        organizationId,
-        undefined,
-        timezone,
-      );
+      const result = await service.findUnreportedActivitiesForCurrentUser(userId, organizationId, undefined, timezone);
 
       expect(result.paginationMetadata.totalCount).toBe(0);
       expect(mockActivityModel.aggregate).toHaveBeenCalled();
@@ -277,12 +246,7 @@ describe('ActivityService', () => {
       mockActivityModel.aggregate.mockRejectedValue(new Error('DB Error'));
 
       await expect(
-        service.findUnreportedActivitiesForCurrentUser(
-          userId,
-          organizationId,
-          '2025-05-18',
-          timezone,
-        ),
+        service.findUnreportedActivitiesForCurrentUser(userId, organizationId, '2025-05-18', timezone),
       ).rejects.toThrow('Unable to fetch unreported activities.');
     });
   });
@@ -290,10 +254,7 @@ describe('ActivityService', () => {
   describe('validateActivitiesForUser', () => {
     const userId = new Types.ObjectId();
     const organizationId = new Types.ObjectId();
-    const validActivityIds = [
-      new Types.ObjectId().toHexString(),
-      new Types.ObjectId().toHexString(),
-    ];
+    const validActivityIds = [new Types.ObjectId().toHexString(), new Types.ObjectId().toHexString()];
     const activityDocs = validActivityIds.map((id) => ({
       _id: new Types.ObjectId(id),
       user: userId,
@@ -307,11 +268,7 @@ describe('ActivityService', () => {
     it('should return valid activities for correct user and org', async () => {
       mockActivityModel.find.mockResolvedValue(activityDocs);
 
-      const result = await service.validateActivitiesForUser(
-        userId,
-        organizationId,
-        validActivityIds,
-      );
+      const result = await service.validateActivitiesForUser(userId, organizationId, validActivityIds);
 
       expect(mockActivityModel.find).toHaveBeenCalledWith({
         _id: { $in: validActivityIds.map((id) => new Types.ObjectId(id)) },
@@ -325,21 +282,17 @@ describe('ActivityService', () => {
     it('should throw BadRequestException if some activities are invalid', async () => {
       mockActivityModel.find.mockResolvedValue([activityDocs[0]]); // only 1 returned
 
-      await expect(
-        service.validateActivitiesForUser(
-          userId,
-          organizationId,
-          validActivityIds,
-        ),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.validateActivitiesForUser(userId, organizationId, validActivityIds)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException for invalid ObjectId', async () => {
       const invalidIds = ['notanid'];
 
-      await expect(
-        service.validateActivitiesForUser(userId, organizationId, invalidIds),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.validateActivitiesForUser(userId, organizationId, invalidIds)).rejects.toThrow(
+        BadRequestException,
+      );
 
       expect(mockActivityModel.find).not.toHaveBeenCalled();
     });
@@ -348,13 +301,9 @@ describe('ActivityService', () => {
       const error = new Error('Mongo error');
       mockActivityModel.find.mockRejectedValue(error);
 
-      await expect(
-        service.validateActivitiesForUser(
-          userId,
-          organizationId,
-          validActivityIds,
-        ),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(service.validateActivitiesForUser(userId, organizationId, validActivityIds)).rejects.toThrow(
+        InternalServerErrorException,
+      );
 
       // expect(mockLogger.error).toHaveBeenCalledWith(
       //   'Activity validation failed',
@@ -386,11 +335,7 @@ describe('ActivityService', () => {
 
       mockActivityModel.insertOne.mockResolvedValue(mockInsertedActivity);
 
-      const result = await service.createManualActivity(
-        validDto,
-        userId,
-        organizationId,
-      );
+      const result = await service.createManualActivity(validDto, userId, organizationId);
 
       expect(mockActivityModel.insertOne).toHaveBeenCalledWith({
         name: validDto.name,
@@ -410,9 +355,9 @@ describe('ActivityService', () => {
         endTime: validDto.startTime,
       };
 
-      await expect(
-        service.createManualActivity(invalidDto, userId, organizationId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createManualActivity(invalidDto, userId, organizationId)).rejects.toThrow(
+        BadRequestException,
+      );
 
       expect(mockActivityModel.insertOne).not.toHaveBeenCalled();
     });
@@ -421,9 +366,7 @@ describe('ActivityService', () => {
       const errorMessage = 'DB insert failed';
       mockActivityModel.insertOne.mockRejectedValue(new Error(errorMessage));
 
-      await expect(
-        service.createManualActivity(validDto, userId, organizationId),
-      ).rejects.toThrow(errorMessage);
+      await expect(service.createManualActivity(validDto, userId, organizationId)).rejects.toThrow(errorMessage);
 
       expect(mockActivityModel.insertOne).toHaveBeenCalled();
     });
@@ -525,12 +468,7 @@ describe('ActivityService', () => {
         endTime: '2025-05-20T13:00:00Z',
       };
 
-      const result = await service.editManualActivity(
-        activityId,
-        userId,
-        organizationId,
-        updateDto,
-      );
+      const result = await service.editManualActivity(activityId, userId, organizationId, updateDto);
 
       expect(mockActivityModel.findOne).toHaveBeenCalledWith({
         _id: new Types.ObjectId(activityId),
@@ -542,17 +480,17 @@ describe('ActivityService', () => {
     });
 
     it('should throw BadRequestException for invalid ObjectId', async () => {
-      await expect(
-        service.editManualActivity('invalid-id', userId, organizationId, {}),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.editManualActivity('invalid-id', userId, organizationId, {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw NotFoundException if activity is not found', async () => {
       mockActivityModel.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.editManualActivity(activityId, userId, organizationId, {}),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.editManualActivity(activityId, userId, organizationId, {})).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw UnauthorizedException if user mismatch', async () => {
@@ -562,18 +500,18 @@ describe('ActivityService', () => {
       };
       mockActivityModel.findOne.mockResolvedValue(unauthorizedActivity);
 
-      await expect(
-        service.editManualActivity(activityId, userId, organizationId, {}),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.editManualActivity(activityId, userId, organizationId, {})).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw BadRequestException if not a manual activity', async () => {
       const nonManualActivity = { ...mockActivity, manualType: undefined };
       mockActivityModel.findOne.mockResolvedValue(nonManualActivity);
 
-      await expect(
-        service.editManualActivity(activityId, userId, organizationId, {}),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.editManualActivity(activityId, userId, organizationId, {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException if endTime is before startTime', async () => {
@@ -584,22 +522,17 @@ describe('ActivityService', () => {
         endTime: '2025-05-20T12:00:00Z',
       };
 
-      await expect(
-        service.editManualActivity(
-          activityId,
-          userId,
-          organizationId,
-          invalidDto,
-        ),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.editManualActivity(activityId, userId, organizationId, invalidDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw InternalServerErrorException for unexpected error', async () => {
       mockActivityModel.findOne.mockRejectedValue(new Error('Unexpected'));
 
-      await expect(
-        service.editManualActivity(activityId, userId, organizationId, {}),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(service.editManualActivity(activityId, userId, organizationId, {})).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 });

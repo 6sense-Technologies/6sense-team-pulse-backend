@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Post,
-  Body,
-  Put,
-  BadRequestException,
-} from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Put, BadRequestException } from '@nestjs/common';
 import { TrelloService } from './trello.service';
 import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
@@ -35,10 +27,7 @@ export class TrelloController {
   }
 
   @Get('users/issues/:accountId/:date')
-  async getUserIssues(
-    @Param('accountId') accountId: string,
-    @Param('date') date: string,
-  ): Promise<any[]> {
+  async getUserIssues(@Param('accountId') accountId: string, @Param('date') date: string): Promise<any[]> {
     return this.trelloService.getUserIssues(accountId, date);
   }
 
@@ -67,27 +56,16 @@ export class TrelloController {
       throw new BadRequestException('userFrom is required');
     }
 
-    return await this.trelloService.fetchAndSaveUser(
-      accountId,
-      userFrom,
-      designation,
-      project,
-    );
+    return await this.trelloService.fetchAndSaveUser(accountId, userFrom, designation, project);
   }
 
   @Put('not-done/count/:accountId/:date')
-  async countPlannedIssues(
-    @Param('accountId') accountId: string,
-    @Param('date') date: string,
-  ): Promise<void> {
+  async countPlannedIssues(@Param('accountId') accountId: string, @Param('date') date: string): Promise<void> {
     await this.trelloService.countPlannedIssues(accountId, date);
   }
 
   @Put('done/count/:accountId/:date')
-  async countDoneIssues(
-    @Param('accountId') accountId: string,
-    @Param('date') date: string,
-  ): Promise<void> {
+  async countDoneIssues(@Param('accountId') accountId: string, @Param('date') date: string): Promise<void> {
     await this.trelloService.countDoneIssues(accountId, date);
   }
 }

@@ -1,13 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  ArrayMinSize,
-  IsArray,
-  IsEmail,
-  IsOptional,
-  IsString,
-  Length,
-} from 'class-validator';
+import { ArrayMinSize, IsArray, IsEmail, IsOptional, IsString, Length } from 'class-validator';
 
 export class InviteUserDTO {
   @ApiProperty({

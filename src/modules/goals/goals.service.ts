@@ -54,10 +54,7 @@ export class GoalsService {
   }
 
   async createAction(createGoalActionDto: CreateGoalActionDto) {
-    await this.goalModel.findOneAndUpdate(
-      { _id: createGoalActionDto.goal },
-      { status: 'In Progress' },
-    );
+    await this.goalModel.findOneAndUpdate({ _id: createGoalActionDto.goal }, { status: 'In Progress' });
     return await this.goalActionModel.create({
       action: createGoalActionDto.action,
       goal: new mongoose.Types.ObjectId(createGoalActionDto.goal),
@@ -65,9 +62,7 @@ export class GoalsService {
   }
 
   async findAllAction(id: string, page: number = 1, limit: number = 10) {
-    const counts = await this.goalActionModel
-      .find({ goal: id })
-      .countDocuments();
+    const counts = await this.goalActionModel.find({ goal: id }).countDocuments();
     const datas = await this.goalActionModel
       .find({ goal: id })
       .skip((page - 1) * limit)

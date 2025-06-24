@@ -1,12 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  ValidateIf,
-  IsEmail,
-  IsIn,
-  IsStrongPassword,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, ValidateIf, IsEmail, IsIn, IsStrongPassword } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserEmailPasswordDTO {
@@ -28,8 +20,7 @@ export class CreateUserEmailPasswordDTO {
   emailAddress: string;
 
   @ApiProperty({
-    description:
-      'The password for password-based signup. Required only if authType is "password".',
+    description: 'The password for password-based signup. Required only if authType is "password".',
     example: 'Strong@Password123!',
   })
   @IsString()

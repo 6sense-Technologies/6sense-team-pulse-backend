@@ -6,10 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import {
-  ActivityLogEntryDto,
-  CreateActivitiesDto,
-} from './dto/create-activities.dto';
+import { ActivityLogEntryDto, CreateActivitiesDto } from './dto/create-activities.dto';
 import { Activity } from './entities/activity.schema';
 import mongoose, { isValidObjectId, Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
@@ -78,11 +75,7 @@ export class ActivityService {
     }
   }
 
-  async createActivitiesFromSession(
-    activitySessions: ActivitySession[],
-    userId: string,
-    organizationId: string,
-  ) {
+  async createActivitiesFromSession(activitySessions: ActivitySession[], userId: string, organizationId: string) {
     try {
       const enrichedSessions: any[] = [];
 
@@ -98,10 +91,7 @@ export class ActivityService {
         if (latest && new Date(session.startTime) <= new Date(latest.endTime)) {
           continue;
         }
-        const app = await this.applicationService.findOrCreate(
-          session.appName,
-          session.faviconUrl,
-        );
+        const app = await this.applicationService.findOrCreate(session.appName, session.faviconUrl);
 
         const name = session.windowTitle?.trim() || session.appName;
 
@@ -131,11 +121,7 @@ export class ActivityService {
     }
   }
 
-  async createManualActivity(
-    createManualActivityDto: CreateManualActivityDto,
-    userId: string,
-    organizationId: string,
-  ) {
+  async createManualActivity(createManualActivityDto: CreateManualActivityDto, userId: string, organizationId: string) {
     try {
       const { name, startTime, endTime, manualType } = createManualActivityDto;
 
@@ -178,19 +164,12 @@ export class ActivityService {
         throw new NotFoundException('Manual activity not found.');
       }
 
-      if (
-        activity.user.toString() !== userId ||
-        activity.organization.toString() !== organizationId
-      ) {
-        throw new UnauthorizedException(
-          'You do not have permission to edit this activity.',
-        );
+      if (activity.user.toString() !== userId || activity.organization.toString() !== organizationId) {
+        throw new UnauthorizedException('You do not have permission to edit this activity.');
       }
 
       if (activity.manualType == undefined) {
-        throw new BadRequestException(
-          'This activity is not a manual activity and cannot be edited.',
-        );
+        throw new BadRequestException('This activity is not a manual activity and cannot be edited.');
       }
 
       const { name, manualType, startTime, endTime } = updateDto;
@@ -215,9 +194,7 @@ export class ActivityService {
         throw error;
       }
       this.logger.error('Failed to update manual activity', error.message);
-      throw new InternalServerErrorException(
-        'Could not update manual activity',
-      );
+      throw new InternalServerErrorException('Could not update manual activity');
     }
   }
 
@@ -288,14 +265,8 @@ export class ActivityService {
         date = now.format('YYYY-MM-DD');
       }
 
-      const startOfDay = moment
-        .tz(`${date}T00:00:00`, timezoneRegion)
-        .utc()
-        .toDate();
-      const endOfDay = moment
-        .tz(`${date}T23:59:59.999`, timezoneRegion)
-        .utc()
-        .toDate();
+      const startOfDay = moment.tz(`${date}T00:00:00`, timezoneRegion).utc().toDate();
+      const endOfDay = moment.tz(`${date}T23:59:59.999`, timezoneRegion).utc().toDate();
 
       this.logger.debug('Start of Day UTC:', startOfDay);
       this.logger.debug('End of Day UTC:', endOfDay);
@@ -397,24 +368,15 @@ export class ActivityService {
         throw error;
       }
       this.logger.error('Failed to find unreported activities', error.message);
-      throw new InternalServerErrorException(
-        'Unable to fetch unreported activities.',
-      );
+      throw new InternalServerErrorException('Unable to fetch unreported activities.');
     }
   }
 
-  async validateActivitiesForUser(
-    userId: Types.ObjectId,
-    organizationId: Types.ObjectId,
-    activityIds: string[],
-  ) {
+  async validateActivitiesForUser(userId: Types.ObjectId, organizationId: Types.ObjectId, activityIds: string[]) {
     try {
       // Ensure each ID is strictly a valid 24-char hex ObjectId
       for (const id of activityIds) {
-        if (
-          !Types.ObjectId.isValid(id) ||
-          new Types.ObjectId(id).toHexString() !== id
-        ) {
+        if (!Types.ObjectId.isValid(id) || new Types.ObjectId(id).toHexString() !== id) {
           throw new BadRequestException(`Invalid activityId: ${id}`);
         }
       }
@@ -434,9 +396,7 @@ export class ActivityService {
       this.logger.debug('Valid Activities:', validActivities);
 
       if (validActivities.length !== activityIds.length) {
-        throw new BadRequestException(
-          'Some activities are invalid or unauthorized.',
-        );
+        throw new BadRequestException('Some activities are invalid or unauthorized.');
       }
 
       return validActivities;

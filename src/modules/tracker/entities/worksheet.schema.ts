@@ -30,7 +30,4 @@ export class Worksheet {
 
 export const WorksheetSchema = SchemaFactory.createForClass(Worksheet);
 
-WorksheetSchema.index(
-  { name: 1, user: 1, organization: 1, project: 1, date: 1 },
-  { unique: true },
-);
+WorksheetSchema.index({ name: 1, user: 1, organization: 1, project: 1, date: 1 }, { unique: true });

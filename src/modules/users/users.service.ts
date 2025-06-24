@@ -13,11 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, Types } from 'mongoose';
 import { handleError } from '../../common/helpers/error.helper';
-import {
-  validateAccountId,
-  validateDate,
-  validatePagination,
-} from '../../common/helpers/validation.helper';
+import { validateAccountId, validateDate, validatePagination } from '../../common/helpers/validation.helper';
 import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
 import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { IssueHistory } from '../../schemas/IssueHistory.schems';
@@ -41,12 +37,7 @@ import { getRoles } from './aggregations/organizationuserRole.aggregation';
 import { overView } from './aggregations/overview.aggregation';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InviteUserDTO } from './dto/invite-user.dto';
-import {
-  IAllUsers,
-  IUserIssuesByDate,
-  IUserResponse,
-  IUserWithPagination,
-} from './interfaces/users.interfaces';
+import { IAllUsers, IUserIssuesByDate, IUserResponse, IUserWithPagination } from './interfaces/users.interfaces';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -95,25 +86,13 @@ export class UserService {
     let today = new Date();
 
     // Current month start date
-    let currentMonthStart = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      1,
-    ).toISOString();
+    let currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
     // Last month start date
-    let lastMonthStart = new Date(
-      today.getFullYear(),
-      today.getMonth() - 1,
-      1,
-    ).toISOString();
+    let lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString();
 
     // Last month end date
-    let lastMonthEnd = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      0,
-    ).toISOString();
+    let lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0).toISOString();
 
     const currentMonthAgg: any = monthlyStat(userId, currentMonthStart);
     const currentMonth = await this.issueEntryModel.aggregate(currentMonthAgg);
@@ -142,45 +121,23 @@ export class UserService {
       lastMonthScore: lastMonth[0]['averageScore'],
     };
   }
-  async sendMailInvitationEmail(
-    emailAddress: string,
-    fromUser: string,
-    organizationName: string,
-  ) {
-    const emailSentResponse = await this.emailService.sendInvitationEmail(
-      emailAddress,
-      fromUser,
-      organizationName,
-    );
+  async sendMailInvitationEmail(emailAddress: string, fromUser: string, organizationName: string) {
+    const emailSentResponse = await this.emailService.sendInvitationEmail(emailAddress, fromUser, organizationName);
     return emailSentResponse;
   }
   async calculateIndividualStats(userId: string, page: number, limit: number) {
     const individualStatAggregation: any = individualStats(userId, page, limit);
-    const result = await this.issueEntryModel.aggregate(
-      individualStatAggregation,
-    );
+    const result = await this.issueEntryModel.aggregate(individualStatAggregation);
     let today = new Date();
     /// TODO: remove duplicate codes created seperate api for getUserInfo so current month performance and last month performance is not needed
     // Current month start date
-    let currentMonthStart = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      1,
-    ).toISOString();
+    let currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
     // Last month start date
-    let lastMonthStart = new Date(
-      today.getFullYear(),
-      today.getMonth() - 1,
-      1,
-    ).toISOString();
+    let lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString();
 
     // Last month end date
-    let lastMonthEnd = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      0,
-    ).toISOString();
+    let lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0).toISOString();
 
     const currentMonthAgg: any = monthlyStat(userId, currentMonthStart);
     const currentMonth = await this.issueEntryModel.aggregate(currentMonthAgg);
@@ -210,11 +167,7 @@ export class UserService {
       lastMonthScore: lastMonth[0]['averageScore'] || 0,
     };
   }
-  async calculateOverview(
-    page: Number,
-    limit: Number,
-    userId: string,
-  ): Promise<any[]> {
+  async calculateOverview(page: Number, limit: Number, userId: string): Promise<any[]> {
     // const count = await this.userModel.countDocuments();
     // console.log(`${page}--${limit}`);
     // Get the current date and subtract 30 days
@@ -233,15 +186,8 @@ export class UserService {
     const teamMembers = orgUserRoleModel.organization['users'];
     const organizationId = orgUserRoleModel.organization.id.toString();
     console.log(`Organization Id : ${organizationId}`);
-    const overViewAggr: any = overView(
-      thirtyDaysAgoDate,
-      page,
-      limit,
-      teamMembers,
-    );
-    const roles: any = await this.organizationUserRoleModel.aggregate(
-      getRoles(teamMembers, organizationId),
-    );
+    const overViewAggr: any = overView(thirtyDaysAgoDate, page, limit, teamMembers);
+    const roles: any = await this.organizationUserRoleModel.aggregate(getRoles(teamMembers, organizationId));
     const roleMap = roles.reduce((map, { user, roleName }) => {
       map[user.toString()] = roleName; // Convert ObjectId to string for key
       return map;
@@ -256,8 +202,7 @@ export class UserService {
       const roleName = roleMap[result[0]['data'][i]._id.toString()];
       let roleNameUpper = '';
       if (roleName) {
-        roleNameUpper =
-          String(roleName[0]).toUpperCase() + String(roleName).slice(1);
+        roleNameUpper = String(roleName[0]).toUpperCase() + String(roleName).slice(1);
       }
       if (!roleName) {
         roleNameUpper = 'Member';
@@ -267,11 +212,7 @@ export class UserService {
     return result[0];
   }
 
-  async inviteUser(
-    inviteUserDTO: InviteUserDTO,
-    userId: string,
-    file: Express.Multer.File,
-  ) {
+  async inviteUser(inviteUserDTO: InviteUserDTO, userId: string, file: Express.Multer.File) {
     let avatarUrl = 'https://i.ibb.co/6J1Tn7Xc/user-8664801.png';
     if (file) {
       const base64Image = file.buffer.toString('base64');
@@ -281,22 +222,15 @@ export class UserService {
       params.append('image', base64Image);
 
       try {
-        const response = await axios.post(
-          `${this.API_URL}?expiration=600&key=${this.API_KEY}`,
-          params.toString(),
-          {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
+        const response = await axios.post(`${this.API_URL}?expiration=600&key=${this.API_KEY}`, params.toString(), {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
-        );
+        });
         avatarUrl = response.data.data.url;
         console.log('Upload successful:', avatarUrl);
       } catch (error) {
-        console.error(
-          'Upload failed:',
-          error.response ? error.response.data : error.message,
-        );
+        console.error('Upload failed:', error.response ? error.response.data : error.message);
       }
     }
     const [role, organizationUserRole, existingUser] = await Promise.all([
@@ -372,8 +306,7 @@ export class UserService {
     console.log('DONE');
     await this.organizationModel.findOneAndUpdate(
       {
-        organizationName:
-          organizationUserRole['organization']['organizationName'],
+        organizationName: organizationUserRole['organization']['organizationName'],
       },
       { $push: { users: user._id } },
       { new: true }, // Returns the updated document
@@ -407,23 +340,10 @@ export class UserService {
     await user.save();
     return { isEnabled: user.isDisabled };
   }
-  async dailyPerformence(
-    userId: string,
-    dateTime: string,
-    page: Number,
-    limit: Number,
-  ) {
-    const aggdailyPerformence: any = dailyPerformenceAgg(
-      userId,
-      dateTime,
-      page,
-      limit,
-    );
-    const userData = await this.userModel
-      .findById(userId)
-      .select('displayName emailAddress designation avatarUrls');
-    const dailyPerformance =
-      await this.issueEntryModel.aggregate(aggdailyPerformence);
+  async dailyPerformence(userId: string, dateTime: string, page: Number, limit: Number) {
+    const aggdailyPerformence: any = dailyPerformenceAgg(userId, dateTime, page, limit);
+    const userData = await this.userModel.findById(userId).select('displayName emailAddress designation avatarUrls');
+    const dailyPerformance = await this.issueEntryModel.aggregate(aggdailyPerformence);
     return {
       userData,
       dailyPerformance: dailyPerformance[0] || [],
@@ -530,10 +450,8 @@ export class UserService {
     //   }
     // }
     let orQuery = [];
-    if (userToSave.jiraAccountId)
-      orQuery.push({ jiraAccountId: userToSave.jiraAccountId });
-    if (userToSave.trelloAccountId)
-      orQuery.push({ trelloAccountId: userToSave.trelloAccountId });
+    if (userToSave.jiraAccountId) orQuery.push({ jiraAccountId: userToSave.jiraAccountId });
+    if (userToSave.trelloAccountId) orQuery.push({ trelloAccountId: userToSave.trelloAccountId });
     const existingUser = await this.userModel.findOne({ $or: orQuery });
     if (existingUser) {
       throw new ConflictException('User already exists');
@@ -586,11 +504,7 @@ export class UserService {
   }
   //TODO: NEED TO FIX THIS
   /* istanbul ignore next */
-  async getUser(
-    accountId: string,
-    page = 1,
-    limit = 30,
-  ): Promise<IUserResponse> {
+  async getUser(accountId: string, page = 1, limit = 30): Promise<IUserResponse> {
     // try {
     validateAccountId(accountId);
     validatePagination(page, limit);
@@ -721,10 +635,7 @@ export class UserService {
     }
   }
   /* istanbul ignore next */
-  async fetchAndSavePlannedIssues(
-    accountId: string,
-    date: string,
-  ): Promise<ISuccessResponse> {
+  async fetchAndSavePlannedIssues(accountId: string, date: string): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -775,19 +686,14 @@ export class UserService {
     }
   }
   /* istanbul ignore next */
-  async fetchAndSaveAllIssues(
-    accountId: string,
-    date: string,
-  ): Promise<ISuccessResponse> {
+  async fetchAndSaveAllIssues(accountId: string, date: string): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
       validateDate(date);
 
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      const issueHistory = await this.issueHistoryModel
-        .findOne({ accountId: user.accountId })
-        .exec();
+      const issueHistory = await this.issueHistoryModel.findOne({ accountId: user.accountId }).exec();
 
       const specificDateHistory = issueHistory.history[date] || {
         issues: [],
@@ -866,10 +772,7 @@ export class UserService {
     }
   }
   /* istanbul ignore next */
-  async getIssuesByDate(
-    accountId: string,
-    date: string,
-  ): Promise<IUserIssuesByDate> {
+  async getIssuesByDate(accountId: string, date: string): Promise<IUserIssuesByDate> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -967,11 +870,7 @@ export class UserService {
     }
   }
   /* istanbul ignore next */
-  async createComment(
-    accountId: string,
-    date: string,
-    comment: string,
-  ): Promise<ISuccessResponse> {
+  async createComment(accountId: string, date: string, comment: string): Promise<ISuccessResponse> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -982,14 +881,10 @@ export class UserService {
       }
 
       const historyPath = `history.${date}`;
-      const issueHistory = await this.issueHistoryModel
-        .findOne({ accountId, [historyPath]: { $exists: true } })
-        .exec();
+      const issueHistory = await this.issueHistoryModel.findOne({ accountId, [historyPath]: { $exists: true } }).exec();
 
       if (!issueHistory || !issueHistory.history[date]) {
-        throw new NotFoundException(
-          'Issue history for the specified date not found',
-        );
+        throw new NotFoundException('Issue history for the specified date not found');
       }
 
       const newComment = {

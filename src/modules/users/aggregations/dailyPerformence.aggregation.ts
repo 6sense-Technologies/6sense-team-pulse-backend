@@ -1,11 +1,6 @@
 import { Types } from 'mongoose';
 
-export const dailyPerformenceAgg = (
-  userId: string,
-  dateTime: string,
-  page: Number,
-  limit: Number,
-) => {
+export const dailyPerformenceAgg = (userId: string, dateTime: string, page: Number, limit: Number) => {
   const todaysDate = new Date(dateTime);
   console.log(`${page} - ${limit}`);
   //   //   const todaysDate = new Date();
@@ -38,10 +33,7 @@ export const dailyPerformenceAgg = (
     {
       $facet: {
         total: [{ $count: 'total' }],
-        data: [
-          { $skip: (Number(page) - 1) * Number(limit) || 0 },
-          { $limit: Number(limit) },
-        ],
+        data: [{ $skip: (Number(page) - 1) * Number(limit) || 0 }, { $limit: Number(limit) }],
       },
     },
     {

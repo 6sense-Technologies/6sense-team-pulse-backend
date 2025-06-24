@@ -23,6 +23,7 @@ import { OrganizationModule } from './modules/organization/organization.module';
 import { ToolModule } from './modules/tool/tool.module';
 import { DataFetcherModule } from './modules/data-fetcher/data-fetcher.module';
 import { TrackerModule } from './modules/tracker/tracker.module';
+import { LinearModule } from './modules/linear/linear.module';
 
 dotenv.config();
 
@@ -86,6 +87,7 @@ dotenv.config();
     ToolModule,
     DataFetcherModule,
     TrackerModule,
+    LinearModule,
   ],
   providers: [
     {

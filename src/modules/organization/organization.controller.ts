@@ -11,14 +11,8 @@ export class OrganizationController {
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @Post('create')
-  async create(
-    @Body() createOrganizationDTO: CreateOrganizationDTO,
-    @Req() req: Request,
-  ) {
-    return this.organizationService.create(
-      createOrganizationDTO,
-      req['user']?.userId,
-    );
+  async create(@Body() createOrganizationDTO: CreateOrganizationDTO, @Req() req: Request) {
+    return this.organizationService.create(createOrganizationDTO, req['user']?.userId);
   }
   @Get('roles')
   async getRoles() {

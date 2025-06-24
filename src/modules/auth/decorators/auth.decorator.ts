@@ -4,8 +4,5 @@ import { AuthGuard } from '../guards/auth.guard';
 
 export const Auth = (roles: string[] = []) => {
   const ROLES_KEY = 'roles';
-  return applyDecorators(
-    SetMetadata(ROLES_KEY, roles),
-    UseGuards(AccessTokenGuard, AuthGuard),
-  );
+  return applyDecorators(SetMetadata(ROLES_KEY, roles), UseGuards(AccessTokenGuard, AuthGuard));
 };

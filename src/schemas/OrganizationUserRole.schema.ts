@@ -6,8 +6,7 @@ import { Organization } from './Organization.schema';
 import { Role } from './Role.schema';
 import { Users } from './users.schema';
 
-export type OrganizationUserRoleDocument =
-  HydratedDocument<OrganizationUserRole>;
+export type OrganizationUserRoleDocument = HydratedDocument<OrganizationUserRole>;
 
 @Schema({ timestamps: true })
 export class OrganizationUserRole {
@@ -30,5 +29,4 @@ export class OrganizationUserRole {
   lastAccessed: Date;
 }
 
-export const OrganizationUserRoleSchema =
-  SchemaFactory.createForClass(OrganizationUserRole);
+export const OrganizationUserRoleSchema = SchemaFactory.createForClass(OrganizationUserRole);

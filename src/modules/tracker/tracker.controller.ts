@@ -1,16 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Req,
-  Query,
-  Headers,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query, Headers } from '@nestjs/common';
 // import { TrackerService } from './tracker.service';
 import { ActivityService } from './activity.service';
 import { CreateTrackerDto } from './dto/create-tracker.dto';
@@ -45,10 +33,7 @@ export class TrackerController {
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @Post('add-activity-logs')
-  async addActivityLogsToQueue(
-    @Body() createActivitiesDto: CreateActivitiesDto,
-    @Req() req: Request,
-  ) {
+  async addActivityLogsToQueue(@Body() createActivitiesDto: CreateActivitiesDto, @Req() req: Request) {
     return await this.activityService.addActivityLogsToQueue(
       req['user'].userId,
       createActivitiesDto.organization_id,
@@ -77,12 +62,7 @@ export class TrackerController {
   ) {
     console.log('Date: ', date);
     console.log('Timezone Offset: ', timezoneOffset);
-    return await this.activityService.findAllActivities(
-      organizationUserId,
-      req['user'].userId,
-      date,
-      timezoneOffset,
-    );
+    return await this.activityService.findAllActivities(organizationUserId, req['user'].userId, date, timezoneOffset);
   }
 
   // @Get()

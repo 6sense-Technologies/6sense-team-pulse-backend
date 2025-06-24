@@ -36,5 +36,4 @@ export class GitContribution extends Document {
   totalWritten: number;
 }
 
-export const GitContributionSchema =
-  SchemaFactory.createForClass(GitContribution);
+export const GitContributionSchema = SchemaFactory.createForClass(GitContribution);

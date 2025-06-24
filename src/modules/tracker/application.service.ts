@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import {
-  Application,
-  ApplicationDocument,
-} from './entities/application.schema';
+import { Application, ApplicationDocument } from './entities/application.schema';
 import { Model } from 'mongoose';
 
 @Injectable()
@@ -14,10 +11,7 @@ export class ApplicationService {
   ) {}
   private readonly logger = new Logger(ApplicationService.name);
 
-  async findOrCreate(
-    appName: string,
-    icon?: string,
-  ): Promise<ApplicationDocument> {
+  async findOrCreate(appName: string, icon?: string): Promise<ApplicationDocument> {
     try {
       const update: Partial<Application> = { name: appName };
       if (icon) {
@@ -40,12 +34,8 @@ export class ApplicationService {
 
       return app;
     } catch (error) {
-      this.logger.error(
-        `Error in ApplicationService.findOrCreate: ${error.message}`,
-      );
-      throw new Error(
-        `ApplicationService.findOrCreate failed: ${error.message}`,
-      );
+      this.logger.error(`Error in ApplicationService.findOrCreate: ${error.message}`);
+      throw new Error(`ApplicationService.findOrCreate failed: ${error.message}`);
     }
   }
 }

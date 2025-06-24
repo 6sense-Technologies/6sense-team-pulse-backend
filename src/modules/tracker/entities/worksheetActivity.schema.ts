@@ -20,5 +20,4 @@ export class WorksheetActivity {
   worksheet: Worksheet;
 }
 
-export const WorksheetActivitySchema =
-  SchemaFactory.createForClass(WorksheetActivity);
+export const WorksheetActivitySchema = SchemaFactory.createForClass(WorksheetActivity);

@@ -56,16 +56,12 @@ export class DataFetcherService {
     // console.log(accessToken);
     const url = `${dataFetcherdto.projectUrl}/rest/api/2/search`;
     const headers = {
-      Authorization: `Basic ${Buffer.from(
-        `${emailAddress}:${accessToken}`,
-      ).toString('base64')}`,
+      Authorization: `Basic ${Buffer.from(`${emailAddress}:${accessToken}`).toString('base64')}`,
       Accept: 'application/json',
     };
     const now = new Date();
     const bangladeshOffset = 6 * 60 * 60 * 1000; // UTC+6 in milliseconds
-    const todaysDate =
-      dataFetcherdto.date ||
-      new Date(now.getTime() + bangladeshOffset).toISOString().split('T')[0];
+    const todaysDate = dataFetcherdto.date || new Date(now.getTime() + bangladeshOffset).toISOString().split('T')[0];
     console.log(`Fetching datas for date greater than equal : ${todaysDate}`);
     // const tempDate = '2024-08-01';
     const jqlQuery = {
@@ -98,9 +94,7 @@ export class DataFetcherService {
           maxResults,
         };
 
-        const response = await firstValueFrom(
-          this.httpService.post(url, paginatedQuery, { headers }),
-        );
+        const response = await firstValueFrom(this.httpService.post(url, paginatedQuery, { headers }));
         const { issues, total: totalIssues } = response.data;
         allIssues.push(...issues);
         total = totalIssues;
@@ -123,28 +117,17 @@ export class DataFetcherService {
         const { hour, minute, amPm } = this.getTime(createdDate);
         if (dueDate) {
           if (createdDate.split('T')[0] === dueDate) {
-            console.warn(
-              `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
-            );
+            console.warn(`Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`);
 
             if (
               (hour >= 12 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
-              (hour >= 1 &&
-                hour <= 10 &&
-                minute >= 0 &&
-                minute <= 59 &&
-                amPm === 'AM') ||
+              (hour >= 1 && hour <= 10 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
               (hour === 11 && minute <= 15 && amPm === 'AM')
             ) {
               isPlanned = true;
               createdDate = dueDate;
-            } else if (
-              (hour === 11 && minute >= 16 && minute <= 59 && amPm === 'AM') ||
-              amPm === 'PM'
-            ) {
-              console.warn(
-                `Unplanned issue found: ${createdDate} Due Date: ${dueDate}`,
-              );
+            } else if ((hour === 11 && minute >= 16 && minute <= 59 && amPm === 'AM') || amPm === 'PM') {
+              console.warn(`Unplanned issue found: ${createdDate} Due Date: ${dueDate}`);
               isPlanned = false;
               createdDate = createdDate.split('T')[0];
             } else {
@@ -152,9 +135,7 @@ export class DataFetcherService {
               createdDate = createdDate.split('T')[0];
             }
           } else {
-            console.warn(
-              `Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`,
-            );
+            console.warn(`Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`);
             isPlanned = true;
             createdDate = dueDate;
           }
@@ -168,13 +149,9 @@ export class DataFetcherService {
           const inwardId = link?.inwardIssue?.id || null;
           return [outwardId, inwardId].filter(Boolean);
         });
-        console.log(
-          `Fetching data for accountId: ${issue.fields?.assignee?.accountId}`,
-        );
+        console.log(`Fetching data for accountId: ${issue.fields?.assignee?.accountId}`);
 
-        console.log(
-          `Created Date: ${new Date(issue.fields?.created.split('T')[0]).toISOString()}`,
-        );
+        console.log(`Created Date: ${new Date(issue.fields?.created.split('T')[0]).toISOString()}`);
         const transformedIssueLinksString = transformedIssueLinks.join(',');
         if (dueDate && issue.fields.assignee != null) {
           accountIds.add(issue.fields.assignee.accountId);
@@ -198,13 +175,10 @@ export class DataFetcherService {
       console.log('DONE');
       return transformedIssue;
     } catch (error) {
-      console.error(
-        'Error fetching issues from Jira',
-        error.response?.data || error.message,
-      );
+      console.error('Error fetching issues from Jira', error.response?.data || error.message);
     }
   }
-  
+
   async dataFetchFromTrello(dataFetcherDto: DataFetcherDTO) {
     try {
       console.log('Fetching data from....');
@@ -229,30 +203,22 @@ export class DataFetcherService {
         // console.log(`${dataFetcherDto.projectUrl} - ${board.url}`);
 
         if (dataFetcherDto.projectUrl === board.url) {
-          console.log(
-            `📌 Fetching lists for board: ${board.name} (${board.id})`,
-          );
+          console.log(`📌 Fetching lists for board: ${board.name} (${board.id})`);
           const projectUrl = `trello.com/boards/${board.id}/lists`;
           const { data: lists } = await firstValueFrom(
             this.httpService.get(`${BASE_URL}/boards/${board.id}/lists`, {
               params: { key: API_KEY, token: TOKEN, fields: 'id,name' },
             }),
           );
-          const listMap = lists.reduce(
-            (acc, list) => ((acc[list.id] = list.name), acc),
-            {},
-          );
+          const listMap = lists.reduce((acc, list) => ((acc[list.id] = list.name), acc), {});
 
-          console.log(
-            `📌 Fetching cards from board: ${board.name} (${board.id})`,
-          );
+          console.log(`📌 Fetching cards from board: ${board.name} (${board.id})`);
           const { data: cards } = await firstValueFrom(
             this.httpService.get(`${BASE_URL}/boards/${board.id}/cards`, {
               params: {
                 key: API_KEY,
                 token: TOKEN,
-                fields:
-                  'id,name,dateLastActivity,desc,labels,idList,shortUrl,due,dateCreated,start,idMemberCreator',
+                fields: 'id,name,dateLastActivity,desc,labels,idList,shortUrl,due,dateCreated,start,idMemberCreator',
                 since: START_DATE,
                 due: 'today',
               },
@@ -261,9 +227,7 @@ export class DataFetcherService {
 
           // Process cards and collect member IDs
           const processedCards = cards
-            .filter(
-              (card) => new Date(card.dateLastActivity) <= new Date(TODAY),
-            )
+            .filter((card) => new Date(card.dateLastActivity) <= new Date(TODAY))
             .map((card) => {
               const first8Hex = card.id.substr(0, 8);
               const epochDate = parseInt(first8Hex, 16);
@@ -273,33 +237,16 @@ export class DataFetcherService {
               let isPlanned = true;
               if (dueDate) {
                 if (createdDate.split('T')[0] === dueDate.split('T')[0]) {
-                  console.warn(
-                    `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
-                  );
+                  console.warn(`Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`);
                   if (
-                    (hour >= 12 &&
-                      minute >= 0 &&
-                      minute <= 59 &&
-                      amPm === 'AM') ||
-                    (hour >= 1 &&
-                      hour <= 10 &&
-                      minute >= 0 &&
-                      minute <= 59 &&
-                      amPm === 'AM') ||
+                    (hour >= 12 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
+                    (hour >= 1 && hour <= 10 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
                     (hour === 11 && minute <= 15 && amPm === 'AM')
                   ) {
                     isPlanned = true;
                     createdDate = dueDate.split('T')[0];
-                  } else if (
-                    (hour === 11 &&
-                      minute >= 16 &&
-                      minute <= 59 &&
-                      amPm === 'AM') ||
-                    amPm === 'PM'
-                  ) {
-                    console.warn(
-                      `Unplanned issue found: ${createdDate} Due Date: ${dueDate}`,
-                    );
+                  } else if ((hour === 11 && minute >= 16 && minute <= 59 && amPm === 'AM') || amPm === 'PM') {
+                    console.warn(`Unplanned issue found: ${createdDate} Due Date: ${dueDate}`);
                     isPlanned = false;
                     createdDate = createdDate.split('T')[0];
                   } else {
@@ -307,9 +254,7 @@ export class DataFetcherService {
                     createdDate = createdDate.split('T')[0];
                   }
                 } else {
-                  console.log(
-                    `Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`,
-                  );
+                  console.log(`Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`);
                   isPlanned = true;
                   createdDate = dueDate.split('T')[0];
                 }
@@ -348,10 +293,7 @@ export class DataFetcherService {
       }
       return allCards;
     } catch (error) {
-      console.error(
-        ' Error fetching data from trello:',
-        error.response?.data || error.message,
-      );
+      console.error(' Error fetching data from trello:', error.response?.data || error.message);
     }
   }
 
@@ -392,9 +334,7 @@ export class DataFetcherService {
         const issueDate = new Date(date);
         /// for handling corner case same user for multiple organization
         for (const user of users) {
-          console.log(
-            `Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`,
-          );
+          console.log(`Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`);
 
           await this.issueEntryModel.findOneAndUpdate(
             {
@@ -471,9 +411,7 @@ export class DataFetcherService {
 
         /// for handling corner case same user for multiple organization
         for (const user of users) {
-          console.log(
-            `Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`,
-          );
+          console.log(`Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`);
 
           await this.issueEntryModel.findOneAndUpdate(
             {
@@ -551,9 +489,7 @@ export class DataFetcherService {
       }
     }
 
-    const jiraStatus = await this.saveJiraIssueToIssueEntry(
-      JSON.stringify(allDataJIRA),
-    );
+    const jiraStatus = await this.saveJiraIssueToIssueEntry(JSON.stringify(allDataJIRA));
     try {
       console.log(`Fetching data from trello...`);
       for (const url of urls) {
@@ -562,11 +498,7 @@ export class DataFetcherService {
             projectUrl: url,
             date: newDate,
           });
-          if (
-            trelloIssues.length > 0 ||
-            trelloIssues !== undefined ||
-            trelloIssues !== null
-          ) {
+          if (trelloIssues.length > 0 || trelloIssues !== undefined || trelloIssues !== null) {
             allDataTrello.push(...trelloIssues);
           }
         }
@@ -575,9 +507,7 @@ export class DataFetcherService {
       console.error(`Error fetching data from trello`);
     }
 
-    const trelloStatus = await this.saveTrelloIssueToEntry(
-      JSON.stringify(allDataTrello),
-    );
+    const trelloStatus = await this.saveTrelloIssueToEntry(JSON.stringify(allDataTrello));
     return {
       jiraStatus: jiraStatus,
       trelloStatus: trelloStatus,

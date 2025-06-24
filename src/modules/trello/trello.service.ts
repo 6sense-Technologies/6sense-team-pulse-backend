@@ -1,11 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  ConflictException,
-  forwardRef,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import * as dotenv from 'dotenv';
@@ -13,19 +7,11 @@ import { Model } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 import { handleError } from '../../common/helpers/error.helper';
-import {
-  validateAccountId,
-  validateDate,
-} from '../../common/helpers/validation.helper';
+import { validateAccountId, validateDate } from '../../common/helpers/validation.helper';
 import { IIssue, User } from '../../schemas/user.schema';
 import { Designation, Project } from '../users/enums/user.enum';
 import { UserService } from '../users/users.service';
-import {
-  ITrelloBoard,
-  ITrelloCard,
-  ITrelloCredentials,
-  ITrelloUsers,
-} from './interfaces/trello.interfaces';
+import { ITrelloBoard, ITrelloCard, ITrelloCredentials, ITrelloUsers } from './interfaces/trello.interfaces';
 
 dotenv.config();
 
@@ -63,10 +49,7 @@ export class TrelloService {
     };
   }
 
-  private async fetchBoards(credentials: {
-    key: string;
-    token: string;
-  }): Promise<ITrelloBoard[]> {
+  private async fetchBoards(credentials: { key: string; token: string }): Promise<ITrelloBoard[]> {
     const endpoint = `/members/me/boards`;
 
     const response = await firstValueFrom(
@@ -90,10 +73,7 @@ export class TrelloService {
     const credentials1 = this.getWorkspace1Credentials();
     const credentials2 = this.getWorkspace2Credentials();
 
-    const results = await Promise.allSettled([
-      this.fetchBoards(credentials1),
-      this.fetchBoards(credentials2),
-    ]);
+    const results = await Promise.allSettled([this.fetchBoards(credentials1), this.fetchBoards(credentials2)]);
 
     const boards = results
       .filter((result) => {
@@ -113,22 +93,16 @@ export class TrelloService {
 
       const requests = this.boardIds.map((boardId) => {
         const isWorkspace1Board =
-          boardId === process.env.TRELLO_BOARD_ID_1 ||
-          boardId === process.env.TRELLO_BOARD_ID_2;
-        const credentials = isWorkspace1Board
-          ? this.getWorkspace1Credentials()
-          : this.getWorkspace2Credentials();
+          boardId === process.env.TRELLO_BOARD_ID_1 || boardId === process.env.TRELLO_BOARD_ID_2;
+        const credentials = isWorkspace1Board ? this.getWorkspace1Credentials() : this.getWorkspace2Credentials();
 
         return firstValueFrom(
-          this.httpService.get(
-            `${this.trelloBaseUrl}${endpoint.replace('{boardId}', boardId)}`,
-            {
-              params: {
-                key: credentials.key,
-                token: credentials.token,
-              },
+          this.httpService.get(`${this.trelloBaseUrl}${endpoint.replace('{boardId}', boardId)}`, {
+            params: {
+              key: credentials.key,
+              token: credentials.token,
             },
-          ),
+          }),
         ).then((response) => {
           return {
             boardId,
@@ -196,10 +170,7 @@ export class TrelloService {
     }
   }
 
-  async getUserDetailsFromTrello(
-    boardId: string,
-    accountId: string,
-  ): Promise<any> {
+  async getUserDetailsFromTrello(boardId: string, accountId: string): Promise<any> {
     try {
       const endpoint = `/members/${accountId}`;
 
@@ -237,34 +208,25 @@ export class TrelloService {
   async getUserIssues(accountId: string, date: string): Promise<any[]> {
     try {
       const boardsResponse1 = await firstValueFrom(
-        this.httpService.get(
-          `${this.trelloBaseUrl}/members/${accountId}/boards`,
-          {
-            params: {
-              key: process.env.TRELLO_API_KEY,
-              token: process.env.TRELLO_SECRET_KEY,
-            },
+        this.httpService.get(`${this.trelloBaseUrl}/members/${accountId}/boards`, {
+          params: {
+            key: process.env.TRELLO_API_KEY,
+            token: process.env.TRELLO_SECRET_KEY,
           },
-        ),
+        }),
       );
 
       const boardsResponse2 = await firstValueFrom(
-        this.httpService.get(
-          `${this.trelloBaseUrl}/members/${accountId}/boards`,
-          {
-            params: {
-              key: process.env.TRELLO_API_KEY2,
-              token: process.env.TRELLO_SECRET_KEY2,
-            },
+        this.httpService.get(`${this.trelloBaseUrl}/members/${accountId}/boards`, {
+          params: {
+            key: process.env.TRELLO_API_KEY2,
+            token: process.env.TRELLO_SECRET_KEY2,
           },
-        ),
+        }),
       );
 
       const boards1 = boardsResponse1.data.filter((board) => {
-        return [
-          process.env.TRELLO_BOARD_ID_1,
-          process.env.TRELLO_BOARD_ID_2,
-        ].includes(board.id);
+        return [process.env.TRELLO_BOARD_ID_1, process.env.TRELLO_BOARD_ID_2].includes(board.id);
       });
 
       const boards2 = boardsResponse2.data.filter((board) => {
@@ -280,15 +242,12 @@ export class TrelloService {
         token: string,
       ): Promise<ITrelloCard[]> => {
         const listsResponse = await firstValueFrom(
-          this.httpService.get(
-            `${this.trelloBaseUrl}/boards/${boardId}/lists`,
-            {
-              params: {
-                key: key,
-                token: token,
-              },
+          this.httpService.get(`${this.trelloBaseUrl}/boards/${boardId}/lists`, {
+            params: {
+              key: key,
+              token: token,
             },
-          ),
+          }),
         );
 
         const lists = listsResponse.data;
@@ -296,23 +255,17 @@ export class TrelloService {
         const cards = await Promise.all(
           lists.map(async (list) => {
             const cardsResponse = await firstValueFrom(
-              this.httpService.get(
-                `${this.trelloBaseUrl}/lists/${list.id}/cards`,
-                {
-                  params: {
-                    key: key,
-                    token: token,
-                  },
+              this.httpService.get(`${this.trelloBaseUrl}/lists/${list.id}/cards`, {
+                params: {
+                  key: key,
+                  token: token,
                 },
-              ),
+              }),
             );
 
             return cardsResponse.data
               .filter((card) => {
-                return (
-                  card.idMembers.includes(accountId) &&
-                  card.due?.split('T')[0] === date
-                );
+                return card.idMembers.includes(accountId) && card.due?.split('T')[0] === date;
               })
               .map((card) => {
                 return {
@@ -332,13 +285,9 @@ export class TrelloService {
       const allCards = await Promise.all(
         allBoards.map((board) => {
           const key =
-            board.id === process.env.TRELLO_BOARD_ID_3
-              ? process.env.TRELLO_API_KEY2
-              : process.env.TRELLO_API_KEY;
+            board.id === process.env.TRELLO_BOARD_ID_3 ? process.env.TRELLO_API_KEY2 : process.env.TRELLO_API_KEY;
           const token =
-            board.id === process.env.TRELLO_BOARD_ID_3
-              ? process.env.TRELLO_SECRET_KEY2
-              : process.env.TRELLO_SECRET_KEY;
+            board.id === process.env.TRELLO_BOARD_ID_3 ? process.env.TRELLO_SECRET_KEY2 : process.env.TRELLO_SECRET_KEY;
 
           return fetchCardsForBoard(board.id, board.name, key, token);
         }),
@@ -491,9 +440,7 @@ export class TrelloService {
       const userCards = await this.getUserIssues(accountId, date);
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      const notDoneIssues =
-        user?.issueHistory.find((entry) => entry.date === date)
-          ?.notDoneIssues || [];
+      const notDoneIssues = user?.issueHistory.find((entry) => entry.date === date)?.notDoneIssues || [];
 
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };

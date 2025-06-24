@@ -99,10 +99,7 @@ describe('GitRepoService', () => {
       };
 
       const result = await service.update('mock-id', dto);
-      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
-        { _id: 'mock-id' },
-        dto,
-      );
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith({ _id: 'mock-id' }, dto);
       expect(result).toEqual(mockGitRepo);
     });
 
@@ -112,10 +109,7 @@ describe('GitRepoService', () => {
       };
 
       await service.update('mock-id', dto);
-      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
-        { _id: 'mock-id' },
-        { organization: 'partial-org' },
-      );
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith({ _id: 'mock-id' }, { organization: 'partial-org' });
     });
   });
 });

@@ -4,11 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { VerifyEmailDto } from './dto/email-service.dto';
 import { OTPSecret } from '../../schemas/OTPSecret.schema';
 import { MailerService } from '@nestjs-modules/mailer';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Users } from '../../schemas/users.schema';
 import { EmailTemplate } from './templates/email-template.template';
 import { JwtService } from '@nestjs/jwt';
@@ -62,10 +58,7 @@ export class EmailService {
     }
 
     const code = await this.generateAndStoreCode(emailAddress);
-    const emailTemplate = EmailTemplate.userVerificationOTPEmailTemplate(
-      user.displayName,
-      code,
-    );
+    const emailTemplate = EmailTemplate.userVerificationOTPEmailTemplate(user.displayName, code);
     console.log(`${emailAddress}  Verification code: ${code}`);
 
     const response = await this.mailerService.sendMail({
@@ -78,11 +71,7 @@ export class EmailService {
     return response;
   }
 
-  public async sendInvitationEmail(
-    emailAddress: string,
-    fromUser: string,
-    organizationName: string,
-  ) {
+  public async sendInvitationEmail(emailAddress: string, fromUser: string, organizationName: string) {
     console.log('Sending invitation email.....');
     const user = await this.usersModel.findOne({ emailAddress: emailAddress });
     if (!user) {
@@ -95,12 +84,7 @@ export class EmailService {
         expiresIn: this.configService.get('INVITE_EXPIRE'),
       },
     );
-    const emailTemplate = EmailTemplate.invitationEmail(
-      user.displayName,
-      jwtToken,
-      fromUser,
-      organizationName,
-    );
+    const emailTemplate = EmailTemplate.invitationEmail(user.displayName, jwtToken, fromUser, organizationName);
     const response = await this.mailerService.sendMail({
       from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
       to: emailAddress,
