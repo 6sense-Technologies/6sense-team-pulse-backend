@@ -14,5 +14,6 @@ import { ToolName, ToolNameSchema } from '../../schemas/ToolName.schema';
   ],
   controllers: [ToolController],
   providers: [ToolService],
+  exports: [ToolService],
 })
 export class ToolModule {}
