@@ -2,18 +2,9 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
-import {
-  Organization,
-  OrganizationSchema,
-} from '../../schemas/Organization.schema';
-import {
-  OrganizationProjectUser,
-  OrganizationProjectUserSchema,
-} from '../../schemas/OrganizationProjectUser.schema';
-import {
-  OrganizationUserRole,
-  OrganizationUserRoleSchema,
-} from '../../schemas/OrganizationUserRole.schema';
+import { Organization, OrganizationSchema } from '../../schemas/Organization.schema';
+import { OrganizationProjectUser, OrganizationProjectUserSchema } from '../../schemas/OrganizationProjectUser.schema';
+import { OrganizationUserRole, OrganizationUserRoleSchema } from '../../schemas/OrganizationUserRole.schema';
 import { OTPSecret, OTPSecretSchema } from '../../schemas/OTPSecret.schema';
 import { Role, RoleSchema } from '../../schemas/Role.schema';
 import { Users, UsersSchema } from '../../schemas/users.schema';
@@ -44,13 +35,7 @@ import { OrganizationModule } from '../organization/organization.module';
     ]),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    MongooseModule,
-    JwtStrategy,
-    JWTRefreshTokenStrategy,
-    EmailService,
-  ],
+  providers: [AuthService, MongooseModule, JwtStrategy, JWTRefreshTokenStrategy, EmailService],
   exports: [AuthService],
 })
 export class AuthModule {}

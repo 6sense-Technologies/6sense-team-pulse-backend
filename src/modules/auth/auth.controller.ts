@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   ChooseOrganization,
@@ -37,12 +29,8 @@ export class AuthController {
     return 'Logged In';
   }
   @Post('register')
-  async registerEmailPassword(
-    @Body() createUserEmailPasswordDTO: CreateUserEmailPasswordDTO,
-  ) {
-    return await this.authService.registerEmailPassword(
-      createUserEmailPasswordDTO,
-    );
+  async registerEmailPassword(@Body() createUserEmailPasswordDTO: CreateUserEmailPasswordDTO) {
+    return await this.authService.registerEmailPassword(createUserEmailPasswordDTO);
   }
 
   @Post('register/sso')
@@ -51,9 +39,7 @@ export class AuthController {
   }
 
   @Post('login')
-  async loginEmailPassword(
-    @Body() loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO,
-  ) {
+  async loginEmailPassword(@Body() loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO) {
     return await this.authService.loginEmailPassword(loginUserEmailPasswordDTO);
   }
 
@@ -73,15 +59,9 @@ export class AuthController {
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @Post('register/organization')
-  createOrganization(
-    @Body() createOrganizationDTO: CreateOrganizationDTO,
-    @Req() req: Request,
-  ) {
+  createOrganization(@Body() createOrganizationDTO: CreateOrganizationDTO, @Req() req: Request) {
     console.log(req['user']);
-    return this.organizationService.create(
-      createOrganizationDTO,
-      req['user'].userId,
-    );
+    return this.organizationService.create(createOrganizationDTO, req['user'].userId);
   }
 
   @Post('register/verify-invite')

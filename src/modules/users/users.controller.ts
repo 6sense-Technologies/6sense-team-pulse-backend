@@ -15,11 +15,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import {
-  IAllUsers,
-  IUserResponse,
-  IUserIssuesByDate,
-} from './interfaces/users.interfaces';
+import { IAllUsers, IUserResponse, IUserIssuesByDate } from './interfaces/users.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from './enums/user.enum';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -89,12 +85,7 @@ export class UserController {
       limits: { fileSize: 100 * 1024 }, // 100KB limit
       fileFilter: (req, file, callback) => {
         if (!file.mimetype.match(/^image\/(jpeg|png|jpg)$/)) {
-          return callback(
-            new BadRequestException(
-              'Only JPEG, PNG, and JPG files are allowed!',
-            ),
-            false,
-          );
+          return callback(new BadRequestException('Only JPEG, PNG, and JPG files are allowed!'), false);
         }
         callback(null, true);
       },
@@ -105,20 +96,13 @@ export class UserController {
   @ApiBearerAuth()
   @UseGuards(AccessTokenGuard)
   @UseGuards(RolesGuard)
-  async invite(
-    @Body() inviteUserDTO: InviteUserDTO,
-    @UploadedFile() file: Express.Multer.File,
-    @Req() req: Request,
-  ) {
+  async invite(@Body() inviteUserDTO: InviteUserDTO, @UploadedFile() file: Express.Multer.File, @Req() req: Request) {
     return this.userService.inviteUser(inviteUserDTO, req['user'].userId, file);
   }
 
   //------------------------///
   @Get()
-  async getAllUsers(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ): Promise<IAllUsers> {
+  async getAllUsers(@Query('page') page?: number, @Query('limit') limit?: number): Promise<IAllUsers> {
     return this.userService.getAllUsers(page, limit);
   }
 
@@ -137,9 +121,7 @@ export class UserController {
   }
 
   @Delete(':accountId')
-  async deleteUser(
-    @Param('accountId') accountId: string,
-  ): Promise<ISuccessResponse> {
+  async deleteUser(@Param('accountId') accountId: string): Promise<ISuccessResponse> {
     return await this.userService.deleteUser(accountId);
   }
 
@@ -155,9 +137,7 @@ export class UserController {
   }
 
   @Put(':accountId/archive')
-  async archiveUser(
-    @Param('accountId') accountId: string,
-  ): Promise<ISuccessResponse> {
+  async archiveUser(@Param('accountId') accountId: string): Promise<ISuccessResponse> {
     return this.userService.archiveUser(accountId);
   }
 
@@ -193,13 +173,7 @@ export class UserController {
     @Body('comment') comment: string,
     @Body('token') token: string,
   ): Promise<ISuccessResponse> {
-    return await this.userService.bugReportByDate(
-      accountId,
-      date,
-      noOfBugs,
-      comment,
-      token,
-    );
+    return await this.userService.bugReportByDate(accountId, date, noOfBugs, comment, token);
   }
 
   @Post('comment/:accountId/:date')

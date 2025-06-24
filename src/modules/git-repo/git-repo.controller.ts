@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CreateGitRepoDto } from './dto/create-git-repo.dto';
 import { UpdateGitRepoDto } from './dto/update-git-repo.dto';
 import { GitRepoService } from './git-repo.service';

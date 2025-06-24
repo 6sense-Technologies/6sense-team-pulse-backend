@@ -15,12 +15,7 @@ import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Auth } from '../auth/decorators/auth.decorator';
@@ -80,10 +75,7 @@ export class ProjectsController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProjectMemberWorksheets(
-    @Req() req: any,
-    @Query() query: WorksheetListOfProjectQueryDto,
-  ): Promise<any> {
+  async getProjectMemberWorksheets(@Req() req: any, @Query() query: WorksheetListOfProjectQueryDto): Promise<any> {
     const organizationId = req.user.organizationId;
 
     return this.worksheetService.getProjectMemberWorksheets(
@@ -106,20 +98,14 @@ export class ProjectsController {
   @ApiBearerAuth()
   @Auth(['admin']) // You can add role-based check here if needed
   @ApiQuery({ name: 'projectId', type: String, required: true })
-  async getProjectWorksheetAnalytics(
-    @Req() req: any,
-    @Query('project-id') projectId: string,
-  ): Promise<any> {
+  async getProjectWorksheetAnalytics(@Req() req: any, @Query('project-id') projectId: string): Promise<any> {
     if (!projectId || !projectId.trim() || !isValidObjectId(projectId)) {
       throw new BadRequestException('Invalid/Missing project ID');
     }
 
     const organizationId = req.user.organizationId;
 
-    return this.worksheetService.getProjectWorksheetAnalytics(
-      projectId,
-      organizationId,
-    );
+    return this.worksheetService.getProjectWorksheetAnalytics(projectId, organizationId);
   }
 
   @Auth(['admin'])
@@ -168,37 +154,21 @@ export class ProjectsController {
   @ApiBearerAuth()
   @Get('names')
   findProjectNames(@Req() req: Request) {
-    return this.projectsService.getNames(
-      req['user'].userId,
-      req['user'].organizationId,
-    );
+    return this.projectsService.getNames(req['user'].userId, req['user'].organizationId);
   }
 
   @Auth(['admin'])
   @ApiBearerAuth()
   @Post()
   create(@Body() createProjectDto: CreateProjectDto, @Req() req: Request) {
-    return this.projectsService.create(
-      createProjectDto,
-      req['user'].userId,
-      req['user'].organizationId,
-    );
+    return this.projectsService.create(createProjectDto, req['user'].userId, req['user'].organizationId);
   }
 
   @Auth()
   @ApiBearerAuth()
   @Get()
-  findAll(
-    @Req() req: Request,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ) {
-    return this.projectsService.findAll(
-      +page,
-      +limit,
-      req['user'].userId,
-      req['user'].organizationId,
-    );
+  findAll(@Req() req: Request, @Query('page') page: number = 1, @Query('limit') limit: number = 10) {
+    return this.projectsService.findAll(+page, +limit, req['user'].userId, req['user'].organizationId);
   }
 
   // @Auth()

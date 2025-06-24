@@ -34,18 +34,14 @@ export class OrganizationService {
         domain: createOrganizationDTO.domainName,
       })
     ) {
-      throw new ConflictException(
-        `Another domain name with ${createOrganizationDTO.domainName} already exists`,
-      );
+      throw new ConflictException(`Another domain name with ${createOrganizationDTO.domainName} already exists`);
     }
 
     const session = await this.connection.startSession();
     session.startTransaction();
 
     try {
-      const user = await this.usersModel
-        .findOne({ _id: userId })
-        .session(session);
+      const user = await this.usersModel.findOne({ _id: userId }).session(session);
 
       const organization = await this.organizationModel.create(
         [
@@ -59,17 +55,12 @@ export class OrganizationService {
         { session },
       );
 
-      let role: any = await this.roleModel
-        .findOne({ roleName: 'admin' })
-        .session(session);
+      let role: any = await this.roleModel.findOne({ roleName: 'admin' }).session(session);
 
       if (!role) {
-        role = await this.roleModel.create(
-          [{ roleName: 'admin', createdBy: user }],
-          {
-            session,
-          },
-        );
+        role = await this.roleModel.create([{ roleName: 'admin', createdBy: user }], {
+          session,
+        });
       }
       await this.organizationUserRoleModel.create(
         [
@@ -127,9 +118,7 @@ export class OrganizationService {
         throw new NotFoundException(errors.join(' and '));
       }
 
-      throw new ForbiddenException(
-        `User ${userId} does not belong to organization ${orgId}`,
-      );
+      throw new ForbiddenException(`User ${userId} does not belong to organization ${orgId}`);
     }
 
     if (roles?.length) {
@@ -149,18 +138,13 @@ export class OrganizationService {
       .sort({ lastAccessed: -1 })
       .limit(1);
     if (!organizationUserRole || organizationUserRole.length === 0) {
-      throw new NotFoundException(
-        `No organization found for user with ID ${userId}`,
-      );
+      throw new NotFoundException(`No organization found for user with ID ${userId}`);
     }
     await this.updateLastAccessed(userId, organizationUserRole[0].organization);
     return organizationUserRole[0].organization;
   }
 
-  async updateLastAccessed(
-    userId: Types.ObjectId,
-    organizationId: Types.ObjectId,
-  ): Promise<void> {
+  async updateLastAccessed(userId: Types.ObjectId, organizationId: Types.ObjectId): Promise<void> {
     if (!isValidObjectId(userId) || !isValidObjectId(organizationId)) {
       throw new BadRequestException('Invalid userId or organizationId');
     }
@@ -171,9 +155,7 @@ export class OrganizationService {
     });
 
     if (!orgUser) {
-      throw new NotFoundException(
-        `User ${userId} does not belong to organization ${organizationId}`,
-      );
+      throw new NotFoundException(`User ${userId} does not belong to organization ${organizationId}`);
     }
 
     orgUser.lastAccessed = new Date();

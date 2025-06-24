@@ -7,10 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class JWTRefreshTokenStrategy extends PassportStrategy(
-  Strategy,
-  'jwt-refresh',
-) {
+export class JWTRefreshTokenStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(private jwtService: JwtService) {
     super({
       usernameField: 'email',

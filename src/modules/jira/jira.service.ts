@@ -12,10 +12,7 @@ import * as dotenv from 'dotenv';
 import mongoose, { Model } from 'mongoose';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { handleError } from '../../common/helpers/error.helper';
-import {
-  validateAccountId,
-  validateDate,
-} from '../../common/helpers/validation.helper';
+import { validateAccountId, validateDate } from '../../common/helpers/validation.helper';
 import {
   IDailyMetrics,
   IJiraIssue,
@@ -36,9 +33,7 @@ export class JiraService {
   private readonly jiraBaseUrl2 = process.env.JIRA_BASE_URL2;
   private readonly jiraBaseUrl3 = process.env.JIRA_BASE_URL3;
   private readonly headers = {
-    Authorization: `Basic ${Buffer.from(
-      `${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`,
-    ).toString('base64')}`,
+    Authorization: `Basic ${Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64')}`,
     Accept: 'application/json',
   };
 
@@ -92,9 +87,7 @@ export class JiraService {
         const issueDate = new Date(date);
 
         for (const user of users) {
-          console.log(
-            `Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`,
-          );
+          console.log(`Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`);
 
           await this.issueEntryModel.findOneAndUpdate(
             {
@@ -196,10 +189,7 @@ export class JiraService {
     }
   }
 
-  async getUserDetailsFromJira(
-    jiraWorkspaceUrl: string,
-    accountId: string,
-  ): Promise<IJiraUserData> {
+  async getUserDetailsFromJira(jiraWorkspaceUrl: string, accountId: string): Promise<IJiraUserData> {
     const endpoint = `/rest/api/3/user?accountId=${accountId}`;
     try {
       const response1 = await firstValueFrom(
@@ -213,10 +203,7 @@ export class JiraService {
     }
   }
 
-  async getUserIssues(
-    accountId: string,
-    date: string,
-  ): Promise<IJirsUserIssues[]> {
+  async getUserIssues(accountId: string, date: string): Promise<IJirsUserIssues[]> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -584,9 +571,7 @@ export class JiraService {
     try {
       const users = await this.userModel.find().exec();
 
-      const today = new Date(
-        new Date().setDate(new Date().getDate()),
-      ).toLocaleDateString('en-CA', {
+      const today = new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
 
@@ -609,9 +594,7 @@ export class JiraService {
     try {
       const users = await this.userModel.find().exec();
 
-      const today = new Date(
-        new Date().setDate(new Date().getDate()),
-      ).toLocaleDateString('en-CA', {
+      const today = new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
 
@@ -670,10 +653,7 @@ export class JiraService {
     }
   }
 
-  async updateMorningIssueHistoryForSpecificUser(
-    accountId: string,
-    date: string,
-  ): Promise<void> {
+  async updateMorningIssueHistoryForSpecificUser(accountId: string, date: string): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId }).exec();
 
@@ -693,10 +673,7 @@ export class JiraService {
     }
   }
 
-  async updateEveningIssueHistoryForSpecificUser(
-    accountId: string,
-    date: string,
-  ): Promise<void> {
+  async updateEveningIssueHistoryForSpecificUser(accountId: string, date: string): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId }).exec();
 
@@ -717,10 +694,7 @@ export class JiraService {
     }
   }
 
-  async calculateDailyMetrics(
-    accountId: string,
-    date: string,
-  ): Promise<IDailyMetrics> {
+  async calculateDailyMetrics(accountId: string, date: string): Promise<IDailyMetrics> {
     try {
       const user = await this.userModel.findOne({ accountId });
       const issueHistory = user.issueHistory;
@@ -789,11 +763,7 @@ export class JiraService {
         });
       const matchedDoneBugIds = doneIssues
         .filter((issue) => {
-          return (
-            issue.issueType === 'Bug' &&
-            issue.status === 'Done' &&
-            notDoneBugIds.includes(issue.issueId)
-          );
+          return issue.issueType === 'Bug' && issue.status === 'Done' && notDoneBugIds.includes(issue.issueId);
         })
         .map((issue) => {
           return issue.issueId;
@@ -801,10 +771,7 @@ export class JiraService {
 
       // Calculate total done issues
       const totalDoneTasks = doneIssues.filter((issue) => {
-        return (
-          issue.issueType === 'Task' &&
-          (issue.status === 'Done' || issue.status === 'In Review')
-        );
+        return issue.issueType === 'Task' && (issue.status === 'Done' || issue.status === 'In Review');
       }).length;
 
       const totalDoneStories = doneIssues.filter((issue) => {
@@ -821,25 +788,21 @@ export class JiraService {
 
       // Calculate completion rates
       const totalNotDoneTasksAndBugs = counts.notDone.Task + counts.notDone.Bug;
-      const totalMatchedDoneTasksAndBugs =
-        matchedDoneTaskIds.length + matchedDoneBugIds.length;
+      const totalMatchedDoneTasksAndBugs = matchedDoneTaskIds.length + matchedDoneBugIds.length;
 
       if (totalNotDoneTasksAndBugs > 0) {
-        taskCompletionRate =
-          (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
+        taskCompletionRate = (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
       }
 
       const totalNotDoneStories = counts.notDone.Story;
       const totalMatchedDoneStories = matchedDoneStoryIds.length;
 
       if (totalNotDoneStories > 0) {
-        userStoryCompletionRate =
-          (totalMatchedDoneStories / totalNotDoneStories) * 100;
+        userStoryCompletionRate = (totalMatchedDoneStories / totalNotDoneStories) * 100;
       }
 
       // Calculate overall score and comments
-      const totalAllDoneIssues =
-        totalDoneTasks + totalDoneStories + totalDoneBugs;
+      const totalAllDoneIssues = totalDoneTasks + totalDoneStories + totalDoneBugs;
       const totalNotDoneIssues = totalNotDoneTasksAndBugs + totalNotDoneStories;
 
       if (totalNotDoneIssues === 0 && totalAllDoneIssues === 0) {
@@ -850,11 +813,9 @@ export class JiraService {
 
       // Calculate unmatched done issues
       const unmatchedDoneTasks = totalDoneTasks - matchedDoneTaskIds.length;
-      const unmatchedDoneStories =
-        totalDoneStories - matchedDoneStoryIds.length;
+      const unmatchedDoneStories = totalDoneStories - matchedDoneStoryIds.length;
       const unmatchedDoneBugs = totalDoneBugs - matchedDoneBugIds.length;
-      const totalUnmatchedDoneIssues =
-        unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
+      const totalUnmatchedDoneIssues = unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
 
       if (totalUnmatchedDoneIssues > 0) {
         comment += ` ${totalUnmatchedDoneIssues} issue(s) that you completed do not match your target issues.`;
@@ -862,10 +823,8 @@ export class JiraService {
 
       // Calculate overall score
       const nonZeroCompletionRates = [];
-      if (totalNotDoneTasksAndBugs > 0)
-        nonZeroCompletionRates.push(taskCompletionRate);
-      if (totalNotDoneStories > 0)
-        nonZeroCompletionRates.push(userStoryCompletionRate);
+      if (totalNotDoneTasksAndBugs > 0) nonZeroCompletionRates.push(taskCompletionRate);
+      if (totalNotDoneStories > 0) nonZeroCompletionRates.push(userStoryCompletionRate);
 
       if (nonZeroCompletionRates.length > 0) {
         overallScore =
@@ -879,11 +838,7 @@ export class JiraService {
         return issue.issueId;
       });
       const totalCompletedBugs = doneIssues.filter((issue) => {
-        return (
-          issue.issueType === 'Bug' &&
-          issue.status === 'Done' &&
-          !notDoneIssueIds.includes(issue.issueId)
-        );
+        return issue.issueType === 'Bug' && issue.status === 'Done' && !notDoneIssueIds.includes(issue.issueId);
       }).length;
 
       const countedCodeIssueIds = new Set();
@@ -891,10 +846,7 @@ export class JiraService {
         if (bug.issueType === 'Bug' && bug.status === 'Done') {
           bug.issueLinks.forEach((link) => {
             const linkedIssueId = link.issueId;
-            if (
-              matchedDoneTaskIds.includes(linkedIssueId) ||
-              matchedDoneStoryIds.includes(linkedIssueId)
-            ) {
+            if (matchedDoneTaskIds.includes(linkedIssueId) || matchedDoneStoryIds.includes(linkedIssueId)) {
               countedCodeIssueIds.add(linkedIssueId);
             }
           });
@@ -903,9 +855,7 @@ export class JiraService {
 
       const totalCompletedCodeIssues = countedCodeIssueIds.size;
       if (totalCompletedCodeIssues > 0 && totalCompletedBugs > 0) {
-        codeToBugRatio = parseFloat(
-          ((totalCompletedBugs / totalCompletedCodeIssues) * 100).toFixed(2),
-        );
+        codeToBugRatio = parseFloat(((totalCompletedBugs / totalCompletedCodeIssues) * 100).toFixed(2));
       }
 
       entry.taskCompletionRate = taskCompletionRate;
@@ -935,10 +885,7 @@ export class JiraService {
     }
   }
 
-  async calculateCurrentPerformance(
-    accountId: string,
-    date: string,
-  ): Promise<void> {
+  async calculateCurrentPerformance(accountId: string, date: string): Promise<void> {
     try {
       const endDate = new Date(date);
       const startDate = new Date(endDate);
@@ -966,8 +913,7 @@ export class JiraService {
         }
       });
 
-      const currentPerformance =
-        validDaysCount > 0 ? totalScore / validDaysCount : 0;
+      const currentPerformance = validDaysCount > 0 ? totalScore / validDaysCount : 0;
 
       user.currentPerformance = currentPerformance;
       await user.save();

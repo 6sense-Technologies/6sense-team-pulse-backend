@@ -10,10 +10,7 @@ export class Tool extends Document {
   toolUrl: string;
 
   @Prop({ type: String, default: '' })
-  apiKey: string;
-
-  @Prop({ type: String, default: '' })
-  projectId: string;
+  apiKey: string; // This is for Linear
 
   @Prop({
     type: [{ type: MongooseSchema.Types.ObjectId, ref: 'ProjectTool' }],

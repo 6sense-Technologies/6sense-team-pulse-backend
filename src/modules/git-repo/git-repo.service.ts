@@ -7,9 +7,7 @@ import { UpdateGitRepoDto } from './dto/update-git-repo.dto';
 
 @Injectable()
 export class GitRepoService {
-  constructor(
-    @InjectModel(GitRepo.name) private readonly gitRepoModel: Model<GitRepo>,
-  ) {}
+  constructor(@InjectModel(GitRepo.name) private readonly gitRepoModel: Model<GitRepo>) {}
 
   create(createGitRepoDto: CreateGitRepoDto) {
     return this.gitRepoModel.create({
@@ -34,13 +32,10 @@ export class GitRepoService {
 
   update(id: string, updateGitRepoDto: UpdateGitRepoDto) {
     let data = {};
-    if (updateGitRepoDto['provider'])
-      data['provider'] = updateGitRepoDto['provider'];
-    if (updateGitRepoDto['organization'])
-      data['organization'] = updateGitRepoDto['organization'];
+    if (updateGitRepoDto['provider']) data['provider'] = updateGitRepoDto['provider'];
+    if (updateGitRepoDto['organization']) data['organization'] = updateGitRepoDto['organization'];
     if (updateGitRepoDto['repo']) data['repo'] = updateGitRepoDto['repo'];
-    if (updateGitRepoDto['gitUsername'])
-      data['gitUsername'] = updateGitRepoDto['gitUsername'];
+    if (updateGitRepoDto['gitUsername']) data['gitUsername'] = updateGitRepoDto['gitUsername'];
     return this.gitRepoModel.findOneAndUpdate({ _id: id }, data);
   }
 }

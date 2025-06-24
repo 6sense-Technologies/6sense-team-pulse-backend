@@ -27,20 +27,12 @@ export class ProjectsService {
   ) {}
   private readonly logger = new Logger(ProjectsService.name);
 
-  async create(
-    createProjectDto: CreateProjectDto,
-    userId: string,
-    organizationId: string,
-  ) {
+  async create(createProjectDto: CreateProjectDto, userId: string, organizationId: string) {
     const session = await this.connection.startSession();
     session.startTransaction();
 
     try {
-      const existing = await this.projectModel.findOne(
-        { name: createProjectDto.name },
-        null,
-        { session },
-      );
+      const existing = await this.projectModel.findOne({ name: createProjectDto.name }, null, { session });
 
       if (existing) {
         throw new ConflictException('Project with this name already exists');
@@ -100,12 +92,7 @@ export class ProjectsService {
     }
   }
 
-  async findAll(
-    page: number,
-    limit: number,
-    userId: string,
-    organizationId: string,
-  ) {
+  async findAll(page: number, limit: number, userId: string, organizationId: string) {
     const skip = (page - 1) * limit;
 
     const orgProjectsUsers = await this.OrganizationProjectUser.find({
@@ -217,9 +204,7 @@ export class ProjectsService {
       if (error instanceof BadRequestException) throw error;
       if (error instanceof NotFoundException) throw error;
       if (error instanceof UnauthorizedException) throw error;
-      throw new InternalServerErrorException(
-        'Failed to retrieve user projects',
-      );
+      throw new InternalServerErrorException('Failed to retrieve user projects');
     }
   }
 

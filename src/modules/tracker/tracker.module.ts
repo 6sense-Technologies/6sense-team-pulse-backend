@@ -12,10 +12,7 @@ import { ApplicationService } from './application.service';
 import { TimelogController } from './timelog.controller';
 import { WorksheetService } from './worksheet.service';
 import { Worksheet, WorksheetSchema } from './entities/worksheet.schema';
-import {
-  WorksheetActivity,
-  WorksheetActivitySchema,
-} from './entities/worksheetActivity.schema';
+import { WorksheetActivity, WorksheetActivitySchema } from './entities/worksheetActivity.schema';
 
 @Module({
   imports: [
@@ -29,12 +26,7 @@ import {
     OrganizationModule, // Assuming you have an organization module to import
   ],
   controllers: [TrackerController, TimelogController],
-  providers: [
-    ActivityService,
-    ApplicationService,
-    WorksheetService,
-    ActivityLogsProcessor,
-  ],
+  providers: [ActivityService, ApplicationService, WorksheetService, ActivityLogsProcessor],
   exports: [ActivityService, WorksheetService],
 })
 export class TrackerModule {}

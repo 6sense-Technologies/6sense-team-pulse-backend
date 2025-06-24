@@ -1,9 +1,4 @@
-import {
-  Processor,
-  OnWorkerEvent,
-  OnQueueEvent,
-  WorkerHost,
-} from '@nestjs/bullmq';
+import { Processor, OnWorkerEvent, OnQueueEvent, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { GithubService } from '../github/github.service';
@@ -18,9 +13,7 @@ export class GitConsumer extends WorkerHost {
 
   @OnWorkerEvent('active')
   onActive(job: Job) {
-    this.logger.log(
-      `Processing job ${job.id} of type ${job.name} with data ${job.data}...`,
-    );
+    this.logger.log(`Processing job ${job.id} of type ${job.name} with data ${job.data}...`);
   }
 
   @OnQueueEvent('active')

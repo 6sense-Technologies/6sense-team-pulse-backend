@@ -1,10 +1,4 @@
-import {
-  ArrayMinSize,
-  IsArray,
-  IsOptional,
-  IsString,
-  Length,
-} from 'class-validator';
+import { ArrayMinSize, IsArray, IsOptional, IsString, Length } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()

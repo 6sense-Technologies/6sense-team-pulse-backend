@@ -1,18 +1,9 @@
 import mongoose, { Types } from 'mongoose';
 
-export const monthlyStat = (
-  userId: string,
-  startDate: string,
-  endDate: string = new Date().toISOString(),
-) => {
+export const monthlyStat = (userId: string, startDate: string, endDate: string = new Date().toISOString()) => {
   // console.log(`StartDate: ${startDate}`);
   // console.log(`EndDate: ${endDate}`);
-  const doneCondition = [
-    'Done',
-    'In Review',
-    'USER STORIES (Verified In Beta)',
-    'USER STORIES (Verified In Test)',
-  ];
+  const doneCondition = ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'];
   const monthlyStatAgg = [
     {
       $match: {

@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsIn,
-  IsDateString,
-  IsOptional,
-  ValidateIf,
-} from 'class-validator';
+import { IsString, IsIn, IsDateString, IsOptional, ValidateIf } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 const ALLOWED_MANUAL_TYPES = [

@@ -12,8 +12,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-const ISO8601_DATETIME_REGEX =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const ISO8601_DATETIME_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 export class ActivityLogEntryDto {
   @ApiProperty({ example: 'Safari' })
@@ -31,8 +30,7 @@ export class ActivityLogEntryDto {
   pid: number;
 
   @ApiProperty({
-    example:
-      'https://www.applegadgetsbd.com/product/macbook-air-m1-8256gb-13-inch-gold',
+    example: 'https://www.applegadgetsbd.com/product/macbook-air-m1-8256gb-13-inch-gold',
     required: false,
   })
   @IsUrl()
@@ -48,8 +46,7 @@ export class ActivityLogEntryDto {
   window_title?: string;
 
   @ApiProperty({
-    example:
-      'https://www.google.com/s2/favicons?sz=64&domain=www.applegadgetsbd.com',
+    example: 'https://www.google.com/s2/favicons?sz=64&domain=www.applegadgetsbd.com',
     required: false,
   })
   @IsUrl()

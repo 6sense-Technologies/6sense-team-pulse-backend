@@ -1,9 +1,4 @@
-export const overView = (
-  date: string,
-  page: Number,
-  limit: Number,
-  filterIds: any[],
-) => {
+export const overView = (date: string, page: Number, limit: Number, filterIds: any[]) => {
   console.log('FILTER IDS: ', filterIds);
   const startDate = new Date(date.split('T')[0]).toISOString();
   const currentDate = new Date().toISOString();
@@ -37,12 +32,7 @@ export const overView = (
                   {
                     $in: [
                       '$issueStatus',
-                      [
-                        'Done',
-                        'In Review',
-                        'USER STORIES (Verified In Beta)',
-                        'USER STORIES (Verified In Test)',
-                      ],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
                     ],
                   },
                 ],
@@ -62,12 +52,7 @@ export const overView = (
                   {
                     $in: [
                       '$issueStatus',
-                      [
-                        'Done',
-                        'In Review',
-                        'USER STORIES (Verified In Beta)',
-                        'USER STORIES (Verified In Test)',
-                      ],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
                     ],
                   },
                 ],
@@ -88,12 +73,7 @@ export const overView = (
                     $not: {
                       $in: [
                         '$issueStatus',
-                        [
-                          'Done',
-                          'In Review',
-                          'USER STORIES (Verified In Beta)',
-                          'USER STORIES (Verified In Test)',
-                        ],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
                       ],
                     },
                   },
@@ -115,12 +95,7 @@ export const overView = (
                     $not: {
                       $in: [
                         '$issueStatus',
-                        [
-                          'Done',
-                          'In Review',
-                          'USER STORIES (Verified In Beta)',
-                          'USER STORIES (Verified In Test)',
-                        ],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
                       ],
                     },
                   },
@@ -140,12 +115,7 @@ export const overView = (
                   {
                     $in: [
                       '$issueStatus',
-                      [
-                        'Done',
-                        'In Review',
-                        'USER STORIES (Verified In Beta)',
-                        'USER STORIES (Verified In Test)',
-                      ],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
                     ],
                   },
                 ],
@@ -165,12 +135,7 @@ export const overView = (
                     $not: {
                       $in: [
                         '$issueStatus',
-                        [
-                          'Done',
-                          'In Review',
-                          'USER STORIES (Verified In Beta)',
-                          'USER STORIES (Verified In Test)',
-                        ],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
                       ],
                     },
                   },
@@ -206,18 +171,10 @@ export const overView = (
     {
       $addFields: {
         taskCompletionRate: {
-          $cond: [
-            { $eq: ['$totalTasks', 0] },
-            0,
-            { $divide: ['$totalDoneTasks', '$totalTasks'] },
-          ],
+          $cond: [{ $eq: ['$totalTasks', 0] }, 0, { $divide: ['$totalDoneTasks', '$totalTasks'] }],
         },
         storyCompletionRate: {
-          $cond: [
-            { $eq: ['$totalStories', 0] },
-            0,
-            { $divide: ['$dailyDoneStories', '$totalStories'] },
-          ],
+          $cond: [{ $eq: ['$totalStories', 0] }, 0, { $divide: ['$dailyDoneStories', '$totalStories'] }],
         },
       },
     },
@@ -237,10 +194,7 @@ export const overView = (
                     {
                       $divide: [
                         {
-                          $add: [
-                            '$taskCompletionRate',
-                            { $multiply: ['$storyCompletionRate', 2] },
-                          ],
+                          $add: ['$taskCompletionRate', { $multiply: ['$storyCompletionRate', 2] }],
                         },
                         3,
                       ],
@@ -361,10 +315,7 @@ export const overView = (
     {
       $facet: {
         total: [{ $count: 'total' }],
-        data: [
-          { $skip: (Number(page) - 1) * Number(limit) },
-          { $limit: Number(limit) },
-        ],
+        data: [{ $skip: (Number(page) - 1) * Number(limit) }, { $limit: Number(limit) }],
       },
     },
     {

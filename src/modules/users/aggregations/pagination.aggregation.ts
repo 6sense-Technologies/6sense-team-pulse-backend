@@ -3,10 +3,7 @@ export const pagination = (page: Number, limit: Number) => {
     {
       $facet: {
         total: [{ $count: 'total' }],
-        data: [
-          { $skip: (Number(page) - 1) * Number(limit) },
-          { $limit: Number(limit) },
-        ],
+        data: [{ $skip: (Number(page) - 1) * Number(limit) }, { $limit: Number(limit) }],
       },
     },
     {

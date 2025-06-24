@@ -61,9 +61,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  public async registerEmailPassword(
-    createUserEmailPasswordDTO: CreateUserEmailPasswordDTO,
-  ) {
+  public async registerEmailPassword(createUserEmailPasswordDTO: CreateUserEmailPasswordDTO) {
     const userExist = await this.userModel.findOne({
       emailAddress: createUserEmailPasswordDTO.emailAddress,
     });
@@ -73,10 +71,7 @@ export class AuthService {
         if (userExist['isInvited'] === true) {
           // console.log(userExist);
           //for handling invited users
-          const hashedPassword = await bcrypt.hash(
-            createUserEmailPasswordDTO.password,
-            10,
-          );
+          const hashedPassword = await bcrypt.hash(createUserEmailPasswordDTO.password, 10);
           if ('password' in userExist) {
             console.log(`Passowrd: ${userExist['password']}`);
             if (userExist['password'] !== undefined) {
@@ -108,10 +103,7 @@ export class AuthService {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(
-      createUserEmailPasswordDTO.password,
-      10,
-    );
+    const hashedPassword = await bcrypt.hash(createUserEmailPasswordDTO.password, 10);
 
     const createdUser = await this.userModel.create({
       displayName: createUserEmailPasswordDTO.displayName,
@@ -156,9 +148,7 @@ export class AuthService {
     return createdUser;
   }
 
-  public async loginEmailPassword(
-    loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO,
-  ) {
+  public async loginEmailPassword(loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO) {
     const user = await this.userModel.findOne({
       emailAddress: loginUserEmailPasswordDTO.emailAddress,
       isDisabled: false,
@@ -169,10 +159,7 @@ export class AuthService {
     }
 
     if (user && user.password !== null) {
-      const checkPassword = await bcrypt.compare(
-        loginUserEmailPasswordDTO.password,
-        user.password,
-      );
+      const checkPassword = await bcrypt.compare(loginUserEmailPasswordDTO.password, user.password);
 
       if (!checkPassword) {
         throw new BadRequestException('Invalid Credentials');
@@ -180,9 +167,7 @@ export class AuthService {
     }
 
     // Find the last organization accessed by the user
-    const lastOrg = await this.organizationService.lastOrganization(
-      user._id as Types.ObjectId,
-    );
+    const lastOrg = await this.organizationService.lastOrganization(user._id as Types.ObjectId);
 
     const { accessToken, refreshToken } = this.generateTokens(
       user.id,
@@ -253,11 +238,7 @@ export class AuthService {
     }
     const decoded = this.jwtService.decode(refreshToken);
     console.log(decoded);
-    const tokens = this.generateTokens(
-      decoded.userId,
-      decoded.email,
-      decoded.organizationId,
-    );
+    const tokens = this.generateTokens(decoded.userId, decoded.email, decoded.organizationId);
     return tokens;
   }
 
@@ -279,8 +260,7 @@ export class AuthService {
 
     // Check if the time difference is within the allowed 2 minutes (120 seconds)
     const currentTime = new Date();
-    const timeDifference =
-      (currentTime.getTime() - tokenEntry.updatedAt.getTime()) / 1000;
+    const timeDifference = (currentTime.getTime() - tokenEntry.updatedAt.getTime()) / 1000;
     // console.log(timeDifference);
     if (timeDifference > 120) {
       throw new BadRequestException('Token Expired');
@@ -337,9 +317,7 @@ export class AuthService {
     await user.save();
     return user;
   }
-  public async registerInvitedUser(
-    loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO,
-  ) {
+  public async registerInvitedUser(loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO) {
     const user = await this.userModel.findOne({
       emailAddress: loginUserEmailPasswordDTO.emailAddress,
     });
