@@ -15,8 +15,8 @@ export class LinearController {
   }
 
   @Get('callback')
-  async callback(@Query('code') code: string) {
-    await this.linearService.callback(code);
+  async callback(@Query('code') code: string, @Query('tool-id') toolId: string) {
+    await this.linearService.handleCallback(code, toolId);
     // Handle the callback logic here, e.g., exchange code for access token
     // This is a placeholder; implement your logic to handle the callback
     // return { message: 'Callback received', code };
