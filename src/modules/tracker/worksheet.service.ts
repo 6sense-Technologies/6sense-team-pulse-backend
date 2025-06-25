@@ -14,6 +14,7 @@ import { WorksheetActivity } from './entities/worksheetActivity.schema';
 import { ActivityService } from './activity.service';
 import { AssignActivitiesDto } from './dto/assign-activities.dto';
 import { calculateTimeSpent } from './time.utils';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class WorksheetService {
@@ -1016,6 +1017,7 @@ export class WorksheetService {
   async getProjectWorksheetAnalytics(
     projectId: string,
     organizationId: string,
+    timezoneRegion: string,
   ): Promise<{
     today: ReturnType<typeof calculateTimeSpent> & {
       percentChangeFromYesterday: number;
@@ -1029,38 +1031,42 @@ export class WorksheetService {
     allTime: ReturnType<typeof calculateTimeSpent>;
   }> {
     try {
-      const now = new Date();
+      const now = DateTime.now().setZone(timezoneRegion);
 
-      // Time boundaries
-      const todayStart = new Date(now);
-      todayStart.setHours(0, 0, 0, 0);
+      const todayStart = now.startOf('day');
+      const yesterdayStart = todayStart.minus({ days: 1 });
 
-      const yesterdayStart = new Date(todayStart);
-      yesterdayStart.setDate(todayStart.getDate() - 1);
+      const weekStart = now.startOf('week'); // Adjust to Monday if needed: `.startOf('week').plus({ days: 1 })`
+      const lastWeekStart = weekStart.minus({ weeks: 1 });
 
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay()); // Sunday
+      const monthStart = now.startOf('month');
+      const lastMonthStart = monthStart.minus({ months: 1 });
+      const lastMonthEnd = monthStart; // end of last month == start of current month
 
-      const lastWeekStart = new Date(weekStart);
-      lastWeekStart.setDate(weekStart.getDate() - 7);
-
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(monthStart);
+      this.logger.log(`
+        now: ${now.toISODate()},
+        todayStart: ${todayStart.toISODate()}, 
+        yesterdayStart: ${yesterdayStart.toISODate()}, 
+        weekStart: ${weekStart.toISODate()}, 
+        lastWeekStart: ${lastWeekStart.toISODate()}, 
+        monthStart: ${monthStart.toISODate()}, 
+        lastMonthStart: ${lastMonthStart.toISODate()}, 
+        lastMonthEnd: ${lastMonthEnd.toISODate()}
+      `);
 
       const getActivityDurations = async (
-        start: Date,
-        end: Date,
+        start: DateTime,
+        end: DateTime,
       ): Promise<Array<{ startTime: Date; endTime: Date }>> => {
-        const startDateStr = start.toISOString().split('T')[0];
-        const endDateStr = end.toISOString().split('T')[0];
+        const startDateStr = start.toISODate();
+        const endDateStr = end.toISODate();
 
         return await this.worksheetModel.aggregate([
           {
             $match: {
               organization: new Types.ObjectId(organizationId),
               project: new Types.ObjectId(projectId),
-              date: { $gt: startDateStr, $lte: endDateStr },
+              date: { $gte: startDateStr, $lte: endDateStr },
             },
           },
           {
@@ -1112,7 +1118,7 @@ export class WorksheetService {
         getActivityDurations(lastWeekStart, weekStart),
         getActivityDurations(monthStart, now),
         getActivityDurations(lastMonthStart, lastMonthEnd),
-        getActivityDurations(new Date(0), now),
+        getActivityDurations(DateTime.fromMillis(0), now),
       ]);
 
       const sumDurations = (activities: { startTime: Date; endTime: Date }[]) => {
