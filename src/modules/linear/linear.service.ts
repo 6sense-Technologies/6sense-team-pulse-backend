@@ -3,6 +3,7 @@ import {
   HttpException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateLinearDto } from './dto/create-linear.dto';
@@ -35,7 +36,11 @@ export class LinearService {
         throw new BadRequestException('Authorization code is required');
       }
       if (!toolId || toolId.trim() === '') {
-        throw new BadRequestException('Project ID is required');
+        throw new BadRequestException('Tool ID is required');
+      }
+      const tool = await this.toolService.getToolById(toolId);
+      if (!tool) {
+        throw new NotFoundException(`Tool with ID ${toolId} not found`);
       }
 
       const clientId = this.configService.getOrThrow<string>('LINEAR_CLIENT_ID');
