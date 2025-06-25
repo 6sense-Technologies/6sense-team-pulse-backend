@@ -22,6 +22,8 @@ import { Auth } from '../auth/decorators/auth.decorator';
 import { WorksheetService } from '../tracker/worksheet.service';
 import { WorksheetListOfProjectQueryDto } from './dto/worksheet-list-of-project.query.dto';
 import { isValidObjectId } from 'mongoose';
+import { RequestMetadata } from 'src/common/request-metadata/request-metadata.decorator';
+import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
 
 @Controller('projects')
 export class ProjectsController {
@@ -98,14 +100,18 @@ export class ProjectsController {
   @ApiBearerAuth()
   @Auth(['admin']) // You can add role-based check here if needed
   @ApiQuery({ name: 'projectId', type: String, required: true })
-  async getProjectWorksheetAnalytics(@Req() req: any, @Query('project-id') projectId: string): Promise<any> {
+  async getProjectWorksheetAnalytics(
+    @RequestMetadata() requestMetadata: RequestMetadataDto,
+    @Req() req: any, 
+    @Query('project-id') projectId: string
+  ): Promise<any> {
     if (!projectId || !projectId.trim() || !isValidObjectId(projectId)) {
       throw new BadRequestException('Invalid/Missing project ID');
     }
 
     const organizationId = req.user.organizationId;
 
-    return this.worksheetService.getProjectWorksheetAnalytics(projectId, organizationId);
+    return this.worksheetService.getProjectWorksheetAnalytics(projectId, organizationId, requestMetadata.timezoneRegion);
   }
 
   @Auth(['admin'])
