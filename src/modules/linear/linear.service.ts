@@ -19,7 +19,25 @@ export class LinearService {
     private readonly toolService: ToolService, // Assuming you have a ToolService to handle tool-related operations
   ) {}
 
-  async connect() {
+  async linearToolValidation(toolId: string) {
+    if (!toolId || toolId.trim() === '') {
+      throw new BadRequestException('Tool ID is required');
+    }
+    const tool = await this.toolService.getToolById(toolId);
+    if (!tool) {
+      throw new NotFoundException(`Tool with ID not found`);
+    }
+    if (tool.toolName.toLowerCase() !== 'linear') {
+      throw new BadRequestException('Tool is not Linear');
+    }
+    if (tool.accessToken) {
+      throw new BadRequestException('Tool is already connected');
+    }
+    return tool;
+  }
+
+  async connect(toolId: string) {
+    await this.linearToolValidation(toolId);
     // // Redirect user to Linear OAuth authorization URL
     const clientId = this.configService.getOrThrow<string>('LINEAR_CLIENT_ID');
     const redirectUri = this.configService.getOrThrow<string>('LINEAR_REDIRECT_URI');
@@ -35,13 +53,8 @@ export class LinearService {
       if (!code || code.trim() === '') {
         throw new BadRequestException('Authorization code is required');
       }
-      if (!toolId || toolId.trim() === '') {
-        throw new BadRequestException('Tool ID is required');
-      }
-      const tool = await this.toolService.getToolById(toolId);
-      if (!tool) {
-        throw new NotFoundException(`Tool with ID ${toolId} not found`);
-      }
+      
+      await this.linearToolValidation(toolId);
 
       const clientId = this.configService.getOrThrow<string>('LINEAR_CLIENT_ID');
       const clientSecret = this.configService.getOrThrow<string>('LINEAR_CLIENT_SECRET');
@@ -80,8 +93,6 @@ export class LinearService {
       }
 
       await this.toolService.updateToolWithAccessToken(toolId, accessToken);
-
-      console.log('OAuth callback data:', data);
       return data;
     } catch (error) {
       if (error instanceof HttpException) {
