@@ -850,8 +850,13 @@ export class WorksheetService {
 
       if (startDate || endDate) {
         matchStage.date = {};
-        if (startDate) matchStage.date.$gte = new Date(startDate);
-        if (endDate) matchStage.date.$lte = new Date(endDate);
+        if (startDate) matchStage.date.$gte = startDate;
+        if (endDate) {
+          // Set endDate to next day 00:00, so $lt is exclusive of the next day
+          const end = new Date(endDate);
+          end.setDate(end.getDate() + 1);
+          matchStage.date.$lt = end.toISOString().split('T')[0]; // format to YYYY-MM-DD
+        }
       }
 
       if (search) {
