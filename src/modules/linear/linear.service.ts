@@ -10,13 +10,19 @@ import { CreateLinearDto } from './dto/create-linear.dto';
 import { UpdateLinearDto } from './dto/update-linear.dto';
 import { ConfigService } from '@nestjs/config';
 import { ToolService } from '../tool/tool.service';
+import { LinearClient } from '@linear/sdk';
+import { DateTime } from 'luxon';
+import { Model, Types } from 'mongoose';
+import { IssueEntry } from '../../schemas/IssueEntry.schema'; 
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class LinearService {
   constructor(
-    // Inject any necessary services, e.g., ConfigService for environment variables
     private readonly configService: ConfigService,
-    private readonly toolService: ToolService, // Assuming you have a ToolService to handle tool-related operations
+    private readonly toolService: ToolService, 
+    @InjectModel(IssueEntry.name) 
+    private readonly issueEntryModel: Model<IssueEntry>, 
   ) {}
 
   async linearToolValidation(toolId: string) {
@@ -53,7 +59,7 @@ export class LinearService {
       if (!code || code.trim() === '') {
         throw new BadRequestException('Authorization code is required');
       }
-      
+
       await this.linearToolValidation(toolId);
 
       const clientId = this.configService.getOrThrow<string>('LINEAR_CLIENT_ID');
@@ -104,6 +110,144 @@ export class LinearService {
       throw new InternalServerErrorException('An unexpected error occurred during OAuth callback.');
     }
   }
+
+  async getLinearTools() {
+    const tools = await this.toolService.getLinearToolsWithUsers();
+    if (!tools || tools.length === 0) {
+      throw new NotFoundException('No Connected Linear tools found');
+    }
+    return tools;
+  }
+
+  async fetchIssuesFromLinear() {
+
+
+
+    
+    // const tools = await this.getLinearTools();
+    // tools.forEach((tool) => {
+    //   const linearClient = new LinearClient({
+    //     accessToken: tool.accessToken,
+    //   });
+    //   const graphQLClient = linearClient.client;
+    //   tool['users'].forEach((user) => {
+    //     const issues = await graphQLClient.rawRequest(`...`,
+    //       { id: 'cycle-id' },
+    //     );
+    //   });
+    // });
+  }
+
+  async fetchAndSaveIssuesFromLinear() {
+
+    const LINEAR_ISSUE_QUERY = `
+      query GetTasksByDate($dueDate: TimelessDateOrDuration, $email: String) {
+        organization {
+          urlKey
+        }
+        issues(
+          filter: {
+            dueDate: { eq: $dueDate }
+            assignee: { email: { eq: $email } }
+          }
+        ) {
+          nodes {
+            id
+            title
+            dueDate
+            url
+            identifier
+            state {
+              type
+            }
+            assignee {
+              id
+              name
+              timezone
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    `;
+
+    const tools = await this.toolService.getLinearToolsWithUsers();
+    const today = new Date().toISOString().split('T')[0];
+    const allIssues = [];
+
+    for (const tool of tools) {
+      const linearClient = new LinearClient({
+        accessToken: tool.accessToken,
+      });
+
+      for (const user of tool.users) {
+        const email = user.emailAddress;
+        try {
+          const res = await linearClient.client.rawRequest(LINEAR_ISSUE_QUERY, {
+            dueDate: today,
+            email,
+          });
+
+          const issues = res.data['issues'].nodes || [];
+          if (!issues || issues.length === 0) {
+            console.warn(`No issues found for ${email} on ${today}`);
+            continue;
+          }
+          console.log(`Found ${issues.length} issues for ${email} on ${today}`);
+          for (const issue of issues) {
+            const createdDate = issue.createdAt;
+            const dueDate = issue.dueDate;
+            const userTimezone = issue.assignee.timezone || 'UTC'; // Default to UTC if no timezone is set
+            const isPlanned = this.checkPlanned(createdDate, dueDate, userTimezone);
+
+            await this.issueEntryModel.findOneAndUpdate(
+              {
+                issueId: issue.id,
+                user: new Types.ObjectId(user._id as string),
+              },
+              {
+                serialNumber: 0,
+                issueId: issue.id,
+                issueType: 'Task',
+                issueStatus: issue.state?.type,
+                issueSummary: issue.title,
+                username: issue.assignee.name,
+                planned: isPlanned,
+                link: '',
+                accountId: issue.assignee?.id,
+                projectUrl: `https://linear.app/${res.data['organization'].urlKey}`,
+                issueIdUrl: issue.url,
+                issueLinkUrl: '',
+                user: new Types.ObjectId(user._id as string),
+                date: dueDate,
+                comment: '',
+              },
+              {
+                upsert: true,
+                new: true,
+              },
+            );
+          }
+
+          allIssues.push(...issues);
+        } catch (error) {
+          console.error(`❌ Failed to fetch Linear issues for ${email}:`, error.response?.errors || error.message);
+        }
+      }
+    }
+
+    // console.log(`✅ Fetched and saved ${allIssues.length} Linear issues`);
+    return { message: `✅ Fetched and saved ${allIssues.length} Linear issues` };
+  }
+
+  private checkPlanned(createdAt: string, dueDate: string, userTimezone: string): boolean {
+    const createdDay = createdAt.split('T')[0];
+    const dueDay = dueDate;
+    const createdLocalTime = DateTime.fromISO(createdAt).setZone(userTimezone).toISOTime();
+    return createdDay <= dueDay || createdLocalTime < '11:00:00';
+  }
+
 
   create(createLinearDto: CreateLinearDto) {
     return 'This action adds a new linear';
