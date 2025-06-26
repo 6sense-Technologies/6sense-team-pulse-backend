@@ -267,7 +267,7 @@ export class LinearService {
     const createdDay = createdAt.split('T')[0];
     const dueDay = dueDate;
     const createdLocalTime = DateTime.fromISO(createdAt).setZone(userTimezone).toISOTime();
-    return createdDay <= dueDay || createdLocalTime < '11:00:00';
+    return createdDay <= dueDay && createdLocalTime < '11:00:00';
   }
 
   create(createLinearDto: CreateLinearDto) {
