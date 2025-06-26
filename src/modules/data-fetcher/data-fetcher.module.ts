@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Tool, ToolSchema } from '../../schemas/Tool.schema';
 import { IssueEntry, IssueEntrySchema } from '../../schemas/IssueEntry.schema';
 import { Users, UsersSchema } from '../../schemas/users.schema';
+import { LinearModule } from '../linear/linear.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { Users, UsersSchema } from '../../schemas/users.schema';
       timeout: 5000,
       maxRedirects: 5,
     }),
+    LinearModule,
   ],
   providers: [DataFetcherService],
   controllers: [DataFetcherController],

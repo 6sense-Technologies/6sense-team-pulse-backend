@@ -10,6 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { JiraService } from '../jira/jira.service';
 import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { Users } from '../../schemas/users.schema';
+import { LinearService } from '../linear/linear.service';
 // import * as moment from 'moment';
 @Injectable()
 export class DataFetcherService {
@@ -22,6 +23,7 @@ export class DataFetcherService {
     private readonly issueEntryModel: Model<IssueEntry>,
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
+    private readonly linearService: LinearService,
   ) {}
   private getTime(dateTime) {
     // Parse the input dateTime string into a Date object
@@ -508,9 +510,12 @@ export class DataFetcherService {
     }
 
     const trelloStatus = await this.saveTrelloIssueToEntry(JSON.stringify(allDataTrello));
+    
+    const linearStatus = await this.linearService.fetchAndSaveIssuesFromLinear();
     return {
       jiraStatus: jiraStatus,
       trelloStatus: trelloStatus,
+      linearStatus: linearStatus,
     };
   }
 }
