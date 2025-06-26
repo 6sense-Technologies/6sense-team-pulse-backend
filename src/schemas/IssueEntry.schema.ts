@@ -42,6 +42,13 @@ export class IssueEntry extends Document {
   @Prop({ required: false, default: '' })
   issueLinkUrl: string;
 
+  @Prop({
+    type: [String],
+    required: false,
+    default: [],
+  })
+  linkedIssues: string[];
+
   @Prop({ type: Types.ObjectId, required: false })
   user: Types.ObjectId;
 

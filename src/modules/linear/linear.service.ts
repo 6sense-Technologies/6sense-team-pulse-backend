@@ -13,16 +13,16 @@ import { ToolService } from '../tool/tool.service';
 import { LinearClient } from '@linear/sdk';
 import { DateTime } from 'luxon';
 import { Model, Types } from 'mongoose';
-import { IssueEntry } from '../../schemas/IssueEntry.schema'; 
+import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class LinearService {
   constructor(
     private readonly configService: ConfigService,
-    private readonly toolService: ToolService, 
-    @InjectModel(IssueEntry.name) 
-    private readonly issueEntryModel: Model<IssueEntry>, 
+    private readonly toolService: ToolService,
+    @InjectModel(IssueEntry.name)
+    private readonly issueEntryModel: Model<IssueEntry>,
   ) {}
 
   async linearToolValidation(toolId: string) {
@@ -120,10 +120,6 @@ export class LinearService {
   }
 
   async fetchIssuesFromLinear() {
-
-
-
-    
     // const tools = await this.getLinearTools();
     // tools.forEach((tool) => {
     //   const linearClient = new LinearClient({
@@ -167,6 +163,25 @@ export class LinearService {
             }
             createdAt
             updatedAt
+
+            parent {
+              identifier
+            }
+            
+            relations{
+              nodes{
+                issue{
+                  identifier
+                }
+              }
+            }
+            
+            children{
+              nodes{
+                identifier
+              }
+            }
+
           }
         }
       }
@@ -200,6 +215,12 @@ export class LinearService {
             const dueDate = issue.dueDate;
             const userTimezone = issue.assignee.timezone || 'UTC'; // Default to UTC if no timezone is set
             const isPlanned = this.checkPlanned(createdDate, dueDate, userTimezone);
+            const relatedIssues = issue.relations.nodes.map((relation) => relation.issue.identifier);
+            const childrenIssues = issue.children.nodes.map((child) => child.identifier);
+            const parentIssue = issue.parent ? [issue.parent.identifier] : [];
+            const linkedIssues = [...relatedIssues, ...childrenIssues, ...parentIssue];
+
+
 
             await this.issueEntryModel.findOneAndUpdate(
               {
@@ -221,6 +242,7 @@ export class LinearService {
                 issueLinkUrl: '',
                 user: new Types.ObjectId(user._id as string),
                 date: dueDate,
+                linkedIssues: linkedIssues,
                 comment: '',
               },
               {
@@ -247,7 +269,6 @@ export class LinearService {
     const createdLocalTime = DateTime.fromISO(createdAt).setZone(userTimezone).toISOTime();
     return createdDay <= dueDay || createdLocalTime < '11:00:00';
   }
-
 
   create(createLinearDto: CreateLinearDto) {
     return 'This action adds a new linear';

@@ -6,12 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { IssueEntrySchema } from 'src/schemas/IssueEntry.schema';
 
 @Module({
-  imports: [
-    ToolModule,
-    MongooseModule.forFeature([
-      { name: 'IssueEntry', schema: IssueEntrySchema },
-    ]),
-  ],
+  imports: [ToolModule, MongooseModule.forFeature([{ name: 'IssueEntry', schema: IssueEntrySchema }])],
   controllers: [LinearController],
   providers: [LinearService],
 })
