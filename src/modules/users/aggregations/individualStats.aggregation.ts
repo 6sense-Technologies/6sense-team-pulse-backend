@@ -48,7 +48,7 @@ export const individualStats = (userId: string, page: Number, limit: Number) => 
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                     ],
                   },
                   {
@@ -72,7 +72,7 @@ export const individualStats = (userId: string, page: Number, limit: Number) => 
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                     ],
                   },
                   {
@@ -97,7 +97,7 @@ export const individualStats = (userId: string, page: Number, limit: Number) => 
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                       ],
                     },
                   },
@@ -123,7 +123,7 @@ export const individualStats = (userId: string, page: Number, limit: Number) => 
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                       ],
                     },
                   },
@@ -148,7 +148,7 @@ export const individualStats = (userId: string, page: Number, limit: Number) => 
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                     ],
                   },
                   //   {
@@ -173,7 +173,7 @@ export const individualStats = (userId: string, page: Number, limit: Number) => 
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                       ],
                     },
                   },
@@ -198,7 +198,7 @@ export const individualStats = (userId: string, page: Number, limit: Number) => 
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                     ],
                   },
                   //   {
@@ -223,7 +223,7 @@ export const individualStats = (userId: string, page: Number, limit: Number) => 
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                       ],
                     },
                   },
