@@ -9,5 +9,6 @@ import { IssueEntrySchema } from 'src/schemas/IssueEntry.schema';
   imports: [ToolModule, MongooseModule.forFeature([{ name: 'IssueEntry', schema: IssueEntrySchema }])],
   controllers: [LinearController],
   providers: [LinearService],
+  exports: [LinearService],
 })
 export class LinearModule {}
