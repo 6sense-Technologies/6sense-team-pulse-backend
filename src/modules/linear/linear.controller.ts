@@ -9,10 +9,7 @@ export class LinearController {
   constructor(private readonly linearService: LinearService) {}
 
   @Get('connect')
-  async connect(
-    @Query('tool-id') toolId: string,
-    @Res() res: Response
-  ) {
+  async connect(@Query('tool-id') toolId: string, @Res() res: Response) {
     const redirectUri = await this.linearService.connect(toolId);
     res.redirect(redirectUri);
   }
@@ -20,9 +17,12 @@ export class LinearController {
   @Get('callback')
   async callback(@Query('code') code: string, @Query('tool-id') toolId: string) {
     await this.linearService.handleCallback(code, toolId);
-    // Handle the callback logic here, e.g., exchange code for access token
-    // This is a placeholder; implement your logic to handle the callback
-    // return { message: 'Callback received', code };
+    return { message: 'Tool connected successfully' };
+  }
+
+  @Get('fetch-today-issues')
+  async fetchTodayIssues() {
+    return this.linearService.fetchAndSaveIssuesFromLinear();
   }
 
   // @Get('callback')

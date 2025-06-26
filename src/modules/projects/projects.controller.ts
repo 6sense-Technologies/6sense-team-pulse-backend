@@ -102,8 +102,8 @@ export class ProjectsController {
   @ApiQuery({ name: 'projectId', type: String, required: true })
   async getProjectWorksheetAnalytics(
     @RequestMetadata() requestMetadata: RequestMetadataDto,
-    @Req() req: any, 
-    @Query('project-id') projectId: string
+    @Req() req: any,
+    @Query('project-id') projectId: string,
   ): Promise<any> {
     if (!projectId || !projectId.trim() || !isValidObjectId(projectId)) {
       throw new BadRequestException('Invalid/Missing project ID');
@@ -111,7 +111,11 @@ export class ProjectsController {
 
     const organizationId = req.user.organizationId;
 
-    return this.worksheetService.getProjectWorksheetAnalytics(projectId, organizationId, requestMetadata.timezoneRegion);
+    return this.worksheetService.getProjectWorksheetAnalytics(
+      projectId,
+      organizationId,
+      requestMetadata.timezoneRegion,
+    );
   }
 
   @Auth(['admin'])

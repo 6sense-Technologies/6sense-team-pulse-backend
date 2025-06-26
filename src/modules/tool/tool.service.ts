@@ -39,4 +39,69 @@ export class ToolService {
     tool.accessToken = accessToken;
     return await tool.save();
   }
+
+  async getLinearToolsWithUsers() {
+    return await this.toolModel
+      .aggregate([
+        {
+          $match: {
+            toolName: 'Linear',
+            accessToken: {
+              $exists: true,
+              $regex: /.*\S.*/, // matches strings containing at least one non-whitespace character
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: 'projects',
+            localField: '_id',
+            foreignField: 'tools',
+            as: 'projects',
+          },
+        },
+        {
+          $unwind: {
+            path: '$projects',
+          },
+        },
+        {
+          $addFields: {
+            projects: '$projects._id',
+          },
+        },
+        {
+          $lookup: {
+            from: 'organizationprojectusers',
+            localField: 'projects',
+            foreignField: 'project',
+            as: 'opu',
+          },
+        },
+        {
+          $addFields: {
+            users: '$opu.user',
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'users',
+            foreignField: '_id',
+            as: 'users',
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            toolName: 1,
+            projects: 1,
+            accessToken: 1,
+            'users._id': 1,
+            'users.emailAddress': 1,
+          },
+        },
+      ])
+      .exec();
+  }
 }
