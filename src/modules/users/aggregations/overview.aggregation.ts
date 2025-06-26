@@ -32,7 +32,7 @@ export const overView = (date: string, page: Number, limit: Number, filterIds: a
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                     ],
                   },
                 ],
@@ -52,7 +52,7 @@ export const overView = (date: string, page: Number, limit: Number, filterIds: a
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                     ],
                   },
                 ],
@@ -73,7 +73,7 @@ export const overView = (date: string, page: Number, limit: Number, filterIds: a
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                       ],
                     },
                   },
@@ -95,7 +95,7 @@ export const overView = (date: string, page: Number, limit: Number, filterIds: a
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                       ],
                     },
                   },
@@ -115,7 +115,7 @@ export const overView = (date: string, page: Number, limit: Number, filterIds: a
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                     ],
                   },
                 ],
@@ -135,7 +135,7 @@ export const overView = (date: string, page: Number, limit: Number, filterIds: a
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)'],
+                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
                       ],
                     },
                   },
