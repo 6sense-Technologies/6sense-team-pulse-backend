@@ -134,7 +134,7 @@ export class LinearService {
     // });
   }
 
-  async fetchAndSaveIssuesFromLinear() {
+  async fetchAndSaveIssuesFromLinear(date: string = new Date().toISOString().split('T')[0]) {
 
     const LINEAR_ISSUE_QUERY = `
       query GetTasksByDate($dueDate: TimelessDateOrDuration, $email: String) {
@@ -151,6 +151,7 @@ export class LinearService {
             id
             title
             dueDate
+            completedAt
             url
             identifier
             state {
@@ -188,7 +189,6 @@ export class LinearService {
     `;
 
     const tools = await this.toolService.getLinearToolsWithUsers();
-    const today = new Date().toISOString().split('T')[0];
     const allIssues = [];
 
     for (const tool of tools) {
@@ -200,16 +200,16 @@ export class LinearService {
         const email = user.emailAddress;
         try {
           const res = await linearClient.client.rawRequest(LINEAR_ISSUE_QUERY, {
-            dueDate: today,
+            dueDate: date,
             email,
           });
 
           const issues = res.data['issues'].nodes || [];
           if (!issues || issues.length === 0) {
-            console.warn(`No issues found for ${email} on ${today}`);
+            console.warn(`No issues found for ${email} on ${date}`);
             continue;
           }
-          console.log(`Found ${issues.length} issues for ${email} on ${today}`);
+          console.log(`Found ${issues.length} issues for ${email} on ${date}`);
           for (const issue of issues) {
             const createdDate = issue.createdAt;
             const dueDate = issue.dueDate;
@@ -219,8 +219,19 @@ export class LinearService {
             const childrenIssues = issue.children.nodes.map((child) => child.identifier);
             const parentIssue = issue.parent ? [issue.parent.identifier] : [];
             const linkedIssues = [...relatedIssues, ...childrenIssues, ...parentIssue];
-
-
+            let issueStatus = issue.state?.type;
+            if (issueStatus === 'completed') {
+              if (issue.completedAt && issue.dueDate) {
+              // Parse both as DateTime, compare only the date part
+              const completedAtDate = DateTime.fromISO(issue.completedAt).toISODate();
+              const dueDateDate = DateTime.fromISO(issue.dueDate).toISODate();
+              if (completedAtDate <= dueDateDate) {
+                issueStatus = 'completed';
+              } else {
+                issueStatus = 'lateCompleted';
+              }
+              }
+            }
 
             await this.issueEntryModel.findOneAndUpdate(
               {
