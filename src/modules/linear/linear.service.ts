@@ -242,7 +242,7 @@ export class LinearService {
                 serialNumber: 0,
                 issueId: issue.id,
                 issueType: 'Task',
-                issueStatus: issue.state?.type,
+                issueStatus: issueStatus,
                 issueSummary: issue.title,
                 username: issue.assignee.name,
                 planned: isPlanned,
