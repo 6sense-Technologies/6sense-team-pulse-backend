@@ -511,7 +511,24 @@ export class DataFetcherService {
 
     const trelloStatus = await this.saveTrelloIssueToEntry(JSON.stringify(allDataTrello));
     
-    const linearStatus = await this.linearService.fetchAndSaveIssuesFromLinear();
+    let linearStatus = {};
+    if (verdict === true) {
+      console.log(`Fetching data from linear for last 7 days...`);
+      // Parse and fetch for each day in the last 7 days
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      const endDate = new Date();
+      linearStatus = {};
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        const status = await this.linearService.fetchAndSaveIssuesFromLinear(dateStr);
+        linearStatus[dateStr] = status;
+      }
+    }
+    else {
+      console.log(`Fetching data from linear for today...`);
+      linearStatus = await this.linearService.fetchAndSaveIssuesFromLinear();
+    }
     return {
       jiraStatus: jiraStatus,
       trelloStatus: trelloStatus,
