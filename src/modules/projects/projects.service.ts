@@ -254,9 +254,20 @@ export class ProjectsService {
   // }
 
   /* istanbul ignore next */
-  findOne(id: string) {
-    return this.projectModel.findById(id);
+  async findOne(id: string, userId: string, organizationId: string) {
+    // Validate the project exists and the user has access to it
+    const orgProjectsUsers = await this.OrganizationProjectUser.findOne({
+      user: new Types.ObjectId(userId),
+      organization: new Types.ObjectId(organizationId),
+      project: new Types.ObjectId(id),
+    })
+    .populate('project');
+    if (!orgProjectsUsers) {
+      throw new NotFoundException('Project not found or access denied');
+    }
+    return orgProjectsUsers.project;
   }
+
   /* istanbul ignore next */
   update(id: string, updateProjectDto: UpdateProjectDto) {
     return `This action updates a #${id} project`;

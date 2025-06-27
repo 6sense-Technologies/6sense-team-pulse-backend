@@ -191,14 +191,15 @@ export class ProjectsController {
   //   );
   // }
 
-  @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
-  @UseGuards(RolesGuard)
-  @Roles(['Admin', 'Member'])
+  @Auth()
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
     console.log(id);
-    return this.projectsService.findOne(id);
+    return this.projectsService.findOne(id, req['user'].userId, req['user'].organizationId);
   }
 
   @Patch(':id')
