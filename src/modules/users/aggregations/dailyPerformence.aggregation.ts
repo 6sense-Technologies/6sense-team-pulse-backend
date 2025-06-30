@@ -25,6 +25,7 @@ export const dailyPerformenceAgg = (userId: string, dateTime: string, page: Numb
         linkedId: '$link',
         issueStatus: 1,
         issueIdUrl: 1,
+        issueCode: 1,
         issueLinkUrl: 1,
         planned: 1,
         linkedIssues: 1,
