@@ -233,6 +233,8 @@ export class LinearService {
               }
             }
 
+            const issueCode = issue.identifier || '';
+
             await this.issueEntryModel.findOneAndUpdate(
               {
                 issueId: issue.id,
@@ -250,6 +252,7 @@ export class LinearService {
                 accountId: issue.assignee?.id,
                 projectUrl: `https://linear.app/${res.data['organization'].urlKey}`,
                 issueIdUrl: issue.url,
+                issueCode: issueCode,
                 issueLinkUrl: '',
                 user: new Types.ObjectId(user._id as string),
                 date: dueDate,
