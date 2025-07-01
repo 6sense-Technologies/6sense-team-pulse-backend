@@ -40,6 +40,9 @@ export class IssueEntry extends Document {
   issueIdUrl: string;
 
   @Prop({ required: false, default: '' })
+  issueCode: string;
+
+  @Prop({ required: false, default: '' })
   issueLinkUrl: string;
 
   @Prop({

@@ -77,6 +77,54 @@ export class UserService {
     //Nothing
   }
 
+  
+  async userList(search: string, page: number, limit: number, organizationId: string): Promise<any[]> {
+    const users = await this.organizationModel.aggregate([
+      {
+        $match: {
+          _id: new Types.ObjectId(organizationId),
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'users',
+          foreignField: '_id',
+          as: 'userDetails',
+        },
+      },
+      {
+        $unwind: '$userDetails',
+      },
+      {
+        $match: {
+          $or: [
+            { 'userDetails.displayName': { $regex: search, $options: 'i' } },
+            { 'userDetails.emailAddress': { $regex: search, $options: 'i' } },
+          ],
+          'userDetails.isDisabled': false, // Ensure we only get enabled users
+        },
+      },
+      {
+        $project: {
+          _id: '$userDetails._id',
+          displayName: '$userDetails.displayName',
+          emailAddress: '$userDetails.emailAddress',
+          designation: '$userDetails.designation',
+          avatarUrls: '$userDetails.avatarUrls',
+        },
+      },
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
+    ]);
+
+    return users;
+  }
+
   /// EXPERIMENTAL MODIFICATION
   async getUserInfo(userId: string): Promise<{
     userData: any;

@@ -25,12 +25,26 @@ import { InviteUserDTO } from './dto/invite-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { Auth } from '../auth/decorators/auth.decorator';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {
     // Constructor for injecting UserService
   }
+
+  @Get('list')
+  @Auth(['Admin', 'Member'])
+  @ApiBearerAuth()
+  async userList(
+    @Query('search') search: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Req() req: Request,
+  ): Promise<any[]> {
+    return this.userService.userList(search, page, limit, req['user'].organizationId);
+  }
+
   // Experimental Modification
   @Get('user-info')
   async getUserInfo(@Query('userId') userId: string): Promise<{
