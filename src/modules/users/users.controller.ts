@@ -34,7 +34,7 @@ export class UserController {
   }
 
   @Get('list')
-  @Auth(['Admin', 'User'])
+  @Auth(['Admin', 'Member'])
   @ApiBearerAuth()
   async userList(
     @Query('search') search: string,
