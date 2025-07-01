@@ -9,9 +9,9 @@ export class LinearController {
   constructor(private readonly linearService: LinearService) {}
 
   @Get('connect')
-  async connect(@Query('tool-id') toolId: string, @Res() res: Response) {
+  async connect(@Query('tool-id') toolId: string) {
     const redirectUri = await this.linearService.connect(toolId);
-    res.redirect(redirectUri);
+    return { redirectUri };
   }
 
   @Get('callback')
