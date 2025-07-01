@@ -52,40 +52,54 @@ export class UserController {
   }
 
   // Experimental Modification
+  @Auth(['Admin', 'Member'])
+  @ApiBearerAuth()
   @Get('user-info')
-  async getUserInfo(@Query('userId') userId: string): Promise<{
+  async getUserInfo(
+    @Query('userId') userId: string, 
+    @GetUser() user: IUserWithOrganization
+  ): Promise<{
     userData: any;
     currentMonthScore: number;
     lastMonthScore: number;
   }> {
-    return this.userService.getUserInfo(userId);
+    return this.userService.getUserInfo(userId, user);
   }
+
+  @Auth(['Admin', 'Member'])
+  @ApiBearerAuth()
   @Get('individual')
   async calculateIndividualStats(
     @Query('userId') userId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @GetUser() user: IUserWithOrganization,
   ) {
-    return this.userService.calculateIndividualStats(userId, page, limit);
+    return this.userService.calculateIndividualStats(userId, user, page, limit);
   }
-  @Get('overview')
-  @UseGuards(AccessTokenGuard)
+
+  @Auth(['Admin', 'Member'])
   @ApiBearerAuth()
+  @Get('overview')
   async calculateOverview(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Req() req: Request,
+    @GetUser() user: IUserWithOrganization,
   ): Promise<any[]> {
-    return this.userService.calculateOverview(page, limit, req['user'].userId);
+    return this.userService.calculateOverview(page, limit, user);
   }
+
+  @Auth(['Admin', 'Member'])
+  @ApiBearerAuth()
   @Get('daily-performance')
   async calculateDailyPerformence(
     @Query('userId') userId: string,
     @Query('dateTime') dateTime: string,
     @Query('Page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @GetUser() user: IUserWithOrganization,
   ) {
-    return this.userService.dailyPerformence(userId, dateTime, page, limit);
+    return this.userService.dailyPerformence(userId, user, dateTime, page, limit);
   }
 
   @Post('toggle-enable')

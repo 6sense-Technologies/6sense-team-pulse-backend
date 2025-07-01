@@ -140,11 +140,13 @@ export class UserService {
   }
 
   /// EXPERIMENTAL MODIFICATION
-  async getUserInfo(userId: string): Promise<{
+  async getUserInfo(userId: string, user: IUserWithOrganization): Promise<{
     userData: any;
     currentMonthScore: number;
     lastMonthScore: number;
   }> {
+    const organizationId = user.organizationId;
+
     let today = new Date();
 
     // Current month start date
@@ -156,10 +158,10 @@ export class UserService {
     // Last month end date
     let lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0).toISOString();
 
-    const currentMonthAgg: any = monthlyStat(userId, currentMonthStart);
+    const currentMonthAgg: any = monthlyStat(userId, organizationId, currentMonthStart);
     const currentMonth = await this.issueEntryModel.aggregate(currentMonthAgg);
 
-    const lastMonthAgg: any = monthlyStat(userId, lastMonthStart, lastMonthEnd);
+    const lastMonthAgg: any = monthlyStat(userId, organizationId, lastMonthStart, lastMonthEnd);
     const lastMonth = await this.issueEntryModel.aggregate(lastMonthAgg);
     // console.log(currentMonth);
     // console.log(lastMonth);
@@ -191,8 +193,9 @@ export class UserService {
     );
     return emailSentResponse;
   }
-  async calculateIndividualStats(userId: string, page: number, limit: number) {
-    const individualStatAggregation: any = individualStats(userId, page, limit);
+  async calculateIndividualStats(userId: string, user: IUserWithOrganization, page: number, limit: number) {
+    const organizationId = user.organizationId;
+    const individualStatAggregation: any = individualStats(userId, organizationId, page, limit);
     const result = await this.issueEntryModel.aggregate(individualStatAggregation);
     let today = new Date();
     /// TODO: remove duplicate codes created seperate api for getUserInfo so current month performance and last month performance is not needed
@@ -205,10 +208,10 @@ export class UserService {
     // Last month end date
     let lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0).toISOString();
 
-    const currentMonthAgg: any = monthlyStat(userId, currentMonthStart);
+    const currentMonthAgg: any = monthlyStat(userId, organizationId, currentMonthStart);
     const currentMonth = await this.issueEntryModel.aggregate(currentMonthAgg);
 
-    const lastMonthAgg: any = monthlyStat(userId, lastMonthStart, lastMonthEnd);
+    const lastMonthAgg: any = monthlyStat(userId, organizationId, lastMonthStart, lastMonthEnd);
     const lastMonth = await this.issueEntryModel.aggregate(lastMonthAgg);
     // console.log(currentMonth);
     // console.log(lastMonth);
@@ -233,7 +236,9 @@ export class UserService {
       lastMonthScore: lastMonth[0]['averageScore'] || 0,
     };
   }
-  async calculateOverview(page: Number, limit: Number, userId: string): Promise<any[]> {
+
+  // Tanbir improve it!!!
+  async calculateOverview(page: Number, limit: Number, user: IUserWithOrganization): Promise<any[]> {
     // const count = await this.userModel.countDocuments();
     // console.log(`${page}--${limit}`);
     // Get the current date and subtract 30 days
@@ -243,7 +248,8 @@ export class UserService {
 
     const orgUserRoleModel = await this.organizationUserRoleModel
       .findOne({
-        user: new Types.ObjectId(userId),
+        user: new Types.ObjectId(user.userId),
+        organization: new Types.ObjectId(user.organizationId),
       })
       .populate('organization');
     // console.log(orgUserRoleModel);
@@ -412,8 +418,9 @@ export class UserService {
     await user.save();
     return { isEnabled: user.isDisabled };
   }
-  async dailyPerformence(userId: string, dateTime: string, page: Number, limit: Number) {
-    const aggdailyPerformence: any = dailyPerformenceAgg(userId, dateTime, page, limit);
+  async dailyPerformence(userId: string, user: IUserWithOrganization, dateTime: string, page: Number, limit: Number) {
+    const organizationId = user.organizationId;
+    const aggdailyPerformence: any = dailyPerformenceAgg(userId, organizationId, dateTime, page, limit);
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls');
