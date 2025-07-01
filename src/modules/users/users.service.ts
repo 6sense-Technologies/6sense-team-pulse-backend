@@ -13,7 +13,11 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, Types } from 'mongoose';
 import { handleError } from '../../common/helpers/error.helper';
-import { validateAccountId, validateDate, validatePagination } from '../../common/helpers/validation.helper';
+import {
+  validateAccountId,
+  validateDate,
+  validatePagination,
+} from '../../common/helpers/validation.helper';
 import { ISuccessResponse } from '../../common/interfaces/jira.interfaces';
 import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { IssueHistory } from '../../schemas/IssueHistory.schems';
@@ -37,7 +41,13 @@ import { getRoles } from './aggregations/organizationuserRole.aggregation';
 import { overView } from './aggregations/overview.aggregation';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InviteUserDTO } from './dto/invite-user.dto';
-import { IAllUsers, IUserIssuesByDate, IUserResponse, IUserWithPagination } from './interfaces/users.interfaces';
+import {
+  IAllUsers,
+  IUserIssuesByDate,
+  IUserResponse,
+  IUserWithOrganization,
+  IUserWithPagination,
+} from './interfaces/users.interfaces';
 // import { Comment } from './schemas/Comment.schema';
 
 @Injectable()
@@ -77,8 +87,12 @@ export class UserService {
     //Nothing
   }
 
-  
-  async userList(search: string, page: number, limit: number, organizationId: string): Promise<any[]> {
+  async userList(
+    search: string,
+    page: number,
+    limit: number,
+    organizationId: string,
+  ): Promise<any[]> {
     const users = await this.organizationModel.aggregate([
       {
         $match: {
@@ -170,7 +184,11 @@ export class UserService {
     };
   }
   async sendMailInvitationEmail(emailAddress: string, fromUser: string, organizationName: string) {
-    const emailSentResponse = await this.emailService.sendInvitationEmail(emailAddress, fromUser, organizationName);
+    const emailSentResponse = await this.emailService.sendInvitationEmail(
+      emailAddress,
+      fromUser,
+      organizationName,
+    );
     return emailSentResponse;
   }
   async calculateIndividualStats(userId: string, page: number, limit: number) {
@@ -235,7 +253,9 @@ export class UserService {
     const organizationId = orgUserRoleModel.organization.id.toString();
     console.log(`Organization Id : ${organizationId}`);
     const overViewAggr: any = overView(thirtyDaysAgoDate, page, limit, teamMembers);
-    const roles: any = await this.organizationUserRoleModel.aggregate(getRoles(teamMembers, organizationId));
+    const roles: any = await this.organizationUserRoleModel.aggregate(
+      getRoles(teamMembers, organizationId),
+    );
     const roleMap = roles.reduce((map, { user, roleName }) => {
       map[user.toString()] = roleName; // Convert ObjectId to string for key
       return map;
@@ -270,11 +290,15 @@ export class UserService {
       params.append('image', base64Image);
 
       try {
-        const response = await axios.post(`${this.API_URL}?expiration=600&key=${this.API_KEY}`, params.toString(), {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+        const response = await axios.post(
+          `${this.API_URL}?expiration=600&key=${this.API_KEY}`,
+          params.toString(),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
           },
-        });
+        );
         avatarUrl = response.data.data.url;
         console.log('Upload successful:', avatarUrl);
       } catch (error) {
@@ -390,7 +414,9 @@ export class UserService {
   }
   async dailyPerformence(userId: string, dateTime: string, page: Number, limit: Number) {
     const aggdailyPerformence: any = dailyPerformenceAgg(userId, dateTime, page, limit);
-    const userData = await this.userModel.findById(userId).select('displayName emailAddress designation avatarUrls');
+    const userData = await this.userModel
+      .findById(userId)
+      .select('displayName emailAddress designation avatarUrls');
     const dailyPerformance = await this.issueEntryModel.aggregate(aggdailyPerformence);
     return {
       userData,
@@ -741,7 +767,9 @@ export class UserService {
 
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      const issueHistory = await this.issueHistoryModel.findOne({ accountId: user.accountId }).exec();
+      const issueHistory = await this.issueHistoryModel
+        .findOne({ accountId: user.accountId })
+        .exec();
 
       const specificDateHistory = issueHistory.history[date] || {
         issues: [],
@@ -929,7 +957,9 @@ export class UserService {
       }
 
       const historyPath = `history.${date}`;
-      const issueHistory = await this.issueHistoryModel.findOne({ accountId, [historyPath]: { $exists: true } }).exec();
+      const issueHistory = await this.issueHistoryModel
+        .findOne({ accountId, [historyPath]: { $exists: true } })
+        .exec();
 
       if (!issueHistory || !issueHistory.history[date]) {
         throw new NotFoundException('Issue history for the specified date not found');
@@ -959,5 +989,18 @@ export class UserService {
     // const projects = Object.values(Project);
     // return { projects };
     return this.projectModel.find();
+  }
+
+  async getAllIssues(user: IUserWithOrganization, userId: string): Promise<any> {
+    const issues = await this.issueEntryModel.find({
+      organization: new Types.ObjectId(user.organizationId),
+      user: new Types.ObjectId(userId),
+    });
+
+    if (issues.length === 0) {
+      return [];
+    }
+
+    return issues;
   }
 }

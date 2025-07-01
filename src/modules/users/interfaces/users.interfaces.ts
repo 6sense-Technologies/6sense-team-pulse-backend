@@ -30,3 +30,8 @@ export interface IUserWithPagination extends IUser {
   currentPage: number;
   totalPages: number;
 }
+
+export interface IUserWithOrganization {
+  organizationId: string;
+  userId: string;
+}

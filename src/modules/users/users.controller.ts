@@ -1,31 +1,37 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
+  Delete,
   Get,
   Param,
-  Delete,
-  Query,
-  Put,
-  Body,
   Post,
+  Put,
+  Query,
   Req,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
-  BadRequestException,
 } from '@nestjs/common';
-import { UserService } from './users.service';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { IAllUsers, IUserResponse, IUserIssuesByDate } from './interfaces/users.interfaces';
-import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
-import { Designation, Project } from './enums/user.enum';
-import { CreateUserDto } from './dto/create-user.dto';
-import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
-import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
-import { InviteUserDTO } from './dto/invite-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
+import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
+import { GetUser } from 'src/common/request-metadata/getUser.decorator';
 import { Auth } from '../auth/decorators/auth.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { InviteUserDTO } from './dto/invite-user.dto';
+import { Designation } from './enums/user.enum';
+import {
+  IAllUsers,
+  IUserIssuesByDate,
+  IUserResponse,
+  IUserWithOrganization,
+} from './interfaces/users.interfaces';
+import { UserService } from './users.service';
 
 @Controller('users')
 export class UserController {
@@ -99,7 +105,10 @@ export class UserController {
       limits: { fileSize: 100 * 1024 }, // 100KB limit
       fileFilter: (req, file, callback) => {
         if (!file.mimetype.match(/^image\/(jpeg|png|jpg)$/)) {
-          return callback(new BadRequestException('Only JPEG, PNG, and JPG files are allowed!'), false);
+          return callback(
+            new BadRequestException('Only JPEG, PNG, and JPG files are allowed!'),
+            false,
+          );
         }
         callback(null, true);
       },
@@ -110,19 +119,35 @@ export class UserController {
   @ApiBearerAuth()
   @UseGuards(AccessTokenGuard)
   @UseGuards(RolesGuard)
-  async invite(@Body() inviteUserDTO: InviteUserDTO, @UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  async invite(
+    @Body() inviteUserDTO: InviteUserDTO,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
     return this.userService.inviteUser(inviteUserDTO, req['user'].userId, file);
   }
 
   //------------------------///
   @Get()
-  async getAllUsers(@Query('page') page?: number, @Query('limit') limit?: number): Promise<IAllUsers> {
+  async getAllUsers(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<IAllUsers> {
     return this.userService.getAllUsers(page, limit);
   }
 
   @Post('create')
   async createUser(@Body() createUserDto: CreateUserDto): Promise<any> {
     return this.userService.createUser(createUserDto);
+  }
+
+  @Auth(['admin', 'member'])
+  @Get('all-issues/:userId')
+  async getAllIssues(
+    @GetUser() user: IUserWithOrganization,
+    @Param('userId') userId: string,
+  ): Promise<any> {
+    return this.userService.getAllIssues(user, userId);
   }
 
   @Get(':accountId')
