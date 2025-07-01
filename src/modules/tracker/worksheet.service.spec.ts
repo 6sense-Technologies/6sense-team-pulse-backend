@@ -1,17 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { WorksheetService } from './worksheet.service';
-import { getModelToken } from '@nestjs/mongoose';
-import { getConnectionToken } from '@nestjs/mongoose';
-import { ActivityService } from './activity.service';
-import { Worksheet } from './entities/worksheet.schema';
-import { WorksheetActivity } from './entities/worksheetActivity.schema';
 import {
   BadRequestException,
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
+import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
+import { ActivityService } from './activity.service';
+import { Worksheet } from './entities/worksheet.schema';
+import { WorksheetActivity } from './entities/worksheetActivity.schema';
+import { WorksheetService } from './worksheet.service';
 
 describe('WorksheetService', () => {
   let service: WorksheetService;
@@ -120,9 +119,9 @@ describe('WorksheetService', () => {
       mockWorksheetModel.aggregate.mockRejectedValueOnce(new Error('Database failure'));
 
       // Act & Assert
-      await expect(service.getWorksheetNames(userId, organizationId, projectId, name, date)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        service.getWorksheetNames(userId, organizationId, projectId, name, date),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -254,21 +253,27 @@ describe('WorksheetService', () => {
     it('should throw InternalServerErrorException on unexpected error', async () => {
       mockWorksheetModel.aggregate.mockRejectedValueOnce(new Error('Mongo failure'));
 
-      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(InternalServerErrorException);
+      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
 
     it('should re-throw known HTTP exceptions (BadRequest)', async () => {
       const badRequest = new BadRequestException('Invalid ID');
       mockWorksheetModel.aggregate.mockRejectedValueOnce(badRequest);
 
-      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(BadRequestException);
+      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should re-throw known HTTP exceptions (Unauthorized)', async () => {
       const unauthorized = new UnauthorizedException('Not allowed');
       mockWorksheetModel.aggregate.mockRejectedValueOnce(unauthorized);
 
-      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(UnauthorizedException);
+      await expect(service.getWorksheets(userId, organizationId)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -359,9 +364,18 @@ describe('WorksheetService', () => {
 
       mockWorksheetModel.aggregate.mockResolvedValueOnce(extendedResult);
 
-      const result = await service.getProjectMemberWorksheets(projectId, organizationId, 1, 10, 'duration', 'oldest');
+      const result = await service.getProjectMemberWorksheets(
+        projectId,
+        organizationId,
+        1,
+        10,
+        'duration',
+        'oldest',
+      );
 
-      expect(result.data[0].totalLoggedTime.totalSeconds).toBeLessThan(result.data[1].totalLoggedTime.totalSeconds);
+      expect(result.data[0].totalLoggedTime.totalSeconds).toBeLessThan(
+        result.data[1].totalLoggedTime.totalSeconds,
+      );
     });
 
     it('should handle search filter correctly', async () => {
@@ -455,7 +469,11 @@ describe('WorksheetService', () => {
         },
       ]);
 
-      const result = await service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId);
+      const result = await service.getActivitiesForWorksheet(
+        requesterId,
+        organizationId,
+        worksheetId,
+      );
 
       expect(result.worksheetId).toBe(worksheetId);
       expect(result.reportedBy.name).toBe('John Doe');
@@ -504,7 +522,16 @@ describe('WorksheetService', () => {
       mockWorksheetModel.aggregate = jest.fn().mockResolvedValue([]);
 
       await expect(
-        service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId, 1, 10, 'latest', '', true),
+        service.getActivitiesForWorksheet(
+          requesterId,
+          organizationId,
+          worksheetId,
+          1,
+          10,
+          'latest',
+          '',
+          true,
+        ),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -560,7 +587,11 @@ describe('WorksheetService', () => {
         },
       ]);
 
-      const result = await service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId);
+      const result = await service.getActivitiesForWorksheet(
+        requesterId,
+        organizationId,
+        worksheetId,
+      );
 
       expect(result.data).toEqual([]);
       expect(result.totalLoggedTime.totalSeconds).toBe(0);
@@ -574,9 +605,9 @@ describe('WorksheetService', () => {
       };
       mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
 
-      await expect(service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw for org mismatch', async () => {
@@ -589,9 +620,9 @@ describe('WorksheetService', () => {
       };
       mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
 
-      await expect(service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw InternalServerErrorException on unexpected error', async () => {
@@ -601,9 +632,9 @@ describe('WorksheetService', () => {
       };
       mockWorksheetModel.findById = jest.fn().mockReturnValue(mockPopulateChain);
 
-      await expect(service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        service.getActivitiesForWorksheet(requesterId, organizationId, worksheetId),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -639,13 +670,19 @@ describe('WorksheetService', () => {
 
       mockConnection.startSession.mockReturnValue(sessionMock);
       mockWorksheetModel.findOneAndUpdate.mockResolvedValue(worksheet);
-      mockActivityService.validateActivitiesForUser.mockResolvedValue([{ _id: new Types.ObjectId(activityIds[0]) }]);
+      mockActivityService.validateActivitiesForUser.mockResolvedValue([
+        { _id: new Types.ObjectId(activityIds[0]) },
+      ]);
       mockWorksheetActivityModel.find.mockResolvedValue([]);
       mockWorksheetActivityModel.insertMany.mockResolvedValue([]);
     });
 
     it('should assign activities to a worksheet successfully', async () => {
-      const result = await service.assignActivitiesToWorksheet(userId, organizationId, assignActivitiesDto);
+      const result = await service.assignActivitiesToWorksheet(
+        userId,
+        organizationId,
+        assignActivitiesDto,
+      );
 
       expect(mockConnection.startSession).toHaveBeenCalled();
       expect(sessionMock.startTransaction).toHaveBeenCalled();
@@ -664,11 +701,13 @@ describe('WorksheetService', () => {
     });
 
     it('should throw BadRequestException if activities are already linked', async () => {
-      mockWorksheetActivityModel.find.mockResolvedValue([{ activity: new Types.ObjectId(activityIds[0]) }]);
+      mockWorksheetActivityModel.find.mockResolvedValue([
+        { activity: new Types.ObjectId(activityIds[0]) },
+      ]);
 
-      await expect(service.assignActivitiesToWorksheet(userId, organizationId, assignActivitiesDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.assignActivitiesToWorksheet(userId, organizationId, assignActivitiesDto),
+      ).rejects.toThrow(BadRequestException);
 
       expect(sessionMock.abortTransaction).toHaveBeenCalled();
       expect(sessionMock.endSession).toHaveBeenCalled();
@@ -677,9 +716,9 @@ describe('WorksheetService', () => {
     it('should throw InternalServerErrorException on unexpected error', async () => {
       mockWorksheetModel.findOneAndUpdate.mockRejectedValue(new Error('Unexpected'));
 
-      await expect(service.assignActivitiesToWorksheet(userId, organizationId, assignActivitiesDto)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        service.assignActivitiesToWorksheet(userId, organizationId, assignActivitiesDto),
+      ).rejects.toThrow(InternalServerErrorException);
 
       expect(sessionMock.abortTransaction).toHaveBeenCalled();
       expect(sessionMock.endSession).toHaveBeenCalled();
@@ -733,7 +772,12 @@ describe('WorksheetService', () => {
         session: jest.fn().mockResolvedValue({}),
       });
 
-      const result = await service.removeActivitiesFromWorksheet(userId, organizationId, worksheetId, activityIds);
+      const result = await service.removeActivitiesFromWorksheet(
+        userId,
+        organizationId,
+        worksheetId,
+        activityIds,
+      );
 
       expect(result).toEqual({
         worksheetId: mockWorksheet._id,
@@ -841,7 +885,11 @@ describe('WorksheetService', () => {
     });
 
     it('should return correctly calculated durations and percent changes', async () => {
-      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+      const result = await service.getProjectWorksheetAnalytics(
+        projectId,
+        organizationId,
+        'Asia/Dhaka',
+      );
 
       expect(result.today.totalSeconds).toBe(3600);
       // expect(result.yesterday.totalSeconds).toBe(5400);
@@ -859,7 +907,11 @@ describe('WorksheetService', () => {
     it('should handle zero durations safely (no divide-by-zero)', async () => {
       mockWorksheetModel.aggregate.mockResolvedValue([]);
 
-      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+      const result = await service.getProjectWorksheetAnalytics(
+        projectId,
+        organizationId,
+        'Asia/Dhaka',
+      );
 
       expect(result.today.totalSeconds).toBe(0);
       expect(result.today.percentChangeFromYesterday).toBe(0);
@@ -878,7 +930,11 @@ describe('WorksheetService', () => {
         )
         .mockResolvedValue([]);
 
-      const result = await service.getProjectWorksheetAnalytics(projectId, organizationId);
+      const result = await service.getProjectWorksheetAnalytics(
+        projectId,
+        organizationId,
+        'Asia/Dhaka',
+      );
 
       expect(result.today.totalSeconds).toBe(0); // Should skip all broken entries
     });
@@ -886,18 +942,18 @@ describe('WorksheetService', () => {
     it('should throw InternalServerErrorException on unexpected error', async () => {
       mockWorksheetModel.aggregate.mockRejectedValueOnce(new Error('Mongo crash'));
 
-      await expect(service.getProjectWorksheetAnalytics(projectId, organizationId)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        service.getProjectWorksheetAnalytics(projectId, organizationId, 'Asia/Dhaka'),
+      ).rejects.toThrow(InternalServerErrorException);
     });
 
     it('should rethrow known HTTP exceptions', async () => {
       const badReq = new BadRequestException('Bad request');
       mockWorksheetModel.aggregate.mockRejectedValueOnce(badReq);
 
-      await expect(service.getProjectWorksheetAnalytics(projectId, organizationId)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.getProjectWorksheetAnalytics(projectId, organizationId, 'Asia/Dhaka'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });
