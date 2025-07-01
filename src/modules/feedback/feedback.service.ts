@@ -6,8 +6,10 @@ import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata
 import { Feedback, FeedbackDocument } from 'src/schemas/feedback.entity';
 import { IssueEntry } from 'src/schemas/IssueEntry.schema';
 import { OrganizationService } from '../organization/organization.service';
+import { IUserWithOrganization } from '../users/interfaces/users.interfaces';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { FeedbackType } from './enums/feedbackType.enum';
+import { IFeedbackQuery } from './interface/feedbackList.interface';
 
 @Injectable()
 export class FeedbackService {
@@ -55,27 +57,21 @@ export class FeedbackService {
     return await this.feedbackModel.create(feedbackObject);
   }
 
-  async findAll(req: Request, metadata: RequestMetadataDto) {
-    const { userId, organizationId } = req['user'];
-    const page = Number(req['query'].page) || 1;
-    const limit = Number(req['query'].limit) || 10;
-    const sortOrder = req['query'].sort?.toString() === 'asc' ? 1 : -1;
-    const search = req['query'].search?.toString().trim();
-    const timezoneRegion = metadata.timezoneRegion;
-    let startDate = req['query'].startDate;
-    let endDate = req['query'].endDate;
+  async findAll(user: IUserWithOrganization, query: IFeedbackQuery, metadata: RequestMetadataDto) {
+    const { page = 1, limit = 10, filter, search, sortOrder = -1 } = query;
+    let { startDate, endDate } = query;
+    const { timezoneRegion } = metadata;
 
-    const rawFilter = req['query'].filter?.toString().trim();
     let filterParts: string[] = [];
-    if (rawFilter) {
-      filterParts = rawFilter.split(',').map((f: string) => f.trim());
+    if (filter) {
+      filterParts = filter.split(',').map((f: string) => f.trim());
     }
 
     const baseMatch: Record<string, any> = {
-      organizationId: new Types.ObjectId(`${organizationId}`),
+      organizationId: new Types.ObjectId(`${user.organizationId}`),
       $or: [
-        { assignedTo: new Types.ObjectId(`${userId}`) },
-        { assignedBy: new Types.ObjectId(`${userId}`) },
+        { assignedTo: new Types.ObjectId(`${user.userId}`) },
+        { assignedBy: new Types.ObjectId(`${user.userId}`) },
       ],
     };
 
@@ -103,12 +99,16 @@ export class FeedbackService {
     }
 
     if (startDate && endDate) {
-      startDate = DateTime.fromISO(startDate, { zone: timezoneRegion }).startOf('day').toJSDate();
-      endDate = DateTime.fromISO(endDate, { zone: timezoneRegion }).endOf('day').toJSDate();
+      startDate = DateTime.fromISO(startDate.toString(), { zone: timezoneRegion })
+        .startOf('day')
+        .toJSDate();
+      endDate = DateTime.fromISO(endDate.toString(), { zone: timezoneRegion })
+        .endOf('day')
+        .toJSDate();
       baseMatch.createdAt = { $gte: startDate, $lte: endDate };
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate = [
       { $match: baseMatch },
 
       {
@@ -179,11 +179,49 @@ export class FeedbackService {
       },
     ];
 
-    const results = await this.feedbackModel.aggregate(aggregate);
+    const results = await this.feedbackModel.aggregate(aggregate as PipelineStage[]);
     return results[0] || { data: [], count: 0 };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} feedback`;
+  async findOne(id: string, user: IUserWithOrganization) {
+    const aggregate: PipelineStage[] = [
+      {
+        $match: {
+          _id: new Types.ObjectId(id),
+          organizationId: new Types.ObjectId(user.organizationId),
+          $or: [
+            { assignedTo: new Types.ObjectId(user.userId) },
+            { assignedBy: new Types.ObjectId(user.userId) },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          let: { assignedToId: '$assignedTo' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$_id', '$$assignedToId'] } } },
+            {
+              $project: {
+                _id: 1,
+                displayName: 1,
+                emailAddress: 1,
+                avatarUrls: 1,
+                designation: 1,
+              },
+            },
+          ],
+          as: 'assignedTo',
+        },
+      },
+      { $unwind: '$assignedTo' },
+    ];
+
+    const feedbacks = await this.feedbackModel.aggregate(aggregate);
+    if (!feedbacks.length) {
+      throw new NotFoundException('Feedback not found');
+    }
+
+    return feedbacks[0];
   }
 }
