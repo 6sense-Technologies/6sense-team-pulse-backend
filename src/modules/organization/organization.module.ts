@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { OrganizationService } from './organization.service';
 import { OrganizationController } from './organization.controller';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -7,8 +7,8 @@ import { Users, UsersSchema } from '../../schemas/users.schema';
 import { OrganizationUserRole, OrganizationUserRoleSchema } from '../../schemas/OrganizationUserRole.schema';
 import { Role, RoleSchema } from '../../schemas/Role.schema';
 import { UserModule } from '../users/users.module';
-import { AuthService } from '../auth/auth.service';
 
+@Global()
 @Module({
   imports: [
     UserModule,
