@@ -993,7 +993,7 @@ export class UserService {
 
   async getAllIssues(user: IUserWithOrganization, userId: string): Promise<any> {
     const issues = await this.issueEntryModel.find({
-      // organizationId: new Types.ObjectId(user.organizationId),
+      organization: new Types.ObjectId(user.organizationId),
       user: new Types.ObjectId(userId),
     });
 

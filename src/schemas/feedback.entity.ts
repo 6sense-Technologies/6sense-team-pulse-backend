@@ -13,7 +13,7 @@ export class Feedback {
     type: mongoose.Schema.Types.ObjectId,
     index: true,
   })
-  organizationId: mongoose.Schema.Types.ObjectId;
+  organization: mongoose.Schema.Types.ObjectId;
 
   @Prop({ required: true, enum: FeedbackType })
   type: FeedbackType;

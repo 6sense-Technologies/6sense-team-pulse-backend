@@ -20,15 +20,10 @@ export class FeedbackService {
     private readonly issueEntryModel: Model<IssueEntry>,
   ) {}
 
-  async create(createFeedbackDto: CreateFeedbackDto, req: Request) {
-    const { userId, organizationId } = {
-      userId: req['user'].userId,
-      organizationId: req['user'].organizationId,
-    };
-
+  async create(createFeedbackDto: CreateFeedbackDto, user: IUserWithOrganization) {
     const orgUser = await this.organizationService.validateOrgAccess(
       createFeedbackDto.assignedTo,
-      organizationId,
+      user.organizationId,
     );
 
     if (!orgUser) {
@@ -45,13 +40,13 @@ export class FeedbackService {
     }
 
     const feedbackObject = {
-      organizationId: organizationId,
+      organization: user.organizationId,
       type: createFeedbackDto.type,
       linkedIssues: issuesIds,
       tone: createFeedbackDto.tone,
       comment: createFeedbackDto.comment.trim(),
       assignedTo: createFeedbackDto.assignedTo,
-      assignedBy: userId,
+      assignedBy: user.userId,
     };
 
     return await this.feedbackModel.create(feedbackObject);
@@ -68,7 +63,7 @@ export class FeedbackService {
     }
 
     const baseMatch: Record<string, any> = {
-      organizationId: new Types.ObjectId(`${user.organizationId}`),
+      organization: new Types.ObjectId(`${user.organizationId}`),
       $or: [
         { assignedTo: new Types.ObjectId(`${user.userId}`) },
         { assignedBy: new Types.ObjectId(`${user.userId}`) },
@@ -188,7 +183,7 @@ export class FeedbackService {
       {
         $match: {
           _id: new Types.ObjectId(id),
-          organizationId: new Types.ObjectId(user.organizationId),
+          organization: new Types.ObjectId(user.organizationId),
           $or: [
             { assignedTo: new Types.ObjectId(user.userId) },
             { assignedBy: new Types.ObjectId(user.userId) },

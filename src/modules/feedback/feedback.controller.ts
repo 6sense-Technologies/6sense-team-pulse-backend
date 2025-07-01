@@ -14,8 +14,8 @@ export class FeedbackController {
 
   @Auth(['admin', 'member'])
   @Post()
-  create(@Body() createFeedbackDto: CreateFeedbackDto, @Req() req: Request) {
-    return this.feedbackService.create(createFeedbackDto, req);
+  create(@Body() createFeedbackDto: CreateFeedbackDto, @GetUser() user: IUserWithOrganization) {
+    return this.feedbackService.create(createFeedbackDto, user);
   }
 
   @Auth(['admin', 'member'])
