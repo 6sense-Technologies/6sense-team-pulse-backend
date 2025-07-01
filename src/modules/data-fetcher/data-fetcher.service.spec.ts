@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { Tool } from '../../schemas/Tool.schema';
 import { Users } from '../../schemas/users.schema';
+import { LinearService } from '../linear/linear.service';
 import { DataFetcherService } from './data-fetcher.service';
 
 describe('DataFetcherService', () => {
@@ -57,6 +58,12 @@ describe('DataFetcherService', () => {
         {
           provide: getModelToken(Users.name),
           useValue: mockUserModel,
+        },
+        {
+          provide: LinearService,
+          useValue: {
+            fetchAndSaveIssuesFromLinear: jest.fn(),
+          },
         },
       ],
     }).compile();
