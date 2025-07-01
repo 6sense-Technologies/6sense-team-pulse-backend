@@ -1,29 +1,29 @@
-import { Module } from '@nestjs/common';
-import { SentryModule } from '@sentry/nestjs/setup';
-import { APP_FILTER } from '@nestjs/core';
-import { SentryGlobalFilter } from '@sentry/nestjs/setup';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UserModule } from './modules/users/users.module';
-import { JiraModule } from './modules/jira/jira.module';
-import { ScheduleModule } from '@nestjs/schedule';
-import { AppController } from './app.controller';
-import * as dotenv from 'dotenv';
-import { TrelloModule } from './modules/trello/trello.module';
-import { GithubModule } from './modules/github/github.module';
-import { GitRepoModule } from './modules/git-repo/git-repo.module';
-import { BullModule } from '@nestjs/bullmq';
-import { QueueHandlerModule } from './modules/queue-handler/queue-handler.module';
-import { ProjectsModule } from './modules/projects/projects.module';
-import { GoalsModule } from './modules/goals/goals.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { EmailServiceModule } from './modules/email-service/email-service.module';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { OrganizationModule } from './modules/organization/organization.module';
-import { ToolModule } from './modules/tool/tool.module';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
+import * as dotenv from 'dotenv';
+import { AppController } from './app.controller';
+import { AuthModule } from './modules/auth/auth.module';
 import { DataFetcherModule } from './modules/data-fetcher/data-fetcher.module';
-import { TrackerModule } from './modules/tracker/tracker.module';
+import { EmailServiceModule } from './modules/email-service/email-service.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
+import { GitRepoModule } from './modules/git-repo/git-repo.module';
+import { GithubModule } from './modules/github/github.module';
+import { GoalsModule } from './modules/goals/goals.module';
+import { JiraModule } from './modules/jira/jira.module';
 import { LinearModule } from './modules/linear/linear.module';
+import { OrganizationModule } from './modules/organization/organization.module';
+import { ProjectsModule } from './modules/projects/projects.module';
+import { QueueHandlerModule } from './modules/queue-handler/queue-handler.module';
+import { ToolModule } from './modules/tool/tool.module';
+import { TrackerModule } from './modules/tracker/tracker.module';
+import { TrelloModule } from './modules/trello/trello.module';
+import { UserModule } from './modules/users/users.module';
 
 dotenv.config();
 
@@ -88,6 +88,7 @@ dotenv.config();
     DataFetcherModule,
     TrackerModule,
     LinearModule,
+    FeedbackModule,
   ],
   providers: [
     {
