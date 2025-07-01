@@ -336,7 +336,7 @@ export class ProjectsService {
       throw new NotFoundException('Access denied to this project or project not found');
     }
 
-    return project[0];
+    return project;
   }
 
   /* istanbul ignore next */
