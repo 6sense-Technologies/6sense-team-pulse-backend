@@ -137,11 +137,11 @@ describe('FeedbackService', () => {
 
   describe('findAll', () => {
     it('should find all feedback', async () => {
+      const user = {
+        userId: '670f5cb7fcec534287bf881a',
+        organizationId: '670f5cb7fcec534287bf881a',
+      };
       const req = {
-        user: {
-          userId: '670f5cb7fcec534287bf881a',
-          organizationId: '670f5cb7fcec534287bf881a',
-        },
         query: {
           page: 1,
           limit: 10,
@@ -160,7 +160,7 @@ describe('FeedbackService', () => {
           { data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') }], count: 1 },
         ]);
 
-      const feedback = await service.findAll(req, { timezoneRegion: 'Asia/Dhaka' } as any);
+      const feedback = await service.findAll(user, req, { timezoneRegion: 'Asia/Dhaka' } as any);
 
       expect(feedback).toEqual({
         data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') }],
