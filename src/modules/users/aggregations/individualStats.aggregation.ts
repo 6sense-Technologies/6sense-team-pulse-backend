@@ -1,12 +1,13 @@
 import mongoose, { Types } from 'mongoose';
 
-export const individualStats = (userId: string, page: Number, limit: Number) => {
+export const individualStats = (userId: string, organizationId: string, page: Number, limit: Number) => {
   const startDate = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Dhaka' }).replace(' ', 'T') + '+06:00';
 
   const indiestatAgg = [
     {
       $match: {
         user: new Types.ObjectId(userId),
+        organization: new Types.ObjectId(organizationId),
         issueType: {
           $in: ['Task', 'Story', 'Bug', 'Holiday'],
         },
