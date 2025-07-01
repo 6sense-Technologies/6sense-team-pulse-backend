@@ -253,19 +253,90 @@ export class ProjectsService {
   //   }
   // }
 
-  /* istanbul ignore next */
   async findOne(id: string, userId: string, organizationId: string) {
     // Validate the project exists and the user has access to it
     const orgProjectsUsers = await this.OrganizationProjectUser.findOne({
       user: new Types.ObjectId(userId),
       organization: new Types.ObjectId(organizationId),
       project: new Types.ObjectId(id),
-    })
-    .populate('project');
+    });
+
     if (!orgProjectsUsers) {
-      throw new NotFoundException('Project not found or access denied');
+      throw new NotFoundException('Access denied to this project or project not found');
     }
-    return orgProjectsUsers.project;
+
+    const [project] = await this.projectModel.aggregate([
+      {
+        $match: {
+          _id: new Types.ObjectId(id),
+        },
+      },
+      {
+        $lookup: {
+          from: 'tools',
+          localField: 'tools',
+          foreignField: '_id',
+          as: 'tools',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          tools: 1,
+        },
+      },
+      {
+        $addFields: {
+          tools: {
+            $map: {
+              input: '$tools',
+              as: 'tool',
+              in: {
+                $mergeObjects: [
+                  '$$tool',
+                  {
+                    connected: {
+                      $cond: [
+                        { $eq: ['$$tool.toolName', 'Linear'] }, // check tool type
+                        {
+                          $cond: [
+                            {
+                              $or: [
+                                { $eq: [{ $type: '$$tool.accessToken' }, 'missing'] },
+                                { $eq: [{ $trim: { input: { $ifNull: ['$$tool.accessToken', ''] } } }, ''] },
+                              ],
+                            },
+                            false,
+                            true,
+                          ],
+                        },
+                        true, // if not Linear, consider it connected by default
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          'tools._id': 1,
+          'tools.toolName': 1,
+          'tools.connected': 1,
+        },
+      },
+    ]);
+
+    if (!project || project.length === 0) {
+      throw new NotFoundException('Access denied to this project or project not found');
+    }
+
+    return project[0];
   }
 
   /* istanbul ignore next */

@@ -268,6 +268,14 @@ export class LinearService {
 
           allIssues.push(...issues);
         } catch (error) {
+          console.error(`Error type: ${error.type}`);
+          console.error(error)
+
+          if (error.type === 'AuthenticationError' || error.message.includes(`It looks like you're trying to use an API key as a Bearer token.`)) {
+            //Remove access token from tool
+            await this.toolService.removeAccessToken(tool._id);
+            console.error(`❌ Authentication error for tool ${tool._id}. Access token removed.`);
+          }
           console.error(`❌ Failed to fetch Linear issues for ${email}:`, error.response?.errors || error.message);
         }
       }
