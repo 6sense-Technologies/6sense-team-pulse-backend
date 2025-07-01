@@ -1,5 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { Organization } from './Organization.schema';
+import { Users } from './users.schema';
 
 @Schema()
 export class IssueEntry extends Document {
@@ -52,8 +54,11 @@ export class IssueEntry extends Document {
   })
   linkedIssues: string[];
 
-  @Prop({ type: Types.ObjectId, required: false })
-  user: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, required: true })
+  user: Users;
+
+  @Prop({ type: Types.ObjectId, required: true })
+  organization: Organization;
 
   @Prop({ default: '' })
   comment: string;
