@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
-import { FeedbackTone } from '../enums/feedbackTone.enum';
-import { FeedbackType } from '../enums/feedbackType.enum';
+import { FeedbackTone } from 'src/modules/feedback/enums/feedbackTone.enum';
+import { FeedbackType } from 'src/modules/feedback/enums/feedbackType.enum';
 
 export type FeedbackDocument = HydratedDocument<Feedback>;
 
@@ -20,7 +20,7 @@ export class Feedback {
 
   @Prop({
     required: false,
-    default: []
+    default: [],
   })
   linkedIssues: mongoose.Schema.Types.ObjectId[];
 
