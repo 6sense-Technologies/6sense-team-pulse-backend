@@ -40,6 +40,15 @@ export class ToolService {
     return await tool.save();
   }
 
+  async removeAccessToken(toolId: string): Promise<Tool> {
+    const tool = await this.toolModel.findById(toolId);
+    if (!tool) {
+      throw new Error('Tool not found');
+    }
+    tool.accessToken = '';
+    return await tool.save();
+  }
+
   async getLinearToolsWithUsers() {
     return await this.toolModel
       .aggregate([
