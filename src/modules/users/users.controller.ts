@@ -37,7 +37,7 @@ export class UserController {
   @Auth(['Admin', 'Member'])
   @ApiBearerAuth()
   async userList(
-    @Query('search') search: string,
+    @Query('search') search: string = '',
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Req() req: Request,
