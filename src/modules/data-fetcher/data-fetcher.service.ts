@@ -171,6 +171,7 @@ export class DataFetcherService {
             date: new Date(createdDate).toISOString(),
             displayName: issue.fields?.assignee?.displayName,
             comment: '',
+            organization: dataFetcherdto.organizationId,
           };
         }
       });
@@ -284,6 +285,7 @@ export class DataFetcherService {
                   date: createdDate,
                   projectName: board.name,
                   accountId: card.idMemberCreator,
+                  organization: dataFetcherDto.organizationId,
                 };
               } else {
                 console.log(`Found task without due date ${card.issueSummary}`);
@@ -320,6 +322,7 @@ export class DataFetcherService {
         issueLinks,
         date,
         comment,
+        organization,
       } = data[i];
 
       if (accountId) {
@@ -342,7 +345,8 @@ export class DataFetcherService {
             {
               issueId, // Match by issueId
               projectUrl, // Match by projectUrl
-              user: new mongoose.Types.ObjectId(user.id), // Ensure uniqueness per user
+              user: new mongoose.Types.ObjectId(user.id as string), // Ensure uniqueness per user
+              organization: new mongoose.Types.ObjectId(organization as string), // Ensure uniqueness per organization
             },
             {
               serialNumber: i,
@@ -357,9 +361,11 @@ export class DataFetcherService {
               projectUrl,
               issueIdUrl,
               issueLinkUrl,
-              user: new mongoose.Types.ObjectId(user.id),
+              user: new mongoose.Types.ObjectId(user.id as string), // Ensure uniqueness per user
+              organization: new mongoose.Types.ObjectId(organization as string), // Ensure uniqueness per organization
               date: issueDate,
               comment: comment,
+              issueCode: issueIdUrl.split('/').pop(), // Extract the issue code from the URL
             },
             {
               upsert: true, // Create if not found
@@ -394,6 +400,7 @@ export class DataFetcherService {
         issueLinks,
         date,
         comment,
+        organization,
       } = data[i];
       console.log(accountId);
       if (accountId) {
@@ -419,7 +426,8 @@ export class DataFetcherService {
             {
               issueId, // Match by issueId
               projectUrl, // Match by projectUrl
-              user: new mongoose.Types.ObjectId(user.id), // Ensure uniqueness per user
+              user: new mongoose.Types.ObjectId(user.id as string), // Ensure uniqueness per user
+              organization: new mongoose.Types.ObjectId(organization as string), // Ensure uniqueness per organization
             },
             {
               serialNumber: i,
@@ -434,9 +442,11 @@ export class DataFetcherService {
               projectUrl,
               issueIdUrl,
               issueLinkUrl: '',
-              user: new mongoose.Types.ObjectId(user.id),
+              user: new mongoose.Types.ObjectId(user.id as string), // Ensure uniqueness per user
+              organization: new mongoose.Types.ObjectId(organization as string), // Ensure uniqueness per organization
               date: issueDate,
               comment: comment,
+              issueCode: issueIdUrl.split('/').pop(), // Extract the issue code from the URL
             },
             {
               upsert: true, // Create if not found
@@ -454,11 +464,55 @@ export class DataFetcherService {
   }
 
   async fetchDataFromAllToolUrls(verdict: boolean = false) {
-    const tools = await this.toolModel.find({});
-    const urls = tools.map((tool) => tool.toolUrl);
+    const tools = await this.toolModel.aggregate([
+      {
+        $lookup: {
+          from: 'projects',
+          localField: '_id',
+          foreignField: 'tools',
+          as: 'projects',
+        },
+      },
+      {
+        $unwind: {
+          path: '$projects',
+        },
+      },
+      {
+        $addFields: {
+          projects: '$projects._id',
+        },
+      },
+      {
+        $lookup: {
+          from: 'organizationprojectusers',
+          localField: 'projects',
+          foreignField: 'project',
+          as: 'opu',
+        },
+      },
+      {
+        $addFields: {
+          // users: '$opu.user',
+          organization: '$opu.organization',
+        },
+      },
+      {
+        $unwind: {
+          path: '$organization',
+        }
+      },
+      {
+        $project: {
+          toolUrl: 1,
+          organization: 1,
+        },
+      },
+    ]).exec();
+    // const urls = tools.map((tool) => tool.toolUrl);
     const allDataJIRA = [];
     const allDataTrello = [];
-    const urlSet = new Set();
+    const toolSet = new Set();
     console.log(`Fetching data from jira...`);
     let newDate = new Date().toISOString().split('T')[0];
 
@@ -467,26 +521,27 @@ export class DataFetcherService {
       lastWeek.setDate(lastWeek.getDate() - 7); // Subtract 7 days
       newDate = lastWeek.toISOString().split('T')[0]; // Format to YYYY-MM-DD
     }
-    for (const url of urls) {
-      if (url.search('atlassian') >= 0) {
-        if (urlSet.has(url)) {
-          console.log(`Fetched from ${url} earlier skiping.....`);
+    for (const tool of tools) {
+      if (tool.toolUrl.search('atlassian') >= 0) {
+        if (toolSet.has(tool)) {
+          console.log(`Fetched from ${tool.toolUrl} earlier skiping.....`);
           continue;
         }
-        urlSet.add(url);
+        toolSet.add(tool);
 
         try {
-          console.log(`Fetching data from ${url}`);
+          console.log(`Fetching data from ${tool.toolUrl}`);
 
           const dataFetcherDto: DataFetcherDTO = {
-            projectUrl: url,
+            organizationId: tool.organization.toString(),
+            projectUrl: tool.toolUrl,
             date: newDate,
           };
 
           const data = await this.dataFetchFromJIRA(dataFetcherDto);
           allDataJIRA.push(...data);
         } catch (error) {
-          console.error(`Error fetching data from URL: ${url}`, error);
+          console.error(`Error fetching data from URL: ${tool.toolUrl}`, error);
         }
       }
     }
@@ -494,10 +549,11 @@ export class DataFetcherService {
     const jiraStatus = await this.saveJiraIssueToIssueEntry(JSON.stringify(allDataJIRA));
     try {
       console.log(`Fetching data from trello...`);
-      for (const url of urls) {
-        if (url.search('trello') >= 0) {
+      for (const tool of tools) {
+        if (tool.toolUrl.search('trello') >= 0) {
           let trelloIssues = await this.dataFetchFromTrello({
-            projectUrl: url,
+            organizationId: tool.organization.toString(),
+            projectUrl: tool.toolUrl,
             date: newDate,
           });
           if (trelloIssues.length > 0 || trelloIssues !== undefined || trelloIssues !== null) {
@@ -518,7 +574,6 @@ export class DataFetcherService {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
       const endDate = new Date();
-      linearStatus = {};
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split('T')[0];
         const status = await this.linearService.fetchAndSaveIssuesFromLinear(dateStr);
