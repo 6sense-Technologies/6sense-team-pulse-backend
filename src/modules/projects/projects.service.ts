@@ -139,7 +139,8 @@ export class ProjectsService {
               $project: {
                 _id: 1,
                 name: 1,
-                tools: 1,
+                "tools._id": 1,
+                "tools.toolName": 1,
                 teamSize: 1, // Include teamSize in the results
                 createdBy: 1,
                 createdAt: 1,
