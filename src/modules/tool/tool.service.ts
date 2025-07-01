@@ -90,6 +90,7 @@ export class ToolService {
         {
           $addFields: {
             users: '$opu.user',
+            organization: '$opu.organization',
           },
         },
         {
@@ -101,6 +102,11 @@ export class ToolService {
           },
         },
         {
+          $unwind: {
+            path: '$organization',
+          },
+        },
+        {
           $project: {
             _id: 1,
             toolName: 1,
@@ -108,6 +114,7 @@ export class ToolService {
             accessToken: 1,
             'users._id': 1,
             'users.emailAddress': 1,
+            organization: 1,
           },
         },
       ])

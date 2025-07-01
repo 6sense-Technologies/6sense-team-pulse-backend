@@ -255,6 +255,7 @@ export class LinearService {
                 issueCode: issueCode,
                 issueLinkUrl: '',
                 user: new Types.ObjectId(user._id as string),
+                organization: new Types.ObjectId(tool.organization as string),
                 date: dueDate,
                 linkedIssues: linkedIssues,
                 comment: '',
