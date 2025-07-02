@@ -33,7 +33,17 @@ export class FeedbackService {
     let issuesIds = [];
     if (createFeedbackDto.linkedIssues) {
       issuesIds = createFeedbackDto.linkedIssues.map((issueId) => new Types.ObjectId(issueId));
-      const issues = await this.issueEntryModel.find({ _id: { $in: issuesIds } });
+
+      const aggregate = [];
+      aggregate.push({
+        $match: {
+          _id: { $in: issuesIds },
+          organization: new Types.ObjectId(user.organizationId),
+          user: new Types.ObjectId(createFeedbackDto.assignedTo),
+        },
+      });
+
+      const issues = await this.issueEntryModel.aggregate(aggregate);
       if (issues.length !== createFeedbackDto.linkedIssues.length) {
         throw new NotFoundException('One or more issues not found');
       }
