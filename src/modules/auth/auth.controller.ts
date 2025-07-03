@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
-  ChooseOrganization,
+  ChangeOrganization,
   CreateUserEmail,
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
@@ -15,6 +15,9 @@ import { CreateOrganizationDTO } from '../organization/dto/organization.dto';
 import { Organization } from '../../schemas/Organization.schema';
 import { OrganizationService } from '../organization/organization.service';
 import { InviteUserDTO } from '../users/dto/invite-user.dto';
+import { GetUser } from 'src/common/request-metadata/getUser.decorator';
+import { IUserWithOrganization } from '../users/interfaces/users.interfaces';
+import { Auth } from './decorators/auth.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -86,10 +89,13 @@ export class AuthController {
   listOrganizations(@Req() req: Request) {
     return this.authService.listOrganizations(req['user'].userId);
   }
-  @UseGuards(AccessTokenGuard)
-  @ApiBearerAuth()
-  @Post('choose-organization')
-  selectOrganization(@Body() chooseOrg: ChooseOrganization) {
-    return this.authService.chooseOrganization(chooseOrg);
+
+  @Auth()
+  @Post('change-organization')
+  changeOrganization(
+    @Body() changeOrg: ChangeOrganization,
+    @GetUser() user: IUserWithOrganization,
+  ) {
+    return this.authService.changeOrganization(user, changeOrg);
   }
 }

@@ -7,6 +7,8 @@ import { Users, UsersSchema } from '../../schemas/users.schema';
 import { OrganizationUserRole, OrganizationUserRoleSchema } from '../../schemas/OrganizationUserRole.schema';
 import { Role, RoleSchema } from '../../schemas/Role.schema';
 import { UserModule } from '../users/users.module';
+import { AuthModule } from '../auth/auth.module';
+import { AuthService } from '../auth/auth.service';
 
 @Global()
 @Module({
