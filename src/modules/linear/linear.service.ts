@@ -46,7 +46,7 @@ export class LinearService {
     await this.linearToolValidation(toolId);
     // // Redirect user to Linear OAuth authorization URL
     const clientId = this.configService.getOrThrow<string>('LINEAR_CLIENT_ID');
-    const redirectUri = origin;
+    const redirectUri = origin + '/linear/callback';
     const state = 'SECURE_RANDOM';
     const scope = 'read';
     const url = `https://linear.app/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}&scope=${scope}`;
@@ -64,7 +64,7 @@ export class LinearService {
 
       const clientId = this.configService.getOrThrow<string>('LINEAR_CLIENT_ID');
       const clientSecret = this.configService.getOrThrow<string>('LINEAR_CLIENT_SECRET');
-      const redirectUri = origin;
+      const redirectUri = origin + '/linear/callback';
 
       const params = new URLSearchParams();
       params.append('code', code);
@@ -135,7 +135,6 @@ export class LinearService {
   }
 
   async fetchAndSaveIssuesFromLinear(date: string = new Date().toISOString().split('T')[0]) {
-
     const LINEAR_ISSUE_QUERY = `
       query GetTasksByDate($dueDate: TimelessDateOrDuration, $email: String) {
         organization {
@@ -215,21 +214,23 @@ export class LinearService {
             const dueDate = issue.dueDate;
             const userTimezone = issue.assignee.timezone || 'UTC'; // Default to UTC if no timezone is set
             const isPlanned = this.checkPlanned(createdDate, dueDate, userTimezone);
-            const relatedIssues = issue.relations.nodes.map((relation) => relation.issue.identifier);
+            const relatedIssues = issue.relations.nodes.map(
+              (relation) => relation.issue.identifier,
+            );
             const childrenIssues = issue.children.nodes.map((child) => child.identifier);
             const parentIssue = issue.parent ? [issue.parent.identifier] : [];
             const linkedIssues = [...relatedIssues, ...childrenIssues, ...parentIssue];
             let issueStatus = issue.state?.type;
             if (issueStatus === 'completed') {
               if (issue.completedAt && issue.dueDate) {
-              // Parse both as DateTime, compare only the date part
-              const completedAtDate = DateTime.fromISO(issue.completedAt).toISODate();
-              const dueDateDate = DateTime.fromISO(issue.dueDate).toISODate();
-              if (completedAtDate <= dueDateDate) {
-                issueStatus = 'completed';
-              } else {
-                issueStatus = 'lateCompleted';
-              }
+                // Parse both as DateTime, compare only the date part
+                const completedAtDate = DateTime.fromISO(issue.completedAt).toISODate();
+                const dueDateDate = DateTime.fromISO(issue.dueDate).toISODate();
+                if (completedAtDate <= dueDateDate) {
+                  issueStatus = 'completed';
+                } else {
+                  issueStatus = 'lateCompleted';
+                }
               }
             }
 
@@ -270,14 +271,22 @@ export class LinearService {
           allIssues.push(...issues);
         } catch (error) {
           console.error(`Error type: ${error.type}`);
-          console.error(error)
+          console.error(error);
 
-          if (error.type === 'AuthenticationError' || error.message.includes(`It looks like you're trying to use an API key as a Bearer token.`)) {
+          if (
+            error.type === 'AuthenticationError' ||
+            error.message.includes(
+              `It looks like you're trying to use an API key as a Bearer token.`,
+            )
+          ) {
             //Remove access token from tool
             await this.toolService.removeAccessToken(tool._id);
             console.error(`❌ Authentication error for tool ${tool._id}. Access token removed.`);
           }
-          console.error(`❌ Failed to fetch Linear issues for ${email}:`, error.response?.errors || error.message);
+          console.error(
+            `❌ Failed to fetch Linear issues for ${email}:`,
+            error.response?.errors || error.message,
+          );
         }
       }
     }
