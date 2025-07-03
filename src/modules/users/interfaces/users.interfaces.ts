@@ -34,4 +34,5 @@ export interface IUserWithPagination extends IUser {
 export interface IUserWithOrganization {
   organizationId: string;
   userId: string;
+  email: string;
 }

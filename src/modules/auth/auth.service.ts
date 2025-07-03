@@ -18,13 +18,14 @@ import { Users } from '../../schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
 import { OrganizationService } from '../organization/organization.service';
 import {
-  ChooseOrganization,
+  ChangeOrganization,
   CreateUserEmail,
   CreateUserEmailPasswordDTO,
   LoginUserEmailPasswordDTO,
   VerifyEmailDto,
   VerifyInviteDTO,
 } from './dto/auth.dto';
+import { IUserWithOrganization } from '../users/interfaces/users.interfaces';
 
 @Injectable()
 export class AuthService {
@@ -43,7 +44,7 @@ export class AuthService {
   ) {}
   private readonly logger = new Logger(AuthService.name);
 
-  generateTokens(userId: string, email: string, organizationId: string) {
+  public generateTokens(userId: string, email: string, organizationId: string) {
     const accessToken = this.jwtService.sign(
       { userId, email, organizationId },
       {
@@ -167,7 +168,9 @@ export class AuthService {
     }
 
     // Find the last organization accessed by the user
-    const lastOrg = await this.organizationService.lastOrganization(user._id as Types.ObjectId);
+    const lastOrg = await this.organizationService.accessLatestOrganization(
+      user._id as Types.ObjectId,
+    );
 
     const { accessToken, refreshToken } = this.generateTokens(
       user.id,
@@ -202,18 +205,27 @@ export class AuthService {
     };
   }
 
-  public async chooseOrganization(chooseOrg: ChooseOrganization) {
-    console.log(chooseOrg.organizationId);
-    const organization = await this.organizationModel.findOne({
-      _id: new Types.ObjectId(chooseOrg.organizationId),
-    });
-    if (organization) {
-      return {
-        organizationId: organization._id.toString(),
-      };
-    } else {
-      throw new NotFoundException('Organization Not found');
-    }
+  public async changeOrganization(
+    user: IUserWithOrganization,
+    changeOrganization: ChangeOrganization,
+  ) {
+    await this.organizationService.validateOrgAccess(
+      user.userId,
+      changeOrganization.organizationId,
+    );
+    this.organizationService.updateLastAccessed(
+      new Types.ObjectId(user.userId),
+      new Types.ObjectId(changeOrganization.organizationId),
+    );
+    const { accessToken, refreshToken } = this.generateTokens(
+      user.userId,
+      user.email,
+      changeOrganization.organizationId,
+    );
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 
   public async listOrganizations(userId: string) {
@@ -317,6 +329,7 @@ export class AuthService {
     await user.save();
     return user;
   }
+
   public async registerInvitedUser(loginUserEmailPasswordDTO: LoginUserEmailPasswordDTO) {
     const user = await this.userModel.findOne({
       emailAddress: loginUserEmailPasswordDTO.emailAddress,

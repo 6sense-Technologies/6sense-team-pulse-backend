@@ -105,7 +105,7 @@ describe('AuthService', () => {
           provide: OrganizationService,
           useValue: {
             // Add mock methods as needed for your tests
-            lastOrganization: jest.fn(),
+            accessLatestOrganization: jest.fn(),
           },
         },
       ],
@@ -285,7 +285,7 @@ describe('AuthService', () => {
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
       jest
-        .spyOn(organizationService, 'lastOrganization')
+        .spyOn(organizationService, 'accessLatestOrganization')
         .mockResolvedValueOnce(new Types.ObjectId('683ecb27eeecb27e220557f3') as any);
 
       // jest.spyOn(service, 'generateTokens').mockResolvedValueOnce({
@@ -358,11 +358,16 @@ describe('AuthService', () => {
     });
   });
 
-  describe('chooseOrganization', () => {
+  describe('changeOrganization', () => {
+    const user = {
+      userId: 'user123',
+      email: 'user123@gmail.com',
+      organizationId: '670f5cb7fcec534287bf881a',
+    };
     it('should return organization not found', async () => {
       jest.spyOn(organizationModel, 'findOne').mockResolvedValue(null);
       await expect(
-        service.chooseOrganization({
+        service.changeOrganization(user, {
           organizationId: '670f5cb7fcec534287bf881a',
         }),
       ).rejects.toThrow(NotFoundException);
@@ -370,7 +375,7 @@ describe('AuthService', () => {
 
     it('should return organization', async () => {
       jest.spyOn(organizationModel, 'findOne').mockResolvedValue({ _id: '670f5cb7fcec534287bf881a' } as any);
-      const result = await service.chooseOrganization({
+      const result = await service.changeOrganization(user, {
         organizationId: '670f5cb7fcec534287bf881a',
       });
       expect(result).toBeDefined();

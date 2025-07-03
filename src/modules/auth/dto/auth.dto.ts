@@ -126,7 +126,7 @@ export class VerifyInviteDTO {
   })
   jwtToken: string;
 }
-export class ChooseOrganization {
+export class ChangeOrganization {
   @ApiProperty({
     description: 'Organization id',
     example: 'weuf2e9jf9238r4923r093ur209j',

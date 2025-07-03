@@ -13,6 +13,7 @@ import { OrganizationUserRole } from '../../schemas/OrganizationUserRole.schema'
 import { Role } from '../../schemas/Role.schema';
 import { Users } from '../../schemas/users.schema';
 import { CreateOrganizationDTO } from './dto/organization.dto';
+import { IUserWithOrganization } from '../users/interfaces/users.interfaces';
 
 @Injectable()
 export class OrganizationService {
@@ -27,6 +28,7 @@ export class OrganizationService {
     @InjectModel(Role.name)
     private readonly roleModel: Model<Role>,
   ) {}
+  
 
   async create(createOrganizationDTO: CreateOrganizationDTO, userId: string) {
     if (
@@ -83,9 +85,81 @@ export class OrganizationService {
       throw error;
     }
   }
+
   async findRoles() {
     const roles = await this.roleModel.find({});
     return roles;
+  }
+
+  async findByUser(user: IUserWithOrganization) {
+    if (!user || !user.userId) {
+      throw new BadRequestException('User not found');
+    }
+
+    const userId = user.userId;
+    const userOrganizations = await this.organizationUserRoleModel
+    .aggregate([
+      {
+        $match: { 
+          user: new Types.ObjectId(userId),
+          isDisabled: false,
+        },
+      },
+      { 
+        $sort: { lastAccessed: -1 } 
+      }, // Sort by lastAccessed in descending order
+      {
+        $lookup: {
+          from: 'organizations',
+          localField: 'organization',
+          foreignField: '_id',
+          as: 'organization',
+        },
+      },
+      {
+        $unwind: '$organization',
+      },
+      {
+        $project: {
+          _id: '$organization._id',
+          organizationName: '$organization.organizationName',
+          domain: '$organization.domain',
+          roleId: '$role._id',
+          roleName: '$role.roleName',
+          lastAccessed: 1,
+        },
+      }
+    ]);
+
+    if (!userOrganizations || userOrganizations.length === 0) {
+      throw new NotFoundException(`No organizations found for user with ID ${userId}`);
+    }
+
+    //if userOrganizations._id is equal to user.organizationId,  then return a feild called connected: true, this is a way for it to know if it currently connected to the organization
+    userOrganizations.forEach(org => {
+      org.connected = org._id.toString() === user.organizationId?.toString();
+    });
+
+    return userOrganizations;
+  }
+
+  async changeOrganization(user: IUserWithOrganization, organizationId: string) {
+    try {
+      await this.validateOrgAccess(user.userId, organizationId);
+
+      // const { accessToken, refreshToken } = this.authService.generateTokens(
+      //   user.userId,
+      //   userEmail.emailAddress,
+      //   organizationId ? organizationId.toString() : '',
+      // );
+      // console.log('Access Token:', accessToken);
+      // console.log('Refresh Token:', refreshToken);
+
+      // return { accessToken, refreshToken };
+    } catch (error) {
+      // Optionally log error here
+      throw error;
+    }
   }
 
   async validateOrgAccess(userId: string, orgId: string, roles?: string[]) {
@@ -132,7 +206,7 @@ export class OrganizationService {
     return orgUser;
   }
 
-  async lastOrganization(userId: Types.ObjectId) {
+  async accessLatestOrganization(userId: Types.ObjectId) {
     const organizationUserRole = await this.organizationUserRoleModel
       .find({ user: userId, isDisabled: false })
       .sort({ lastAccessed: -1 })
