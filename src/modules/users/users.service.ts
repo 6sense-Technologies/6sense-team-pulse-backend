@@ -92,8 +92,18 @@ export class UserService {
     page: number,
     limit: number,
     organizationId: string,
-  ): Promise<any[]> {
-    const users = await this.organizationModel.aggregate([
+  ): Promise<{
+    data: any[];
+    paginationMetadata: {
+      page: number;
+      limit: number;
+      totalCount: number;
+      totalPages: number;
+    };
+  }> {
+    const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
+
+    const result = await this.organizationModel.aggregate([
       {
         $match: {
           _id: new Types.ObjectId(organizationId),
@@ -112,32 +122,51 @@ export class UserService {
       },
       {
         $match: {
-          $or: [
-            { 'userDetails.displayName': { $regex: search, $options: 'i' } },
-            { 'userDetails.emailAddress': { $regex: search, $options: 'i' } },
+          $and: [
+            {
+              $or: [
+                { 'userDetails.displayName': { $regex: search, $options: 'i' } },
+                { 'userDetails.emailAddress': { $regex: search, $options: 'i' } },
+              ],
+            },
+            { 'userDetails.isDisabled': false },
           ],
-          'userDetails.isDisabled': false, // Ensure we only get enabled users
         },
       },
       {
-        $project: {
-          _id: '$userDetails._id',
-          displayName: '$userDetails.displayName',
-          emailAddress: '$userDetails.emailAddress',
-          designation: '$userDetails.designation',
-          avatarUrls: '$userDetails.avatarUrls',
+        $facet: {
+          data: [
+            { $project: {
+                _id: '$userDetails._id',
+                displayName: '$userDetails.displayName',
+                emailAddress: '$userDetails.emailAddress',
+                designation: '$userDetails.designation',
+                avatarUrls: '$userDetails.avatarUrls',
+              },
+            },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          totalCount: [{ $count: 'count' }],
         },
-      },
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: limit,
       },
     ]);
 
-    return users;
+    const users = result[0]?.data || [];
+    const totalCount = result[0]?.totalCount[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return {
+      data: users,
+      paginationMetadata: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+      },
+    };
   }
+
 
   /// EXPERIMENTAL MODIFICATION
   async getUserInfo(userId: string, user: IUserWithOrganization): Promise<{
