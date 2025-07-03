@@ -13,8 +13,8 @@ export class LinearController {
     @Query('tool-id') toolId: string,
     @Req() req: Request
   ) {
-    const host = `${req.protocol}://${req.host}`;
-    const redirectUri = await this.linearService.connect(toolId, host);
+    const origin = req.headers.origin;
+    const redirectUri = await this.linearService.connect(toolId, origin);
     return { redirectUri };
   }
 
@@ -24,8 +24,8 @@ export class LinearController {
     @Query('tool-id') toolId: string,
     @Req() req: Request,
   ) {
-    const host = `${req.protocol}://${req.host}`;
-    await this.linearService.handleCallback(code, toolId, host);
+    const origin = req.headers.origin;
+    await this.linearService.handleCallback(code, toolId, origin);
     return { message: 'Tool connected successfully' };
   }
 
