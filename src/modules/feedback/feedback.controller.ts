@@ -28,9 +28,9 @@ export class FeedbackController {
     return this.feedbackService.findAll(user, query, metadata);
   }
 
-  @Auth(['admin', 'member'])
-  @Get(':id')
-  findOne(@Param('id') id: string, @GetUser() user: IUserWithOrganization) {
-    return this.feedbackService.findOne(id, user);
-  }
+  // @Auth(['admin', 'member'])
+  // @Get(':id')
+  // findOne(@Param('id') id: string, @GetUser() user: IUserWithOrganization) {
+  //   return this.feedbackService.findOne(id, user);
+  // }
 }
