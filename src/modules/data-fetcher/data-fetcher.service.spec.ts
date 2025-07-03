@@ -25,6 +25,8 @@ describe('DataFetcherService', () => {
 
   const mockToolModel = {
     find: jest.fn(),
+    aggregate: jest.fn(),
+    exec: jest.fn(),
   };
 
   const mockIssueEntryModel = {
@@ -109,6 +111,7 @@ describe('DataFetcherService', () => {
       const result = await service.dataFetchFromJIRA({
         projectUrl: 'https://test.atlassian.net',
         date: '2024-02-23',
+        organizationId: 'test-org',
       });
 
       expect(result).toBeDefined();
@@ -148,6 +151,7 @@ describe('DataFetcherService', () => {
 
       mockIssueEntryModel.findOneAndUpdate.mockResolvedValueOnce({});
 
+      jest.spyOn(service, 'fetchDataFromAllToolUrls').mockImplementationOnce(() => ({exec: jest.fn()} as any));
       jest.spyOn(service, 'dataFetchFromJIRA').mockResolvedValueOnce(mockIssueData as any);
 
       await service.fetchDataFromAllToolUrls(true);
