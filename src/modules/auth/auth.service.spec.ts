@@ -12,6 +12,7 @@ import { Users } from '../../schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
 import { OrganizationService } from '../organization/organization.service';
 import { AuthService } from './auth.service';
+import { validate } from 'class-validator';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -106,6 +107,8 @@ describe('AuthService', () => {
           useValue: {
             // Add mock methods as needed for your tests
             accessLatestOrganization: jest.fn(),
+            validateOrgAccess: jest.fn(),
+            updateLastAccessed: jest.fn(),
           },
         },
       ],
@@ -360,12 +363,15 @@ describe('AuthService', () => {
 
   describe('changeOrganization', () => {
     const user = {
-      userId: 'user123',
+      userId: '670f5cb7fcec534287bf881a',
       email: 'user123@gmail.com',
       organizationId: '670f5cb7fcec534287bf881a',
     };
+
     it('should return organization not found', async () => {
-      jest.spyOn(organizationModel, 'findOne').mockResolvedValue(null);
+      jest.spyOn(organizationService, 'validateOrgAccess').mockImplementation(() => {
+        throw new NotFoundException();
+      });
       await expect(
         service.changeOrganization(user, {
           organizationId: '670f5cb7fcec534287bf881a',
@@ -373,12 +379,30 @@ describe('AuthService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should return organization', async () => {
-      jest.spyOn(organizationModel, 'findOne').mockResolvedValue({ _id: '670f5cb7fcec534287bf881a' } as any);
+    it('should return new tokens when organization is changed', async () => {
+      jest.spyOn(organizationService, 'validateOrgAccess').mockResolvedValue({} as any);
+      jest.spyOn(organizationService, 'updateLastAccessed').mockResolvedValue(undefined);
+      jest.spyOn(service, 'generateTokens' as any).mockReturnValue({
+        accessToken: 'newAccessToken',
+        refreshToken: 'newRefreshToken',
+      });
+
       const result = await service.changeOrganization(user, {
         organizationId: '670f5cb7fcec534287bf881a',
       });
-      expect(result).toBeDefined();
+
+      expect(organizationService.validateOrgAccess).toHaveBeenCalledWith(
+        user.userId,
+        '670f5cb7fcec534287bf881a',
+      );
+      expect(organizationService.updateLastAccessed).toHaveBeenCalledWith(
+        new Types.ObjectId(user.userId),
+        new Types.ObjectId('670f5cb7fcec534287bf881a'),
+      );
+      expect(result).toEqual({
+        accessToken: 'newAccessToken',
+        refreshToken: 'newRefreshToken',
+      });
     });
   });
 
