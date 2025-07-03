@@ -189,7 +189,19 @@ export class FeedbackService {
     ];
 
     const results = await this.feedbackModel.aggregate(aggregate as PipelineStage[]);
-    return results[0] || { data: [], count: 0 };
+
+    const totalCount = results[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / parseInt(query.limit.toString() ?? '10'));
+
+    return {
+      data: results[0]?.data || [],
+      paginationMetadata: {
+        page: parseInt(query.page.toString() ?? '1'),
+        limit: parseInt(query.limit.toString() ?? '10'),
+        totalCount,
+        totalPages,
+      },
+    };
   }
 
   // async findOne(id: string, user: IUserWithOrganization) {
