@@ -2,21 +2,30 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Query, Res } fr
 import { LinearService } from './linear.service';
 import { CreateLinearDto } from './dto/create-linear.dto';
 import { UpdateLinearDto } from './dto/update-linear.dto';
-import { Response } from 'express';
+import { Request } from 'express';
 
 @Controller('linear')
 export class LinearController {
   constructor(private readonly linearService: LinearService) {}
 
   @Get('connect')
-  async connect(@Query('tool-id') toolId: string) {
-    const redirectUri = await this.linearService.connect(toolId);
+  async connect(
+    @Query('tool-id') toolId: string,
+    @Req() req: Request
+  ) {
+    const host = `${req.protocol}://${req.host}`;
+    const redirectUri = await this.linearService.connect(toolId, host);
     return { redirectUri };
   }
 
   @Get('callback')
-  async callback(@Query('code') code: string, @Query('tool-id') toolId: string) {
-    await this.linearService.handleCallback(code, toolId);
+  async callback(
+    @Query('code') code: string, 
+    @Query('tool-id') toolId: string,
+    @Req() req: Request,
+  ) {
+    const host = `${req.protocol}://${req.host}`;
+    await this.linearService.handleCallback(code, toolId, host);
     return { message: 'Tool connected successfully' };
   }
 

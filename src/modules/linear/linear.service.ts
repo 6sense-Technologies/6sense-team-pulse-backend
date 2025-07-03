@@ -42,18 +42,18 @@ export class LinearService {
     return tool;
   }
 
-  async connect(toolId: string) {
+  async connect(toolId: string, hostURL: string) {
     await this.linearToolValidation(toolId);
     // // Redirect user to Linear OAuth authorization URL
     const clientId = this.configService.getOrThrow<string>('LINEAR_CLIENT_ID');
-    const redirectUri = this.configService.getOrThrow<string>('LINEAR_REDIRECT_URI');
+    const redirectUri = hostURL;
     const state = 'SECURE_RANDOM';
     const scope = 'read';
     const url = `https://linear.app/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}&scope=${scope}`;
     return url;
   }
 
-  async handleCallback(code: string, toolId: string) {
+  async handleCallback(code: string, toolId: string, hostURL: string) {
     try {
       // Validate input
       if (!code || code.trim() === '') {
@@ -64,7 +64,7 @@ export class LinearService {
 
       const clientId = this.configService.getOrThrow<string>('LINEAR_CLIENT_ID');
       const clientSecret = this.configService.getOrThrow<string>('LINEAR_CLIENT_SECRET');
-      const redirectUri = this.configService.getOrThrow<string>('LINEAR_REDIRECT_URI');
+      const redirectUri = hostURL;
 
       const params = new URLSearchParams();
       params.append('code', code);
