@@ -169,10 +169,10 @@ export class FeedbackService {
           data: [
             {
               $skip:
-                (parseInt(query.page.toString() ?? '1') - 1) *
-                parseInt(query.limit.toString() ?? '10'),
+                (parseInt(query?.page?.toString() ?? '1') - 1) *
+                parseInt(query?.limit?.toString() ?? '10'),
             },
-            { $limit: parseInt(query.limit.toString() ?? '10') },
+            { $limit: parseInt(query?.limit?.toString() ?? '10') },
           ],
         },
       },
@@ -191,13 +191,13 @@ export class FeedbackService {
     const results = await this.feedbackModel.aggregate(aggregate as PipelineStage[]);
 
     const totalCount = results[0]?.count || 0;
-    const totalPages = Math.ceil(totalCount / parseInt(query.limit.toString() ?? '10'));
+    const totalPages = Math.ceil(totalCount / parseInt(query?.limit?.toString() ?? '10'));
 
     return {
       data: results[0]?.data || [],
       paginationMetadata: {
-        page: parseInt(query.page.toString() ?? '1'),
-        limit: parseInt(query.limit.toString() ?? '10'),
+        page: parseInt(query?.page?.toString() ?? '1'),
+        limit: parseInt(query?.limit?.toString() ?? '10'),
         totalCount,
         totalPages,
       },

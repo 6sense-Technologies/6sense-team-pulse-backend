@@ -32,6 +32,7 @@ describe('FeedbackService', () => {
           provide: getModelToken(IssueEntry.name),
           useValue: {
             find: jest.fn(),
+            aggregate: jest.fn(),
           },
         },
         {
@@ -81,7 +82,7 @@ describe('FeedbackService', () => {
         .spyOn(organizationService, 'validateOrgAccess')
         .mockResolvedValue({ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') } as any);
 
-      jest.spyOn(issueEntryModel, 'find').mockResolvedValue([]);
+      jest.spyOn(issueEntryModel, 'aggregate').mockResolvedValue([]);
 
       await expect(
         service.create(
@@ -108,7 +109,7 @@ describe('FeedbackService', () => {
         .mockResolvedValue({ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') } as any);
 
       jest
-        .spyOn(issueEntryModel, 'find')
+        .spyOn(issueEntryModel, 'aggregate')
         .mockResolvedValue([{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') } as any]);
 
       const feedbackDto = {
@@ -136,36 +137,148 @@ describe('FeedbackService', () => {
   });
 
   describe('findAll', () => {
-    it('should find all feedback', async () => {
+    it('should find all feedback and return paginated result', async () => {
       const user = {
         userId: '670f5cb7fcec534287bf881a',
         organizationId: '670f5cb7fcec534287bf881a',
+        email: 'test@example.com',
       };
-      const req = {
-        query: {
+      const query = {
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+      } as any;
+      const metadata = { timezoneRegion: 'Asia/Dhaka' } as any;
+
+      const mockResult = [
+        {
+          data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a'), comment: 'Test' }],
+          count: 1,
+        },
+      ];
+
+      jest.spyOn(feedbackModel, 'aggregate').mockResolvedValueOnce(mockResult);
+
+      const result = await service.findAll(user, query, metadata);
+
+      expect(result).toEqual({
+        data: [{ _id: expect.any(Types.ObjectId), comment: 'Test' }],
+        paginationMetadata: {
           page: 1,
           limit: 10,
-          sort: 'createdAt',
-          order: 'desc',
-          search: 'abc',
-          filter: 'us,Bug',
-          startDate: '2025-01-01',
-          endDate: '2025-01-01',
+          totalCount: 1,
+          totalPages: 1,
         },
+      });
+      expect(feedbackModel.aggregate).toHaveBeenCalled();
+    });
+
+    it('should return empty data and correct pagination if no feedback found', async () => {
+      const user = {
+        userId: '670f5cb7fcec534287bf881a',
+        organizationId: '670f5cb7fcec534287bf881a',
+        email: 'test@example.com',
+      };
+      const query = {
+        page: 2,
+        limit: 5,
+        sortOrder: 'asc',
       } as any;
+      const metadata = { timezoneRegion: 'Asia/Dhaka' } as any;
 
-      jest
-        .spyOn(feedbackModel, 'aggregate')
-        .mockResolvedValueOnce([
-          { data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') }], count: 1 },
-        ]);
+      jest.spyOn(feedbackModel, 'aggregate').mockResolvedValueOnce([{ data: [], count: 0 }]);
 
-      const feedback = await service.findAll(user, req, { timezoneRegion: 'Asia/Dhaka' } as any);
+      const result = await service.findAll(user, query, metadata);
 
-      expect(feedback).toEqual({
-        data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') }],
-        count: 1,
+      expect(result).toEqual({
+        data: [],
+        paginationMetadata: {
+          page: 2,
+          limit: 5,
+          totalCount: 0,
+          totalPages: 0,
+        },
       });
     });
+
+    it('should handle missing count in aggregation result gracefully', async () => {
+      const user = {
+        userId: '670f5cb7fcec534287bf881a',
+        organizationId: '670f5cb7fcec534287bf881a',
+        email: 'test@example.com',
+      };
+      const query = {
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+      } as any;
+      const metadata = { timezoneRegion: 'Asia/Dhaka' } as any;
+
+      jest.spyOn(feedbackModel, 'aggregate').mockResolvedValueOnce([{}]);
+
+      const result = await service.findAll(user, query, metadata);
+
+      expect(result).toEqual({
+        data: [],
+        paginationMetadata: {
+          page: 1,
+          limit: 10,
+          totalCount: 0,
+          totalPages: 0,
+        },
+      });
+    });
+
+    it('should parse page and limit as numbers and fallback to defaults', async () => {
+      const user = {
+        userId: '670f5cb7fcec534287bf881a',
+        organizationId: '670f5cb7fcec534287bf881a',
+        email: 'test@example.com',
+      };
+      const query = {
+        sortOrder: 'desc',
+      } as any;
+      const metadata = { timezoneRegion: 'Asia/Dhaka' } as any;
+
+      jest.spyOn(feedbackModel, 'aggregate').mockResolvedValueOnce([{ data: [], count: 0 }]);
+
+      const result = await service.findAll(user, query, metadata);
+
+      expect(result.paginationMetadata.page).toBe(1);
+      expect(result.paginationMetadata.limit).toBe(10);
+    });
   });
+  //     });
+  //       const user = {
+  //         userId: '670f5cb7fcec534287bf881a',
+  //         organizationId: '670f5cb7fcec534287bf881a',
+  //         email: 'test@example.com',
+  //       };
+  //       const req = {
+  //         query: {
+  //           page: 1,
+  //           limit: 10,
+  //           sort: 'createdAt',
+  //           order: 'desc',
+  //           search: 'abc',
+  //           filter: 'us,Bug',
+  //           startDate: '2025-01-01',
+  //           endDate: '2025-01-01',
+  //         },
+  //       } as any;
+
+  //       jest
+  //         .spyOn(feedbackModel, 'aggregate')
+  //         .mockResolvedValueOnce([
+  //           { data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') }], count: 1 },
+  //         ]);
+
+  //       const feedback = await service.findAll(user, req, { timezoneRegion: 'Asia/Dhaka' } as any);
+
+  //       expect(feedback).toEqual({
+  //         data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') }],
+  //         count: 1,
+  //       });
+  //     });
+  // });
 });
