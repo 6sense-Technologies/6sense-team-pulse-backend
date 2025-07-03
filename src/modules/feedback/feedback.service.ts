@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { DateTime } from 'luxon';
 import { Model, PipelineStage, Types } from 'mongoose';
 import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
 import { Feedback, FeedbackDocument } from 'src/schemas/feedback.entity';
@@ -8,7 +7,6 @@ import { IssueEntry } from 'src/schemas/IssueEntry.schema';
 import { OrganizationService } from '../organization/organization.service';
 import { IUserWithOrganization } from '../users/interfaces/users.interfaces';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
-import { FeedbackType } from './enums/feedbackType.enum';
 import { IFeedbackQuery } from './interface/feedbackList.interface';
 
 @Injectable()
@@ -63,14 +61,13 @@ export class FeedbackService {
   }
 
   async findAll(user: IUserWithOrganization, query: IFeedbackQuery, metadata: RequestMetadataDto) {
-    const { page = 1, limit = 10, filter, search, sortOrder = -1 } = query;
-    let { startDate, endDate } = query;
-    const { timezoneRegion } = metadata;
+    // let { startDate, endDate } = query;
+    // const { timezoneRegion } = metadata;
 
-    let filterParts: string[] = [];
-    if (filter) {
-      filterParts = filter.split(',').map((f: string) => f.trim());
-    }
+    // let filterParts: string[] = [];
+    // if (query.filter) {
+    //   filterParts = query.filter.split(',').map((f: string) => f.trim());
+    // }
 
     const baseMatch: Record<string, any> = {
       organization: new Types.ObjectId(`${user.organizationId}`),
@@ -80,38 +77,38 @@ export class FeedbackService {
       ],
     };
 
-    const types: string[] = [];
-    for (const filter of filterParts) {
-      if (filter.toLowerCase() === 'us') {
-        types.push(FeedbackType.USER_STORY);
-      } else {
-        types.push(filter);
-      }
-    }
+    // const types: string[] = [];
+    // for (const filter of filterParts) {
+    //   if (filter.toLowerCase() === 'us') {
+    //     types.push(FeedbackType.USER_STORY);
+    //   } else {
+    //     types.push(filter);
+    //   }
+    // }
 
-    if (types.length > 0) {
-      baseMatch.type = { $in: types };
-    }
+    // if (types.length > 0) {
+    //   baseMatch.type = { $in: types };
+    // }
 
-    const searchMatch: Record<string, any> = {};
+    // const searchMatch: Record<string, any> = {};
 
-    if (search) {
-      searchMatch.$or = [
-        { comment: { $regex: search, $options: 'i' } },
-        { 'assignedTo.displayName': { $regex: search, $options: 'i' } },
-        { 'assignedBy.displayName': { $regex: search, $options: 'i' } },
-      ];
-    }
+    // if (query.search) {
+    //   searchMatch.$or = [
+    //     { comment: { $regex: query.search, $options: 'i' } },
+    //     { 'assignedTo.displayName': { $regex: query.search, $options: 'i' } },
+    //     { 'assignedBy.displayName': { $regex: query.search, $options: 'i' } },
+    //   ];
+    // }
 
-    if (startDate && endDate) {
-      startDate = DateTime.fromISO(startDate.toString(), { zone: timezoneRegion })
-        .startOf('day')
-        .toJSDate();
-      endDate = DateTime.fromISO(endDate.toString(), { zone: timezoneRegion })
-        .endOf('day')
-        .toJSDate();
-      baseMatch.createdAt = { $gte: startDate, $lte: endDate };
-    }
+    // if (startDate && endDate) {
+    //   startDate = DateTime.fromISO(startDate.toString(), { zone: timezoneRegion })
+    //     .startOf('day')
+    //     .toJSDate();
+    //   endDate = DateTime.fromISO(endDate.toString(), { zone: timezoneRegion })
+    //     .endOf('day')
+    //     .toJSDate();
+    //   baseMatch.createdAt = { $gte: startDate, $lte: endDate };
+    // }
 
     const aggregate = [
       { $match: baseMatch },
@@ -158,18 +155,25 @@ export class FeedbackService {
       },
       { $unwind: '$assignedBy' },
 
-      ...(search ? [{ $match: searchMatch }] : []),
+      // ...(query.search ? [{ $match: searchMatch }] : []),
 
       {
         $sort: {
-          createdAt: sortOrder,
+          createdAt: query.sortOrder === 'asc' ? 1 : -1,
         },
       },
 
       {
         $facet: {
           total: [{ $count: 'total' }],
-          data: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+          data: [
+            {
+              $skip:
+                (parseInt(query.page.toString() ?? '1') - 1) *
+                parseInt(query.limit.toString() ?? '10'),
+            },
+            { $limit: parseInt(query.limit.toString() ?? '10') },
+          ],
         },
       },
       {
@@ -185,48 +189,60 @@ export class FeedbackService {
     ];
 
     const results = await this.feedbackModel.aggregate(aggregate as PipelineStage[]);
-    return results[0] || { data: [], count: 0 };
+
+    const totalCount = results[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / parseInt(query.limit.toString() ?? '10'));
+
+    return {
+      data: results[0]?.data || [],
+      paginationMetadata: {
+        page: parseInt(query.page.toString() ?? '1'),
+        limit: parseInt(query.limit.toString() ?? '10'),
+        totalCount,
+        totalPages,
+      },
+    };
   }
 
-  async findOne(id: string, user: IUserWithOrganization) {
-    const aggregate: PipelineStage[] = [
-      {
-        $match: {
-          _id: new Types.ObjectId(id),
-          organization: new Types.ObjectId(user.organizationId),
-          $or: [
-            { assignedTo: new Types.ObjectId(user.userId) },
-            { assignedBy: new Types.ObjectId(user.userId) },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: 'users',
-          let: { assignedToId: '$assignedTo' },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$_id', '$$assignedToId'] } } },
-            {
-              $project: {
-                _id: 1,
-                displayName: 1,
-                emailAddress: 1,
-                avatarUrls: 1,
-                designation: 1,
-              },
-            },
-          ],
-          as: 'assignedTo',
-        },
-      },
-      { $unwind: '$assignedTo' },
-    ];
+  // async findOne(id: string, user: IUserWithOrganization) {
+  //   const aggregate: PipelineStage[] = [
+  //     {
+  //       $match: {
+  //         _id: new Types.ObjectId(id),
+  //         organization: new Types.ObjectId(user.organizationId),
+  //         $or: [
+  //           { assignedTo: new Types.ObjectId(user.userId) },
+  //           { assignedBy: new Types.ObjectId(user.userId) },
+  //         ],
+  //       },
+  //     },
+  //     {
+  //       $lookup: {
+  //         from: 'users',
+  //         let: { assignedToId: '$assignedTo' },
+  //         pipeline: [
+  //           { $match: { $expr: { $eq: ['$_id', '$$assignedToId'] } } },
+  //           {
+  //             $project: {
+  //               _id: 1,
+  //               displayName: 1,
+  //               emailAddress: 1,
+  //               avatarUrls: 1,
+  //               designation: 1,
+  //             },
+  //           },
+  //         ],
+  //         as: 'assignedTo',
+  //       },
+  //     },
+  //     { $unwind: '$assignedTo' },
+  //   ];
 
-    const feedbacks = await this.feedbackModel.aggregate(aggregate);
-    if (!feedbacks.length) {
-      throw new NotFoundException('Feedback not found');
-    }
+  //   const feedbacks = await this.feedbackModel.aggregate(aggregate);
+  //   if (!feedbacks.length) {
+  //     throw new NotFoundException('Feedback not found');
+  //   }
 
-    return feedbacks[0];
-  }
+  //   return feedbacks[0];
+  // }
 }
