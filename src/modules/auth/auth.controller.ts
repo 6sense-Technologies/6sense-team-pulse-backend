@@ -96,6 +96,9 @@ export class AuthController {
     @Body() changeOrg: ChangeOrganization,
     @GetUser() user: IUserWithOrganization,
   ) {
+    if (user.organizationId?.toString() === changeOrg.organizationId) {
+      return { message: 'You are already in this organization.' };
+    }
     return this.authService.changeOrganization(user, changeOrg);
   }
 }
