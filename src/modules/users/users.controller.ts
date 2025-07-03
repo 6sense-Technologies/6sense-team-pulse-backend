@@ -47,7 +47,7 @@ export class UserController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Req() req: Request,
-  ): Promise<any[]> {
+  ): Promise<any> {
     return this.userService.userList(search, page, limit, req['user'].organizationId);
   }
 
