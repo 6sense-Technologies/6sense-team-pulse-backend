@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { DateTime } from 'luxon';
 import { Model, PipelineStage, Types } from 'mongoose';
 import { IPaginationMetadata } from 'src/common/interfaces/pagination.interface';
 import { RequestMetadataDto } from 'src/common/request-metadata/request-metadata.dto';
@@ -8,6 +9,7 @@ import { IssueEntry } from 'src/schemas/IssueEntry.schema';
 import { OrganizationService } from '../organization/organization.service';
 import { IUserWithOrganization } from '../users/interfaces/users.interfaces';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
+import { FeedbackType } from './enums/feedbackType.enum';
 import { IFeedback } from './interface/feedback.interface';
 import { IFeedbackQuery } from './interface/feedbackList.interface';
 
@@ -71,13 +73,13 @@ export class FeedbackService {
     query: IFeedbackQuery,
     metadata: RequestMetadataDto,
   ): Promise<{ data: IFeedback[]; paginationMetadata: IPaginationMetadata }> {
-    // let { startDate, endDate } = query;
-    // const { timezoneRegion } = metadata;
+    let { startDate, endDate } = query;
+    const { timezoneRegion } = metadata;
 
-    // let filterParts: string[] = [];
-    // if (query.filter) {
-    //   filterParts = query.filter.split(',').map((f: string) => f.trim());
-    // }
+    let filterParts: string[] = [];
+    if (query.filter) {
+      filterParts = query.filter.split(',').map((f: string) => f.trim());
+    }
 
     const baseMatch: Record<string, any> = {
       organization: new Types.ObjectId(`${user.organizationId}`),
@@ -87,38 +89,38 @@ export class FeedbackService {
       ],
     };
 
-    // const types: string[] = [];
-    // for (const filter of filterParts) {
-    //   if (filter.toLowerCase() === 'us') {
-    //     types.push(FeedbackType.USER_STORY);
-    //   } else {
-    //     types.push(filter);
-    //   }
-    // }
+    const types: string[] = [];
+    for (const filter of filterParts) {
+      if (filter.toLowerCase() === 'us') {
+        types.push(FeedbackType.USER_STORY);
+      } else {
+        types.push(filter);
+      }
+    }
 
-    // if (types.length > 0) {
-    //   baseMatch.type = { $in: types };
-    // }
+    if (types.length > 0) {
+      baseMatch.type = { $in: types };
+    }
 
-    // const searchMatch: Record<string, any> = {};
+    const searchMatch: Record<string, any> = {};
 
-    // if (query.search) {
-    //   searchMatch.$or = [
-    //     { comment: { $regex: query.search, $options: 'i' } },
-    //     { 'assignedTo.displayName': { $regex: query.search, $options: 'i' } },
-    //     { 'assignedBy.displayName': { $regex: query.search, $options: 'i' } },
-    //   ];
-    // }
+    if (query.search) {
+      searchMatch.$or = [
+        { comment: { $regex: query.search, $options: 'i' } },
+        { 'assignedTo.displayName': { $regex: query.search, $options: 'i' } },
+        { 'assignedBy.displayName': { $regex: query.search, $options: 'i' } },
+      ];
+    }
 
-    // if (startDate && endDate) {
-    //   startDate = DateTime.fromISO(startDate.toString(), { zone: timezoneRegion })
-    //     .startOf('day')
-    //     .toJSDate();
-    //   endDate = DateTime.fromISO(endDate.toString(), { zone: timezoneRegion })
-    //     .endOf('day')
-    //     .toJSDate();
-    //   baseMatch.createdAt = { $gte: startDate, $lte: endDate };
-    // }
+    if (startDate && endDate) {
+      startDate = DateTime.fromISO(startDate.toString(), { zone: timezoneRegion })
+        .startOf('day')
+        .toJSDate();
+      endDate = DateTime.fromISO(endDate.toString(), { zone: timezoneRegion })
+        .endOf('day')
+        .toJSDate();
+      baseMatch.createdAt = { $gte: startDate, $lte: endDate };
+    }
 
     const aggregate = [
       { $match: baseMatch },
@@ -165,7 +167,7 @@ export class FeedbackService {
       },
       { $unwind: '$assignedBy' },
 
-      // ...(query.search ? [{ $match: searchMatch }] : []),
+      ...(query.search ? [{ $match: searchMatch }] : []),
 
       {
         $sort: {

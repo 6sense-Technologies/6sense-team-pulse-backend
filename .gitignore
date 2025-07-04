@@ -60,3 +60,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Sentry Config File
 .sentryclirc
 documentation
+
+#Ignore cursor AI rules
+.cursor\rules\codacy.mdc
