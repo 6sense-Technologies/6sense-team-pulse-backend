@@ -1,6 +1,20 @@
-import { Controller, Get, Post, Body, Param, BadRequestException, Put, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  BadRequestException,
+  Put,
+  Inject,
+} from '@nestjs/common';
 import { JiraService } from './jira.service';
-import { IDailyMetrics, IJiraUserData, IJirsUserIssues, ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
+import {
+  IDailyMetrics,
+  IJiraUserData,
+  IJirsUserIssues,
+  ISuccessResponse,
+} from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/enums/user.enum';
 // import { ClientMqtt, MessagePattern, Payload } from '@nestjs/microservices';
 
@@ -38,7 +52,10 @@ export class JiraController {
   }
 
   @Get('users/issues/:accountId/:date')
-  async getUserIssues(@Param('accountId') accountId: string, @Param('date') date: string): Promise<IJirsUserIssues[]> {
+  async getUserIssues(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<IJirsUserIssues[]> {
     return await this.jiraService.getUserIssues(accountId, date);
   }
 
@@ -76,12 +93,18 @@ export class JiraController {
   }
 
   @Put('planned-issues/:accountId/:date')
-  async countNotDoneIssuesForToday(@Param('accountId') accountId: string, @Param('date') date: string): Promise<void> {
+  async countNotDoneIssuesForToday(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<void> {
     await this.jiraService.countPlannedIssues(accountId, date);
   }
 
   @Put('done-issues/:accountId/:date')
-  async countDoneIssuesForToday(@Param('accountId') accountId: string, @Param('date') date: string): Promise<void> {
+  async countDoneIssuesForToday(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<void> {
     await this.jiraService.countDoneIssues(accountId, date);
   }
 

@@ -189,7 +189,10 @@ export class JiraService {
     }
   }
 
-  async getUserDetailsFromJira(jiraWorkspaceUrl: string, accountId: string): Promise<IJiraUserData> {
+  async getUserDetailsFromJira(
+    jiraWorkspaceUrl: string,
+    accountId: string,
+  ): Promise<IJiraUserData> {
     const endpoint = `/rest/api/3/user?accountId=${accountId}`;
     try {
       const response1 = await firstValueFrom(
@@ -763,7 +766,11 @@ export class JiraService {
         });
       const matchedDoneBugIds = doneIssues
         .filter((issue) => {
-          return issue.issueType === 'Bug' && issue.status === 'Done' && notDoneBugIds.includes(issue.issueId);
+          return (
+            issue.issueType === 'Bug' &&
+            issue.status === 'Done' &&
+            notDoneBugIds.includes(issue.issueId)
+          );
         })
         .map((issue) => {
           return issue.issueId;
@@ -771,7 +778,9 @@ export class JiraService {
 
       // Calculate total done issues
       const totalDoneTasks = doneIssues.filter((issue) => {
-        return issue.issueType === 'Task' && (issue.status === 'Done' || issue.status === 'In Review');
+        return (
+          issue.issueType === 'Task' && (issue.status === 'Done' || issue.status === 'In Review')
+        );
       }).length;
 
       const totalDoneStories = doneIssues.filter((issue) => {
@@ -815,7 +824,8 @@ export class JiraService {
       const unmatchedDoneTasks = totalDoneTasks - matchedDoneTaskIds.length;
       const unmatchedDoneStories = totalDoneStories - matchedDoneStoryIds.length;
       const unmatchedDoneBugs = totalDoneBugs - matchedDoneBugIds.length;
-      const totalUnmatchedDoneIssues = unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
+      const totalUnmatchedDoneIssues =
+        unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
 
       if (totalUnmatchedDoneIssues > 0) {
         comment += ` ${totalUnmatchedDoneIssues} issue(s) that you completed do not match your target issues.`;
@@ -838,7 +848,11 @@ export class JiraService {
         return issue.issueId;
       });
       const totalCompletedBugs = doneIssues.filter((issue) => {
-        return issue.issueType === 'Bug' && issue.status === 'Done' && !notDoneIssueIds.includes(issue.issueId);
+        return (
+          issue.issueType === 'Bug' &&
+          issue.status === 'Done' &&
+          !notDoneIssueIds.includes(issue.issueId)
+        );
       }).length;
 
       const countedCodeIssueIds = new Set();
@@ -846,7 +860,10 @@ export class JiraService {
         if (bug.issueType === 'Bug' && bug.status === 'Done') {
           bug.issueLinks.forEach((link) => {
             const linkedIssueId = link.issueId;
-            if (matchedDoneTaskIds.includes(linkedIssueId) || matchedDoneStoryIds.includes(linkedIssueId)) {
+            if (
+              matchedDoneTaskIds.includes(linkedIssueId) ||
+              matchedDoneStoryIds.includes(linkedIssueId)
+            ) {
               countedCodeIssueIds.add(linkedIssueId);
             }
           });
@@ -855,7 +872,9 @@ export class JiraService {
 
       const totalCompletedCodeIssues = countedCodeIssueIds.size;
       if (totalCompletedCodeIssues > 0 && totalCompletedBugs > 0) {
-        codeToBugRatio = parseFloat(((totalCompletedBugs / totalCompletedCodeIssues) * 100).toFixed(2));
+        codeToBugRatio = parseFloat(
+          ((totalCompletedBugs / totalCompletedCodeIssues) * 100).toFixed(2),
+        );
       }
 
       entry.taskCompletionRate = taskCompletionRate;

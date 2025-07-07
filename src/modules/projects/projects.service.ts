@@ -32,7 +32,9 @@ export class ProjectsService {
     session.startTransaction();
 
     try {
-      const existing = await this.projectModel.findOne({ name: createProjectDto.name }, null, { session });
+      const existing = await this.projectModel.findOne({ name: createProjectDto.name }, null, {
+        session,
+      });
 
       if (existing) {
         throw new ConflictException('Project with this name already exists');
@@ -139,8 +141,8 @@ export class ProjectsService {
               $project: {
                 _id: 1,
                 name: 1,
-                "tools._id": 1,
-                "tools.toolName": 1,
+                'tools._id': 1,
+                'tools.toolName': 1,
                 teamSize: 1, // Include teamSize in the results
                 createdBy: 1,
                 createdAt: 1,
@@ -305,7 +307,12 @@ export class ProjectsService {
                             {
                               $or: [
                                 { $eq: [{ $type: '$$tool.accessToken' }, 'missing'] },
-                                { $eq: [{ $trim: { input: { $ifNull: ['$$tool.accessToken', ''] } } }, ''] },
+                                {
+                                  $eq: [
+                                    { $trim: { input: { $ifNull: ['$$tool.accessToken', ''] } } },
+                                    '',
+                                  ],
+                                },
                               ],
                             },
                             false,

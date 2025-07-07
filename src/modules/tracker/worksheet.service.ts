@@ -32,7 +32,13 @@ export class WorksheetService {
     private readonly activityService: ActivityService,
   ) {}
 
-  async getWorksheetNames(userId: string, organizationId: string, projectId: string, name: string, date: string) {
+  async getWorksheetNames(
+    userId: string,
+    organizationId: string,
+    projectId: string,
+    name: string,
+    date: string,
+  ) {
     try {
       const worksheets = await this.worksheetModel.aggregate([
         {
@@ -131,7 +137,11 @@ export class WorksheetService {
     }
   }
 
-  async assignActivitiesToWorksheet(userId: string, organizationId: string, assignActivitiesDto: AssignActivitiesDto) {
+  async assignActivitiesToWorksheet(
+    userId: string,
+    organizationId: string,
+    assignActivitiesDto: AssignActivitiesDto,
+  ) {
     const { projectId, worksheetName, activityIds, date } = assignActivitiesDto;
 
     const session = await this.connection.startSession();
@@ -182,14 +192,18 @@ export class WorksheetService {
       });
 
       if (alreadyLinked.length > 0) {
-        this.logger.debug(`Already linked activities: ${alreadyLinked.map((a) => a.activity.toString())}`);
+        this.logger.debug(
+          `Already linked activities: ${alreadyLinked.map((a) => a.activity.toString())}`,
+        );
         throw new BadRequestException('One or more activities are already linked to a worksheet.');
       }
 
       const alreadyLinkedSet = new Set(alreadyLinked.map((a) => a.activity.toString()));
 
       // Filter unlinked activities
-      const unlinkedActivities = validActivities.filter((a) => !alreadyLinkedSet.has(a._id.toString()));
+      const unlinkedActivities = validActivities.filter(
+        (a) => !alreadyLinkedSet.has(a._id.toString()),
+      );
 
       // Prepare links
       const links = unlinkedActivities.map((activity) => ({
@@ -253,8 +267,13 @@ export class WorksheetService {
         throw new NotFoundException('Worksheet not found.');
       }
 
-      if (worksheet.user.toString() !== userId || worksheet.organization.toString() !== organizationId) {
-        throw new UnauthorizedException('You are not authorized to remove activities from this worksheet.');
+      if (
+        worksheet.user.toString() !== userId ||
+        worksheet.organization.toString() !== organizationId
+      ) {
+        throw new UnauthorizedException(
+          'You are not authorized to remove activities from this worksheet.',
+        );
       }
 
       const activityObjectIds = activityIds.map((id) => new Types.ObjectId(id));
@@ -338,7 +357,10 @@ export class WorksheetService {
         throw new BadRequestException('Worksheet not found.');
       }
 
-      if (worksheet.user.toString() !== userId || worksheet.organization.toString() !== organizationId) {
+      if (
+        worksheet.user.toString() !== userId ||
+        worksheet.organization.toString() !== organizationId
+      ) {
         throw new UnauthorizedException('You are not authorized to access this worksheet.');
       }
 
@@ -607,7 +629,10 @@ export class WorksheetService {
       const totalCount = result[0].totalCount[0]?.count || 0;
       const totalSeconds = Math.floor(result[0].totalTime[0]?.totalSeconds || 0);
 
-      const { hours, minutes, seconds } = calculateTimeSpent(new Date(0), new Date(totalSeconds * 1000));
+      const { hours, minutes, seconds } = calculateTimeSpent(
+        new Date(0),
+        new Date(totalSeconds * 1000),
+      );
 
       const transformed = activities.map((wa) => ({
         _id: wa._id,
@@ -978,8 +1003,10 @@ export class WorksheetService {
 
       // Sorting
       allWorksheets.sort((a, b) => {
-        const valA = sortBy === 'duration' ? a.totalLoggedTime.totalSeconds : new Date(a.createdAt).getTime();
-        const valB = sortBy === 'duration' ? b.totalLoggedTime.totalSeconds : new Date(b.createdAt).getTime();
+        const valA =
+          sortBy === 'duration' ? a.totalLoggedTime.totalSeconds : new Date(a.createdAt).getTime();
+        const valB =
+          sortBy === 'duration' ? b.totalLoggedTime.totalSeconds : new Date(b.createdAt).getTime();
 
         return sortMultiplier * (valA - valB);
       });
@@ -1128,7 +1155,10 @@ export class WorksheetService {
             this.logger.warn(`Skipping activity with missing times: ${JSON.stringify(a)}`);
             continue;
           }
-          const { totalSeconds: seconds } = calculateTimeSpent(new Date(a.startTime), new Date(a.endTime));
+          const { totalSeconds: seconds } = calculateTimeSpent(
+            new Date(a.startTime),
+            new Date(a.endTime),
+          );
           totalSeconds += seconds;
         }
         return calculateTimeSpent(new Date(0), new Date(totalSeconds * 1000));
@@ -1150,15 +1180,24 @@ export class WorksheetService {
       return {
         today: {
           ...today,
-          percentChangeFromYesterday: computePercentChange(today.totalSeconds, yesterday.totalSeconds),
+          percentChangeFromYesterday: computePercentChange(
+            today.totalSeconds,
+            yesterday.totalSeconds,
+          ),
         },
         thisWeek: {
           ...thisWeek,
-          percentChangeFromLastWeek: computePercentChange(thisWeek.totalSeconds, lastWeek.totalSeconds),
+          percentChangeFromLastWeek: computePercentChange(
+            thisWeek.totalSeconds,
+            lastWeek.totalSeconds,
+          ),
         },
         thisMonth: {
           ...thisMonth,
-          percentChangeFromLastMonth: computePercentChange(thisMonth.totalSeconds, lastMonth.totalSeconds),
+          percentChangeFromLastMonth: computePercentChange(
+            thisMonth.totalSeconds,
+            lastMonth.totalSeconds,
+          ),
         },
         allTime: allTime,
       };

@@ -150,7 +150,11 @@ describe('GithubService', () => {
           },
         ]);
 
-        const result = await service.summary('670f5cb7fcec534287bf881a', new Date().toISOString(), 'UTC');
+        const result = await service.summary(
+          '670f5cb7fcec534287bf881a',
+          new Date().toISOString(),
+          'UTC',
+        );
         expect(result.summary.totalAdditionsSum).toBe(5);
       });
     });
@@ -158,7 +162,12 @@ describe('GithubService', () => {
     describe('getContributions', () => {
       it('should return getContributions', async () => {
         jest.spyOn(mockGitContributionModel, 'aggregate').mockResolvedValueOnce([{}]);
-        const result = await service.getContributions('670f5cb7fcec534287bf881a', new Date().toISOString(), 1, 10);
+        const result = await service.getContributions(
+          '670f5cb7fcec534287bf881a',
+          new Date().toISOString(),
+          1,
+          10,
+        );
         expect(result).toEqual({});
       });
     });
@@ -223,7 +232,10 @@ describe('GithubService', () => {
           commitDate: '',
         });
 
-        expect(loggerSpy).toHaveBeenCalledWith(`Error fetching details for commit abc123:`, 'GitHub API error');
+        expect(loggerSpy).toHaveBeenCalledWith(
+          `Error fetching details for commit abc123:`,
+          'GitHub API error',
+        );
       });
     });
 
@@ -293,7 +305,9 @@ describe('GithubService', () => {
     describe('getCommits', () => {
       it('should call addToQueueForCommits with user git repos', async () => {
         mockGitRepoModel.find.mockResolvedValueOnce([mockRepo]);
-        const addToQueueSpy = jest.spyOn(service, 'addToQueueForCommits').mockResolvedValueOnce([mockRepo]);
+        const addToQueueSpy = jest
+          .spyOn(service, 'addToQueueForCommits')
+          .mockResolvedValueOnce([mockRepo]);
 
         const result = await service.getCommits('user-id');
         expect(addToQueueSpy).toHaveBeenCalledWith([mockRepo]);
@@ -365,7 +379,9 @@ describe('GithubService', () => {
     describe('cronGitContribution', () => {
       it('should queue jobs for all git repos', async () => {
         mockGitRepoModel.find.mockResolvedValueOnce([mockRepo]);
-        const addToQueueSpy = jest.spyOn(service, 'addToQueueForCommits').mockResolvedValueOnce([mockRepo]);
+        const addToQueueSpy = jest
+          .spyOn(service, 'addToQueueForCommits')
+          .mockResolvedValueOnce([mockRepo]);
 
         await service.cronGitContribution();
         expect(addToQueueSpy).toHaveBeenCalledWith([mockRepo]);

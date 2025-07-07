@@ -151,7 +151,9 @@ describe('DataFetcherService', () => {
 
       mockIssueEntryModel.findOneAndUpdate.mockResolvedValueOnce({});
 
-      jest.spyOn(service, 'fetchDataFromAllToolUrls').mockImplementationOnce(() => ({exec: jest.fn()} as any));
+      jest
+        .spyOn(service, 'fetchDataFromAllToolUrls')
+        .mockImplementationOnce(() => ({ exec: jest.fn() }) as any);
       jest.spyOn(service, 'dataFetchFromJIRA').mockResolvedValueOnce(mockIssueData as any);
 
       await service.fetchDataFromAllToolUrls(true);

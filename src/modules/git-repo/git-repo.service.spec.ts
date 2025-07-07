@@ -109,7 +109,10 @@ describe('GitRepoService', () => {
       };
 
       await service.update('mock-id', dto);
-      expect(model.findOneAndUpdate).toHaveBeenCalledWith({ _id: 'mock-id' }, { organization: 'partial-org' });
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: 'mock-id' },
+        { organization: 'partial-org' },
+      );
     });
   });
 });

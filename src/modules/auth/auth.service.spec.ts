@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { getModelToken } from '@nestjs/mongoose';
@@ -433,7 +438,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid refresh token', async () => {
       // jest.spyOn(jwtService, 'verify').mockResolvedValue(false);
 
-      await expect(service.generateRefreshTokens('invalidToken')).rejects.toThrow(UnauthorizedException);
+      await expect(service.generateRefreshTokens('invalidToken')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

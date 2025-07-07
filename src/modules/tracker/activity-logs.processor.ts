@@ -186,7 +186,11 @@ export class ActivityLogsProcessor implements OnModuleInit {
     return sessions;
   }
 
-  private async updateLastLogInRedis(orgId: string, userId: string, lastLog: ActivityLog | undefined) {
+  private async updateLastLogInRedis(
+    orgId: string,
+    userId: string,
+    lastLog: ActivityLog | undefined,
+  ) {
     if (!lastLog) return;
     const redisKey = this.getRedisKeyForLastActivityLog(orgId, userId);
     await this.redis.set(redisKey, JSON.stringify(lastLog), 'EX', 600);

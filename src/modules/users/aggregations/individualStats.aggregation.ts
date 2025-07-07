@@ -1,7 +1,13 @@
 import mongoose, { Types } from 'mongoose';
 
-export const individualStats = (userId: string, organizationId: string, page: Number, limit: Number) => {
-  const startDate = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Dhaka' }).replace(' ', 'T') + '+06:00';
+export const individualStats = (
+  userId: string,
+  organizationId: string,
+  page: Number,
+  limit: Number,
+) => {
+  const startDate =
+    new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Dhaka' }).replace(' ', 'T') + '+06:00';
 
   const indiestatAgg = [
     {
@@ -49,7 +55,13 @@ export const individualStats = (userId: string, organizationId: string, page: Nu
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                        'completed',
+                      ],
                     ],
                   },
                   {
@@ -73,7 +85,13 @@ export const individualStats = (userId: string, organizationId: string, page: Nu
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                        'completed',
+                      ],
                     ],
                   },
                   {
@@ -98,7 +116,13 @@ export const individualStats = (userId: string, organizationId: string, page: Nu
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                          'completed',
+                        ],
                       ],
                     },
                   },
@@ -124,7 +148,13 @@ export const individualStats = (userId: string, organizationId: string, page: Nu
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                          'completed',
+                        ],
                       ],
                     },
                   },
@@ -149,7 +179,13 @@ export const individualStats = (userId: string, organizationId: string, page: Nu
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                        'completed',
+                      ],
                     ],
                   },
                   //   {
@@ -174,7 +210,13 @@ export const individualStats = (userId: string, organizationId: string, page: Nu
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                          'completed',
+                        ],
                       ],
                     },
                   },
@@ -199,7 +241,13 @@ export const individualStats = (userId: string, organizationId: string, page: Nu
                   {
                     $in: [
                       '$issueStatus',
-                      ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
+                      [
+                        'Done',
+                        'In Review',
+                        'USER STORIES (Verified In Beta)',
+                        'USER STORIES (Verified In Test)',
+                        'completed',
+                      ],
                     ],
                   },
                   //   {
@@ -224,7 +272,13 @@ export const individualStats = (userId: string, organizationId: string, page: Nu
                     $not: {
                       $in: [
                         '$issueStatus',
-                        ['Done', 'In Review', 'USER STORIES (Verified In Beta)', 'USER STORIES (Verified In Test)', 'completed'],
+                        [
+                          'Done',
+                          'In Review',
+                          'USER STORIES (Verified In Beta)',
+                          'USER STORIES (Verified In Test)',
+                          'completed',
+                        ],
                       ],
                     },
                   },
