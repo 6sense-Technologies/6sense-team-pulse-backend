@@ -136,7 +136,8 @@ export class UserService {
       {
         $facet: {
           data: [
-            { $project: {
+            {
+              $project: {
                 _id: '$userDetails._id',
                 displayName: '$userDetails.displayName',
                 emailAddress: '$userDetails.emailAddress',
@@ -167,9 +168,11 @@ export class UserService {
     };
   }
 
-
   /// EXPERIMENTAL MODIFICATION
-  async getUserInfo(userId: string, user: IUserWithOrganization): Promise<{
+  async getUserInfo(
+    userId: string,
+    user: IUserWithOrganization,
+  ): Promise<{
     userData: any;
     currentMonthScore: number;
     lastMonthScore: number;
@@ -222,7 +225,12 @@ export class UserService {
     );
     return emailSentResponse;
   }
-  async calculateIndividualStats(userId: string, user: IUserWithOrganization, page: number, limit: number) {
+  async calculateIndividualStats(
+    userId: string,
+    user: IUserWithOrganization,
+    page: number,
+    limit: number,
+  ) {
     const organizationId = user.organizationId;
     const individualStatAggregation: any = individualStats(userId, organizationId, page, limit);
     const result = await this.issueEntryModel.aggregate(individualStatAggregation);
@@ -267,7 +275,11 @@ export class UserService {
   }
 
   // Tanbir improve it!!!
-  async calculateOverview(page: Number, limit: Number, user: IUserWithOrganization): Promise<any[]> {
+  async calculateOverview(
+    page: Number,
+    limit: Number,
+    user: IUserWithOrganization,
+  ): Promise<any[]> {
     // const count = await this.userModel.countDocuments();
     // console.log(`${page}--${limit}`);
     // Get the current date and subtract 30 days
@@ -447,9 +459,21 @@ export class UserService {
     await user.save();
     return { isEnabled: user.isDisabled };
   }
-  async dailyPerformence(userId: string, user: IUserWithOrganization, dateTime: string, page: Number, limit: Number) {
+  async dailyPerformence(
+    userId: string,
+    user: IUserWithOrganization,
+    dateTime: string,
+    page: Number,
+    limit: Number,
+  ) {
     const organizationId = user.organizationId;
-    const aggdailyPerformence: any = dailyPerformenceAgg(userId, organizationId, dateTime, page, limit);
+    const aggdailyPerformence: any = dailyPerformenceAgg(
+      userId,
+      organizationId,
+      dateTime,
+      page,
+      limit,
+    );
     const userData = await this.userModel
       .findById(userId)
       .select('displayName emailAddress designation avatarUrls');

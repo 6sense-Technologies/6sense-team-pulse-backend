@@ -47,7 +47,11 @@ ActivitySchema.pre<Activity>('save', function (next) {
 
   if (isManual) {
     if (this.application || this.pid || this.browserUrl || this.faviconUrl) {
-      return next(new Error('Manual activities must not contain application, pid, browserUrl, or faviconUrl.'));
+      return next(
+        new Error(
+          'Manual activities must not contain application, pid, browserUrl, or faviconUrl.',
+        ),
+      );
     }
   } else {
     if (!this.application || !this.pid) {

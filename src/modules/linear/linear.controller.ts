@@ -9,10 +9,7 @@ export class LinearController {
   constructor(private readonly linearService: LinearService) {}
 
   @Get('connect')
-  async connect(
-    @Query('tool-id') toolId: string,
-    @Req() req: Request
-  ) {
+  async connect(@Query('tool-id') toolId: string, @Req() req: Request) {
     const origin = req.headers.origin;
     const redirectUri = await this.linearService.connect(toolId, origin);
     return { redirectUri };
@@ -20,7 +17,7 @@ export class LinearController {
 
   @Get('callback')
   async callback(
-    @Query('code') code: string, 
+    @Query('code') code: string,
     @Query('tool-id') toolId: string,
     @Req() req: Request,
   ) {
@@ -31,7 +28,12 @@ export class LinearController {
 
   @Get('fetch-today-issues')
   async fetchTodayIssues() {
-    return this.linearService.fetchAndSaveIssuesFromLinear();
+    setTimeout(async () => {
+      console.time('fetchTodayIssues');
+      await this.linearService.fetchAndSaveIssuesFromLinear();
+      console.timeEnd('fetchTodayIssues');
+    }, 0); // Delay to ensure the service has time to process
+    return { message: 'Issues fetched and saved successfully' };
   }
 
   // @Get('callback')
@@ -39,28 +41,28 @@ export class LinearController {
   //   @Query('code') code: string,
   // ) {
 
-  @Post()
-  create(@Body() createLinearDto: CreateLinearDto) {
-    return this.linearService.create(createLinearDto);
-  }
+  // @Post()
+  // create(@Body() createLinearDto: CreateLinearDto) {
+  //   return this.linearService.create(createLinearDto);
+  // }
 
-  @Get()
-  findAll() {
-    return this.linearService.findAll();
-  }
+  // @Get()
+  // findAll() {
+  //   return this.linearService.findAll();
+  // }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.linearService.findOne(+id);
-  }
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.linearService.findOne(+id);
+  // }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLinearDto: UpdateLinearDto) {
-    return this.linearService.update(+id, updateLinearDto);
-  }
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateLinearDto: UpdateLinearDto) {
+  //   return this.linearService.update(+id, updateLinearDto);
+  // }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.linearService.remove(+id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.linearService.remove(+id);
+  // }
 }

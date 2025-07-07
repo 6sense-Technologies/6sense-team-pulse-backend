@@ -13,7 +13,14 @@ import {
 } from '@nestjs/common';
 // import { TrackerService } from './tracker.service';
 import { ActivityService } from './activity.service';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/accessToken.guard';
 import { AssignActivitiesDto } from './dto/assign-activities.dto';
 import { RequestMetadata } from 'src/common/request-metadata/request-metadata.decorator';
@@ -116,7 +123,11 @@ export class TimelogController {
     const userId = req['user'].userId;
     const organizationId = req['user'].organizationId;
 
-    return await this.activityService.createManualActivity(createManualActivityDto, userId, organizationId);
+    return await this.activityService.createManualActivity(
+      createManualActivityDto,
+      userId,
+      organizationId,
+    );
   }
 
   @Auth()
@@ -146,7 +157,10 @@ export class TimelogController {
   @ApiBearerAuth()
   @Post('unreported/assign-to-project')
   @ApiOperation({ summary: 'Assign activities to a worksheet' })
-  async assignActivitiesToWorksheet(@Req() req: any, @Body() assignActivitiesDto: AssignActivitiesDto): Promise<any> {
+  async assignActivitiesToWorksheet(
+    @Req() req: any,
+    @Body() assignActivitiesDto: AssignActivitiesDto,
+  ): Promise<any> {
     const userId = req.user.userId;
 
     return await this.worksheetService.assignActivitiesToWorksheet(
@@ -160,7 +174,10 @@ export class TimelogController {
   @ApiBearerAuth()
   @Delete('worksheet/remove-activities')
   @ApiOperation({ summary: 'Remove activities from a worksheet' })
-  async removeActivitiesFromWorksheet(@Req() req: any, @Body() removeActivitiesDto: RemoveActivitiesDto): Promise<any> {
+  async removeActivitiesFromWorksheet(
+    @Req() req: any,
+    @Body() removeActivitiesDto: RemoveActivitiesDto,
+  ): Promise<any> {
     const userId = req.user.userId;
     const organizationId = req.user.organizationId;
 
@@ -177,7 +194,10 @@ export class TimelogController {
   @Get('worksheet/get-names')
   @ApiOperation({ summary: 'Get worksheet names and reported time' })
   @ApiResponse({ status: 200, description: 'List of worksheet names' })
-  async getWorksheetNames(@Req() req: any, @Query() query: WorksheetGetNamesQueryDto): Promise<any> {
+  async getWorksheetNames(
+    @Req() req: any,
+    @Query() query: WorksheetGetNamesQueryDto,
+  ): Promise<any> {
     const userId = req.user.userId;
 
     return await this.worksheetService.getWorksheetNames(

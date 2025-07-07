@@ -27,7 +27,10 @@ export class TrelloController {
   }
 
   @Get('users/issues/:accountId/:date')
-  async getUserIssues(@Param('accountId') accountId: string, @Param('date') date: string): Promise<any[]> {
+  async getUserIssues(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<any[]> {
     return this.trelloService.getUserIssues(accountId, date);
   }
 
@@ -60,12 +63,18 @@ export class TrelloController {
   }
 
   @Put('not-done/count/:accountId/:date')
-  async countPlannedIssues(@Param('accountId') accountId: string, @Param('date') date: string): Promise<void> {
+  async countPlannedIssues(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<void> {
     await this.trelloService.countPlannedIssues(accountId, date);
   }
 
   @Put('done/count/:accountId/:date')
-  async countDoneIssues(@Param('accountId') accountId: string, @Param('date') date: string): Promise<void> {
+  async countDoneIssues(
+    @Param('accountId') accountId: string,
+    @Param('date') date: string,
+  ): Promise<void> {
     await this.trelloService.countDoneIssues(accountId, date);
   }
 }

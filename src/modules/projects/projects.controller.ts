@@ -77,7 +77,10 @@ export class ProjectsController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProjectMemberWorksheets(@Req() req: any, @Query() query: WorksheetListOfProjectQueryDto): Promise<any> {
+  async getProjectMemberWorksheets(
+    @Req() req: any,
+    @Query() query: WorksheetListOfProjectQueryDto,
+  ): Promise<any> {
     const organizationId = req.user.organizationId;
 
     return this.worksheetService.getProjectMemberWorksheets(
@@ -171,14 +174,27 @@ export class ProjectsController {
   @ApiBearerAuth()
   @Post()
   create(@Body() createProjectDto: CreateProjectDto, @Req() req: Request) {
-    return this.projectsService.create(createProjectDto, req['user'].userId, req['user'].organizationId);
+    return this.projectsService.create(
+      createProjectDto,
+      req['user'].userId,
+      req['user'].organizationId,
+    );
   }
 
   @Auth()
   @ApiBearerAuth()
   @Get()
-  findAll(@Req() req: Request, @Query('page') page: number = 1, @Query('limit') limit: number = 10) {
-    return this.projectsService.findAll(+page, +limit, req['user'].userId, req['user'].organizationId);
+  findAll(
+    @Req() req: Request,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.projectsService.findAll(
+      +page,
+      +limit,
+      req['user'].userId,
+      req['user'].organizationId,
+    );
   }
 
   // @Auth()
@@ -194,10 +210,7 @@ export class ProjectsController {
   @ApiBearerAuth()
   @Auth()
   @Get(':id')
-  findOne(
-    @Param('id') id: string,
-    @Req() req: Request,
-  ) {
+  findOne(@Param('id') id: string, @Req() req: Request) {
     console.log(id);
     return this.projectsService.findOne(id, req['user'].userId, req['user'].organizationId);
   }

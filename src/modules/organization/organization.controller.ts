@@ -33,13 +33,16 @@ export class OrganizationController {
     schema: {
       type: 'object',
       properties: {
-        id: { type: 'string' }
+        id: { type: 'string' },
       },
-      required: ['id']
-    }
+      required: ['id'],
+    },
   })
   @Post('change')
-  async changeOrganization(@GetUser() user: IUserWithOrganization, @Body() organization: { id: string }) {
+  async changeOrganization(
+    @GetUser() user: IUserWithOrganization,
+    @Body() organization: { id: string },
+  ) {
     return this.organizationService.changeOrganization(user, organization.id);
   }
 

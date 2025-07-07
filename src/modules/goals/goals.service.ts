@@ -54,7 +54,10 @@ export class GoalsService {
   }
 
   async createAction(createGoalActionDto: CreateGoalActionDto) {
-    await this.goalModel.findOneAndUpdate({ _id: createGoalActionDto.goal }, { status: 'In Progress' });
+    await this.goalModel.findOneAndUpdate(
+      { _id: createGoalActionDto.goal },
+      { status: 'In Progress' },
+    );
     return await this.goalActionModel.create({
       action: createGoalActionDto.action,
       goal: new mongoose.Types.ObjectId(createGoalActionDto.goal),

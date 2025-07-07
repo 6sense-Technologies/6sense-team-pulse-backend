@@ -75,7 +75,11 @@ export class ActivityService {
     }
   }
 
-  async createActivitiesFromSession(activitySessions: ActivitySession[], userId: string, organizationId: string) {
+  async createActivitiesFromSession(
+    activitySessions: ActivitySession[],
+    userId: string,
+    organizationId: string,
+  ) {
     try {
       const enrichedSessions: any[] = [];
 
@@ -121,7 +125,11 @@ export class ActivityService {
     }
   }
 
-  async createManualActivity(createManualActivityDto: CreateManualActivityDto, userId: string, organizationId: string) {
+  async createManualActivity(
+    createManualActivityDto: CreateManualActivityDto,
+    userId: string,
+    organizationId: string,
+  ) {
     try {
       const { name, startTime, endTime, manualType } = createManualActivityDto;
 
@@ -164,12 +172,17 @@ export class ActivityService {
         throw new NotFoundException('Manual activity not found.');
       }
 
-      if (activity.user.toString() !== userId || activity.organization.toString() !== organizationId) {
+      if (
+        activity.user.toString() !== userId ||
+        activity.organization.toString() !== organizationId
+      ) {
         throw new UnauthorizedException('You do not have permission to edit this activity.');
       }
 
       if (activity.manualType == undefined) {
-        throw new BadRequestException('This activity is not a manual activity and cannot be edited.');
+        throw new BadRequestException(
+          'This activity is not a manual activity and cannot be edited.',
+        );
       }
 
       const { name, manualType, startTime, endTime } = updateDto;
@@ -372,7 +385,11 @@ export class ActivityService {
     }
   }
 
-  async validateActivitiesForUser(userId: Types.ObjectId, organizationId: Types.ObjectId, activityIds: string[]) {
+  async validateActivitiesForUser(
+    userId: Types.ObjectId,
+    organizationId: Types.ObjectId,
+    activityIds: string[],
+  ) {
     try {
       // Ensure each ID is strictly a valid 24-char hex ObjectId
       for (const id of activityIds) {
