@@ -1,6 +1,12 @@
 import { Types } from 'mongoose';
 
-export const dailyPerformenceAgg = (userId: string, organizationId: string, dateTime: string, page: Number, limit: Number) => {
+export const dailyPerformenceAgg = (
+  userId: string,
+  organizationId: string,
+  dateTime: string,
+  page: Number,
+  limit: Number,
+) => {
   const todaysDate = new Date(dateTime);
   console.log(`${page} - ${limit}`);
   //   //   const todaysDate = new Date();

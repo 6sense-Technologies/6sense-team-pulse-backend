@@ -14,7 +14,11 @@ export class GoalsController {
   }
 
   @Get('user')
-  findAll(@Query('userId') userId: string, @Query('page') page: number, @Query('limit') limit: number) {
+  findAll(
+    @Query('userId') userId: string,
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ) {
     return this.goalsService.findAll(userId, +page, +limit);
   }
 
@@ -40,7 +44,11 @@ export class GoalsController {
   }
 
   @Get(':id/actions')
-  findAllAction(@Param('id') id: string, @Query('page') page: number, @Query('limit') limit: number) {
+  findAllAction(
+    @Param('id') id: string,
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ) {
     return this.goalsService.findAllAction(id, +page, +limit);
   }
 

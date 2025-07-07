@@ -4,7 +4,10 @@ import { OrganizationController } from './organization.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Organization, OrganizationSchema } from '../../schemas/Organization.schema';
 import { Users, UsersSchema } from '../../schemas/users.schema';
-import { OrganizationUserRole, OrganizationUserRoleSchema } from '../../schemas/OrganizationUserRole.schema';
+import {
+  OrganizationUserRole,
+  OrganizationUserRoleSchema,
+} from '../../schemas/OrganizationUserRole.schema';
 import { Role, RoleSchema } from '../../schemas/Role.schema';
 import { UserModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';

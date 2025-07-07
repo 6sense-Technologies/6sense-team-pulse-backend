@@ -63,7 +63,8 @@ export class DataFetcherService {
     };
     const now = new Date();
     const bangladeshOffset = 6 * 60 * 60 * 1000; // UTC+6 in milliseconds
-    const todaysDate = dataFetcherdto.date || new Date(now.getTime() + bangladeshOffset).toISOString().split('T')[0];
+    const todaysDate =
+      dataFetcherdto.date || new Date(now.getTime() + bangladeshOffset).toISOString().split('T')[0];
     console.log(`Fetching datas for date greater than equal : ${todaysDate}`);
     // const tempDate = '2024-08-01';
     const jqlQuery = {
@@ -96,7 +97,9 @@ export class DataFetcherService {
           maxResults,
         };
 
-        const response = await firstValueFrom(this.httpService.post(url, paginatedQuery, { headers }));
+        const response = await firstValueFrom(
+          this.httpService.post(url, paginatedQuery, { headers }),
+        );
         const { issues, total: totalIssues } = response.data;
         allIssues.push(...issues);
         total = totalIssues;
@@ -119,7 +122,9 @@ export class DataFetcherService {
         const { hour, minute, amPm } = this.getTime(createdDate);
         if (dueDate) {
           if (createdDate.split('T')[0] === dueDate) {
-            console.warn(`Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`);
+            console.warn(
+              `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
+            );
 
             if (
               (hour >= 12 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
@@ -128,7 +133,10 @@ export class DataFetcherService {
             ) {
               isPlanned = true;
               createdDate = dueDate;
-            } else if ((hour === 11 && minute >= 16 && minute <= 59 && amPm === 'AM') || amPm === 'PM') {
+            } else if (
+              (hour === 11 && minute >= 16 && minute <= 59 && amPm === 'AM') ||
+              amPm === 'PM'
+            ) {
               console.warn(`Unplanned issue found: ${createdDate} Due Date: ${dueDate}`);
               isPlanned = false;
               createdDate = createdDate.split('T')[0];
@@ -221,7 +229,8 @@ export class DataFetcherService {
               params: {
                 key: API_KEY,
                 token: TOKEN,
-                fields: 'id,name,dateLastActivity,desc,labels,idList,shortUrl,due,dateCreated,start,idMemberCreator',
+                fields:
+                  'id,name,dateLastActivity,desc,labels,idList,shortUrl,due,dateCreated,start,idMemberCreator',
                 since: START_DATE,
                 due: 'today',
               },
@@ -240,7 +249,9 @@ export class DataFetcherService {
               let isPlanned = true;
               if (dueDate) {
                 if (createdDate.split('T')[0] === dueDate.split('T')[0]) {
-                  console.warn(`Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`);
+                  console.warn(
+                    `Issue created with same create/due date: ${createdDate} Due Date: ${dueDate}`,
+                  );
                   if (
                     (hour >= 12 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
                     (hour >= 1 && hour <= 10 && minute >= 0 && minute <= 59 && amPm === 'AM') ||
@@ -248,7 +259,10 @@ export class DataFetcherService {
                   ) {
                     isPlanned = true;
                     createdDate = dueDate.split('T')[0];
-                  } else if ((hour === 11 && minute >= 16 && minute <= 59 && amPm === 'AM') || amPm === 'PM') {
+                  } else if (
+                    (hour === 11 && minute >= 16 && minute <= 59 && amPm === 'AM') ||
+                    amPm === 'PM'
+                  ) {
                     console.warn(`Unplanned issue found: ${createdDate} Due Date: ${dueDate}`);
                     isPlanned = false;
                     createdDate = createdDate.split('T')[0];
@@ -257,7 +271,9 @@ export class DataFetcherService {
                     createdDate = createdDate.split('T')[0];
                   }
                 } else {
-                  console.log(`Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`);
+                  console.log(
+                    `Issue created earlier Created Date: ${createdDate} ,Due Date:${dueDate}`,
+                  );
                   isPlanned = true;
                   createdDate = dueDate.split('T')[0];
                 }
@@ -464,51 +480,53 @@ export class DataFetcherService {
   }
 
   async fetchDataFromAllToolUrls(verdict: boolean = false) {
-    const tools = await this.toolModel.aggregate([
-      {
-        $lookup: {
-          from: 'projects',
-          localField: '_id',
-          foreignField: 'tools',
-          as: 'projects',
+    const tools = await this.toolModel
+      .aggregate([
+        {
+          $lookup: {
+            from: 'projects',
+            localField: '_id',
+            foreignField: 'tools',
+            as: 'projects',
+          },
         },
-      },
-      {
-        $unwind: {
-          path: '$projects',
+        {
+          $unwind: {
+            path: '$projects',
+          },
         },
-      },
-      {
-        $addFields: {
-          projects: '$projects._id',
+        {
+          $addFields: {
+            projects: '$projects._id',
+          },
         },
-      },
-      {
-        $lookup: {
-          from: 'organizationprojectusers',
-          localField: 'projects',
-          foreignField: 'project',
-          as: 'opu',
+        {
+          $lookup: {
+            from: 'organizationprojectusers',
+            localField: 'projects',
+            foreignField: 'project',
+            as: 'opu',
+          },
         },
-      },
-      {
-        $addFields: {
-          // users: '$opu.user',
-          organization: '$opu.organization',
+        {
+          $addFields: {
+            // users: '$opu.user',
+            organization: '$opu.organization',
+          },
         },
-      },
-      {
-        $unwind: {
-          path: '$organization',
-        }
-      },
-      {
-        $project: {
-          toolUrl: 1,
-          organization: 1,
+        {
+          $unwind: {
+            path: '$organization',
+          },
         },
-      },
-    ]).exec();
+        {
+          $project: {
+            toolUrl: 1,
+            organization: 1,
+          },
+        },
+      ])
+      .exec();
     // const urls = tools.map((tool) => tool.toolUrl);
     const allDataJIRA = [];
     const allDataTrello = [];
@@ -566,7 +584,7 @@ export class DataFetcherService {
     }
 
     const trelloStatus = await this.saveTrelloIssueToEntry(JSON.stringify(allDataTrello));
-    
+
     let linearStatus = {};
     if (verdict === true) {
       console.log(`Fetching data from linear for last 7 days...`);
@@ -579,8 +597,7 @@ export class DataFetcherService {
         const status = await this.linearService.fetchAndSaveIssuesFromLinear(dateStr);
         linearStatus[dateStr] = status;
       }
-    }
-    else {
+    } else {
       console.log(`Fetching data from linear for today...`);
       linearStatus = await this.linearService.fetchAndSaveIssuesFromLinear();
     }

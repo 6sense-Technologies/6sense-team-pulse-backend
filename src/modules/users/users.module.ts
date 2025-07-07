@@ -11,9 +11,15 @@ import { Project, ProjectSchema } from '../../schemas/Project.schema';
 import { TrelloModule } from '../trello/trello.module';
 import { UserProject, UserProjectSchema } from '../../schemas/UserProject.schema';
 import { Organization, OrganizationSchema } from '../../schemas/Organization.schema';
-import { OrganizationUserRole, OrganizationUserRoleSchema } from '../../schemas/OrganizationUserRole.schema';
+import {
+  OrganizationUserRole,
+  OrganizationUserRoleSchema,
+} from '../../schemas/OrganizationUserRole.schema';
 import { Role, RoleSchema } from '../../schemas/Role.schema';
-import { OrganizationProjectUser, OrganizationProjectUserSchema } from '../../schemas/OrganizationProjectUser.schema';
+import {
+  OrganizationProjectUser,
+  OrganizationProjectUserSchema,
+} from '../../schemas/OrganizationProjectUser.schema';
 import { Users, UsersSchema } from '../../schemas/users.schema';
 import { EmailService } from '../email-service/email-service.service';
 import { OTPSecret, OTPSecretSchema } from '../../schemas/OTPSecret.schema';

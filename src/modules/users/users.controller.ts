@@ -56,8 +56,8 @@ export class UserController {
   @ApiBearerAuth()
   @Get('user-info')
   async getUserInfo(
-    @Query('userId') userId: string, 
-    @GetUser() user: IUserWithOrganization
+    @Query('userId') userId: string,
+    @GetUser() user: IUserWithOrganization,
   ): Promise<{
     userData: any;
     currentMonthScore: number;

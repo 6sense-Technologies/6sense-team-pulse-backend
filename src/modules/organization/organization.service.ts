@@ -28,7 +28,6 @@ export class OrganizationService {
     @InjectModel(Role.name)
     private readonly roleModel: Model<Role>,
   ) {}
-  
 
   async create(createOrganizationDTO: CreateOrganizationDTO, userId: string) {
     if (
@@ -36,7 +35,9 @@ export class OrganizationService {
         domain: createOrganizationDTO.domainName,
       })
     ) {
-      throw new ConflictException(`Another domain name with ${createOrganizationDTO.domainName} already exists`);
+      throw new ConflictException(
+        `Another domain name with ${createOrganizationDTO.domainName} already exists`,
+      );
     }
 
     const session = await this.connection.startSession();
@@ -97,16 +98,15 @@ export class OrganizationService {
     }
 
     const userId = user.userId;
-    const userOrganizations = await this.organizationUserRoleModel
-    .aggregate([
+    const userOrganizations = await this.organizationUserRoleModel.aggregate([
       {
-        $match: { 
+        $match: {
           user: new Types.ObjectId(userId),
           isDisabled: false,
         },
       },
-      { 
-        $sort: { lastAccessed: -1 } 
+      {
+        $sort: { lastAccessed: -1 },
       }, // Sort by lastAccessed in descending order
       {
         $lookup: {
@@ -128,7 +128,7 @@ export class OrganizationService {
           roleName: '$role.roleName',
           lastAccessed: 1,
         },
-      }
+      },
     ]);
 
     if (!userOrganizations || userOrganizations.length === 0) {
@@ -136,7 +136,7 @@ export class OrganizationService {
     }
 
     //if userOrganizations._id is equal to user.organizationId,  then return a feild called connected: true, this is a way for it to know if it currently connected to the organization
-    userOrganizations.forEach(org => {
+    userOrganizations.forEach((org) => {
       org.connected = org._id.toString() === user.organizationId?.toString();
     });
 
@@ -229,7 +229,9 @@ export class OrganizationService {
     });
 
     if (!orgUser) {
-      throw new NotFoundException(`User ${userId} does not belong to organization ${organizationId}`);
+      throw new NotFoundException(
+        `User ${userId} does not belong to organization ${organizationId}`,
+      );
     }
 
     orgUser.lastAccessed = new Date();

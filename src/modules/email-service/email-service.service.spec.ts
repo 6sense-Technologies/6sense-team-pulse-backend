@@ -81,7 +81,9 @@ describe('EmailService', () => {
       otpSecretModel.findOne.mockResolvedValue(null);
       otpSecretModel.create.mockResolvedValue({});
 
-      jest.spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate').mockReturnValue('<html>Mock Email</html>');
+      jest
+        .spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate')
+        .mockReturnValue('<html>Mock Email</html>');
 
       mailerService.sendMail.mockResolvedValue({ success: true });
       configService.get.mockReturnValue('mock@email.com');
@@ -106,7 +108,9 @@ describe('EmailService', () => {
         save: saveMock,
       });
 
-      jest.spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate').mockReturnValue('<html>Updated OTP</html>');
+      jest
+        .spyOn(EmailTemplate, 'userVerificationOTPEmailTemplate')
+        .mockReturnValue('<html>Updated OTP</html>');
 
       mailerService.sendMail.mockResolvedValue({ success: true });
       configService.get.mockReturnValue('mock@email.com');
@@ -122,9 +126,9 @@ describe('EmailService', () => {
     it('should throw NotFoundException if user does not exist', async () => {
       usersModel.findOne.mockResolvedValue(null);
 
-      await expect(emailService.sendInvitationEmail('test@example.com', 'Admin', 'Org')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        emailService.sendInvitationEmail('test@example.com', 'Admin', 'Org'),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should send an invitation email', async () => {

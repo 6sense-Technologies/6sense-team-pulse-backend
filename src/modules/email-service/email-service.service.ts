@@ -71,7 +71,11 @@ export class EmailService {
     return response;
   }
 
-  public async sendInvitationEmail(emailAddress: string, fromUser: string, organizationName: string) {
+  public async sendInvitationEmail(
+    emailAddress: string,
+    fromUser: string,
+    organizationName: string,
+  ) {
     console.log('Sending invitation email.....');
     const user = await this.usersModel.findOne({ emailAddress: emailAddress });
     if (!user) {
@@ -84,7 +88,12 @@ export class EmailService {
         expiresIn: this.configService.get('INVITE_EXPIRE'),
       },
     );
-    const emailTemplate = EmailTemplate.invitationEmail(user.displayName, jwtToken, fromUser, organizationName);
+    const emailTemplate = EmailTemplate.invitationEmail(
+      user.displayName,
+      jwtToken,
+      fromUser,
+      organizationName,
+    );
     const response = await this.mailerService.sendMail({
       from: `6sense Projects ${this.configService.get('EMAIL_SENDER')}`,
       to: emailAddress,

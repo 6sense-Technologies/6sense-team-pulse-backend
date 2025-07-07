@@ -41,7 +41,11 @@ export class AuthGuard implements CanActivate {
     const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler()) || [];
 
     try {
-      const orgUser = await this.organizationService.validateOrgAccess(user.userId, user.organizationId, requiredRoles);
+      const orgUser = await this.organizationService.validateOrgAccess(
+        user.userId,
+        user.organizationId,
+        requiredRoles,
+      );
 
       // Attach organizationId and userId to request for downstream use
       request.user.userId = user.userId;

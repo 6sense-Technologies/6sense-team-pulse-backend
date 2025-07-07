@@ -1,5 +1,11 @@
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, ConflictException, forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import * as dotenv from 'dotenv';
@@ -11,7 +17,12 @@ import { validateAccountId, validateDate } from '../../common/helpers/validation
 import { IIssue, User } from '../../schemas/user.schema';
 import { Designation, Project } from '../users/enums/user.enum';
 import { UserService } from '../users/users.service';
-import { ITrelloBoard, ITrelloCard, ITrelloCredentials, ITrelloUsers } from './interfaces/trello.interfaces';
+import {
+  ITrelloBoard,
+  ITrelloCard,
+  ITrelloCredentials,
+  ITrelloUsers,
+} from './interfaces/trello.interfaces';
 
 dotenv.config();
 
@@ -73,7 +84,10 @@ export class TrelloService {
     const credentials1 = this.getWorkspace1Credentials();
     const credentials2 = this.getWorkspace2Credentials();
 
-    const results = await Promise.allSettled([this.fetchBoards(credentials1), this.fetchBoards(credentials2)]);
+    const results = await Promise.allSettled([
+      this.fetchBoards(credentials1),
+      this.fetchBoards(credentials2),
+    ]);
 
     const boards = results
       .filter((result) => {
@@ -94,7 +108,9 @@ export class TrelloService {
       const requests = this.boardIds.map((boardId) => {
         const isWorkspace1Board =
           boardId === process.env.TRELLO_BOARD_ID_1 || boardId === process.env.TRELLO_BOARD_ID_2;
-        const credentials = isWorkspace1Board ? this.getWorkspace1Credentials() : this.getWorkspace2Credentials();
+        const credentials = isWorkspace1Board
+          ? this.getWorkspace1Credentials()
+          : this.getWorkspace2Credentials();
 
         return firstValueFrom(
           this.httpService.get(`${this.trelloBaseUrl}${endpoint.replace('{boardId}', boardId)}`, {
@@ -285,9 +301,13 @@ export class TrelloService {
       const allCards = await Promise.all(
         allBoards.map((board) => {
           const key =
-            board.id === process.env.TRELLO_BOARD_ID_3 ? process.env.TRELLO_API_KEY2 : process.env.TRELLO_API_KEY;
+            board.id === process.env.TRELLO_BOARD_ID_3
+              ? process.env.TRELLO_API_KEY2
+              : process.env.TRELLO_API_KEY;
           const token =
-            board.id === process.env.TRELLO_BOARD_ID_3 ? process.env.TRELLO_SECRET_KEY2 : process.env.TRELLO_SECRET_KEY;
+            board.id === process.env.TRELLO_BOARD_ID_3
+              ? process.env.TRELLO_SECRET_KEY2
+              : process.env.TRELLO_SECRET_KEY;
 
           return fetchCardsForBoard(board.id, board.name, key, token);
         }),
@@ -440,7 +460,8 @@ export class TrelloService {
       const userCards = await this.getUserIssues(accountId, date);
       const user = await this.userModel.findOne({ accountId }).exec();
 
-      const notDoneIssues = user?.issueHistory.find((entry) => entry.date === date)?.notDoneIssues || [];
+      const notDoneIssues =
+        user?.issueHistory.find((entry) => entry.date === date)?.notDoneIssues || [];
 
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };

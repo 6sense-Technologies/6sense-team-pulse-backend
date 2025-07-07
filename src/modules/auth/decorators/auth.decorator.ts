@@ -5,5 +5,9 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 
 export const Auth = (roles: string[] = []) => {
   const ROLES_KEY = 'roles';
-  return applyDecorators(SetMetadata(ROLES_KEY, roles), UseGuards(AccessTokenGuard, AuthGuard), ApiBearerAuth());
+  return applyDecorators(
+    SetMetadata(ROLES_KEY, roles),
+    UseGuards(AccessTokenGuard, AuthGuard),
+    ApiBearerAuth(),
+  );
 };
