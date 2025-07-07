@@ -63,3 +63,7 @@ documentation
 
 #Ignore cursor AI rules
 .cursor/
+
+
+#Ignore cursor AI rules
+.cursor\rules\codacy.mdc
