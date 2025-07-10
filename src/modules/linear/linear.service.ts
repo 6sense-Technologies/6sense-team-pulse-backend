@@ -188,10 +188,15 @@ export class LinearService {
   }
 
   checkPlanned(createdAt: string, dueDate: string, userTimezone: string): boolean {
-    const createdDay = createdAt.split('T')[0];
-    const dueDay = dueDate;
-    const createdLocalTime = DateTime.fromISO(createdAt).setZone(userTimezone).toISOTime();
-    return createdDay <= dueDay && createdLocalTime < '11:00:00';
+      const createdDay = createdAt.split('T')[0]; // Extract date (YYYY-MM-DD) from createdAt
+      const createdLocalTime = DateTime.fromISO(createdAt).setZone(userTimezone).toISOTime(); // Convert to local time
+      // If the created day is earlier than the due date, it's valid
+      if (createdDay < dueDate) {
+          return true;
+      }
+
+      // If the created day is the same as the due date, check if it's before 11:00 AM
+      return createdDay === dueDate && createdLocalTime < '11:00:00';
   }
 
   computeIssueStatus(
