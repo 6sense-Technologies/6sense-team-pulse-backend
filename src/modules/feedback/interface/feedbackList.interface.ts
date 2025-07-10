@@ -3,7 +3,7 @@ export interface IFeedbackQuery {
   limit?: number;
   filter?: string;
   search?: string;
-  sortOrder?: string;
+  sort?: string;
   startDate?: string | Date;
   endDate?: string | Date;
 }

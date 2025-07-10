@@ -171,7 +171,7 @@ export class FeedbackService {
 
       {
         $sort: {
-          createdAt: query.sortOrder === 'asc' ? 1 : -1,
+          createdAt: query?.sort === 'oldest' ? 1 : -1,
         },
       },
 
