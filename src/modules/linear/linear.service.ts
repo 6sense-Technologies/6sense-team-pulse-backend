@@ -1,3 +1,4 @@
+import { LinearClient } from '@linear/sdk';
 import {
   BadRequestException,
   HttpException,
@@ -6,15 +7,12 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CreateLinearDto } from './dto/create-linear.dto';
-import { UpdateLinearDto } from './dto/update-linear.dto';
 import { ConfigService } from '@nestjs/config';
-import { ToolService } from '../tool/tool.service';
-import { LinearClient } from '@linear/sdk';
+import { InjectModel } from '@nestjs/mongoose';
 import { DateTime } from 'luxon';
 import { Model, Types } from 'mongoose';
 import { IssueEntry } from '../../schemas/IssueEntry.schema';
-import { InjectModel } from '@nestjs/mongoose';
+import { ToolService } from '../tool/tool.service';
 import { LINEAR_ISSUE_QUERY } from './linear.queries';
 
 @Injectable()
@@ -188,15 +186,15 @@ export class LinearService {
   }
 
   checkPlanned(createdAt: string, dueDate: string, userTimezone: string): boolean {
-      const createdDay = createdAt.split('T')[0]; // Extract date (YYYY-MM-DD) from createdAt
-      const createdLocalTime = DateTime.fromISO(createdAt).setZone(userTimezone).toISOTime(); // Convert to local time
-      // If the created day is earlier than the due date, it's valid
-      if (createdDay < dueDate) {
-          return true;
-      }
+    const createdDay = createdAt.split('T')[0]; // Extract date (YYYY-MM-DD) from createdAt
+    const createdLocalTime = DateTime.fromISO(createdAt).setZone(userTimezone).toISOTime(); // Convert to local time
+    // If the created day is earlier than the due date, it's valid
+    if (createdDay < dueDate) {
+      return true;
+    }
 
-      // If the created day is the same as the due date, check if it's before 11:00 AM
-      return createdDay === dueDate && createdLocalTime < '11:00:00';
+    // If the created day is the same as the due date, check if it's before 11:00 AM
+    return createdDay === dueDate && createdLocalTime < '11:00:00';
   }
 
   computeIssueStatus(
