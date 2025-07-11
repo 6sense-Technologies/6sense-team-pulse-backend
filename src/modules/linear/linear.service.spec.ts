@@ -1,16 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { LinearService } from './linear.service';
-import { ToolService } from '../tool/tool.service';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
-import { IssueEntry } from '../../schemas/IssueEntry.schema';
-import {
-  NotFoundException,
-  BadRequestException,
-  UnauthorizedException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
+import { IssueEntry } from '../../schemas/IssueEntry.schema';
+import { ToolService } from '../tool/tool.service';
+import { LinearService } from './linear.service';
 
 // Mock models and services
 const mockToolService = {
@@ -105,6 +105,9 @@ describe('LinearService', () => {
   });
 
   describe('handleCallback', () => {
+//     it('should throw BadRequestException if code is empty', async () => {
+//       await expect(service.handleCallback('', 'toolId', 'http://localhost')).rejects.toThrow(
+//         BadRequestException,
     it('should throw UnauthorizedException if access_token is missing', async () => {
       mockToolService.getToolById.mockResolvedValue({ toolName: 'Linear', accessToken: null });
       mockConfigService.getOrThrow.mockReturnValue('client_id');
@@ -148,6 +151,21 @@ describe('LinearService', () => {
       expect(mockToolService.updateToolWithAccessToken).toHaveBeenCalledWith('toolId', 'token');
     });
 
+    it('should throw UnauthorizedException if there is no access token', async () => {
+      mockToolService.getToolById.mockResolvedValue({ toolName: 'Linear', accessToken: null });
+      mockConfigService.getOrThrow.mockReturnValue('client_id');
+
+      // Simulating a successful fetch (Token exchange)
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: null }),
+      });
+
+      await expect(service.handleCallback('code', 'toolId', 'http://localhost')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
     it('should throw InternalServerErrorException on unexpected error', async () => {
       mockToolService.getToolById.mockResolvedValue({ toolName: 'Linear', accessToken: null });
       mockConfigService.getOrThrow.mockReturnValue('client_id');
@@ -162,6 +180,41 @@ describe('LinearService', () => {
   });
 
   describe('fetchAndSaveIssuesFromLinear', () => {
+    // it('should fetch and save issues for multiple tools', async () => {
+    //   const mockTool = { accessToken: 'validToken', users: [{ emailAddress: 'user@example.com', _id: 'userId' }] };
+    //   mockToolService.getLinearToolsWithUsers.mockResolvedValue([mockTool]);
+
+    //   const mockResponse = {
+    //     data: {
+    //       issues: {
+    //         nodes: [
+    //           {
+    //             id: 'issueId',
+    //             title: 'Issue 1',
+    //             assignee: { name: 'John Doe' },
+    //             dueDate: '2023-07-07',
+    //             state: { type: 'notStarted' },
+    //             labels: { nodes: [] }
+    //           },
+    //         ],
+    //       },
+    //       organization: { urlKey: 'orgUrl' },
+    //     },
+    //   };
+
+    //   // Mocking the fetch method to return the mock response
+    //   (global.fetch as jest.Mock).mockResolvedValueOnce({
+    //     ok: true,
+    //     json: async () => mockResponse,
+    //   });
+
+    //   // Call the function to be tested
+    //   await service.fetchAndSaveIssuesFromLinear('2023-07-07');
+
+    //   // Ensure that bulkWrite was called
+    //   expect(mockIssueEntryModel.bulkWrite).toHaveBeenCalledTimes(1);
+    //   expect(mockIssueEntryModel.bulkWrite).toHaveBeenCalledWith(expect.anything());
+    // });
 
     it('should handle failed fetches gracefully', async () => {
       const mockTool = {
@@ -242,6 +295,11 @@ describe('LinearService', () => {
     it('should return "lateCompleted" if state is completed and completedAt is after dueDate', () => {
       const result = service.computeIssueStatus('completed', '2023-07-08T09:00:00', '2023-07-07');
       expect(result).toBe('lateCompleted');
+    });
+
+    it('should return "completed" if state is completed and completedAt is after dueDate', () => {
+      const result = service.computeIssueStatus('completed', null, null);
+      expect(result).toBe('completed');
     });
   });
 });

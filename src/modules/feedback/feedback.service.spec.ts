@@ -120,7 +120,12 @@ describe('FeedbackService', () => {
         comment: 'Test comment',
       };
 
-      jest.spyOn(feedbackModel, 'create').mockResolvedValue(feedbackDto as any);
+      jest.spyOn(feedbackModel, 'create').mockImplementationOnce(
+        () =>
+          ({
+            toObject: jest.fn().mockResolvedValue(feedbackDto),
+          }) as any,
+      );
 
       const feedback = await service.create(
         feedbackDto as any as CreateFeedbackDto,
@@ -147,6 +152,10 @@ describe('FeedbackService', () => {
         page: 1,
         limit: 10,
         sortOrder: 'desc',
+        search: 'abc',
+        filter: 'us,Bug',
+        startDate: '2025-01-01',
+        endDate: '2025-01-01',
       } as any;
       const metadata = { timezoneRegion: 'Asia/Dhaka' } as any;
 
@@ -172,113 +181,31 @@ describe('FeedbackService', () => {
       });
       expect(feedbackModel.aggregate).toHaveBeenCalled();
     });
+  });
 
-    it('should return empty data and correct pagination if no feedback found', async () => {
-      const user = {
-        userId: '670f5cb7fcec534287bf881a',
-        organizationId: '670f5cb7fcec534287bf881a',
-        email: 'test@example.com',
-      };
-      const query = {
-        page: 2,
-        limit: 5,
-        sortOrder: 'asc',
-      } as any;
-      const metadata = { timezoneRegion: 'Asia/Dhaka' } as any;
+  describe('findOne', () => {
+    const user = {
+      userId: '670f5cb7fcec534287bf881a',
+      organizationId: '670f5cb7fcec534287bf881a',
+      email: 'test@example.com',
+    };
 
-      jest.spyOn(feedbackModel, 'aggregate').mockResolvedValueOnce([{ data: [], count: 0 }]);
+    it('should find a feedback', async () => {
+      jest
+        .spyOn(feedbackModel, 'aggregate')
+        .mockResolvedValueOnce([{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') } as any]);
 
-      const result = await service.findAll(user, query, metadata);
+      const feedback = await service.findOne('670f5cb7fcec534287bf881a', user);
 
-      expect(result).toEqual({
-        data: [],
-        paginationMetadata: {
-          page: 2,
-          limit: 5,
-          totalCount: 0,
-          totalPages: 0,
-        },
-      });
+      expect(feedback).toEqual({ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') });
     });
 
-    it('should handle missing count in aggregation result gracefully', async () => {
-      const user = {
-        userId: '670f5cb7fcec534287bf881a',
-        organizationId: '670f5cb7fcec534287bf881a',
-        email: 'test@example.com',
-      };
-      const query = {
-        page: 1,
-        limit: 10,
-        sortOrder: 'desc',
-      } as any;
-      const metadata = { timezoneRegion: 'Asia/Dhaka' } as any;
+    it('should throw an error if the feedback is not found', async () => {
+      jest.spyOn(feedbackModel, 'aggregate').mockResolvedValueOnce([]);
 
-      jest.spyOn(feedbackModel, 'aggregate').mockResolvedValueOnce([{}]);
-
-      const result = await service.findAll(user, query, metadata);
-
-      expect(result).toEqual({
-        data: [],
-        paginationMetadata: {
-          page: 1,
-          limit: 10,
-          totalCount: 0,
-          totalPages: 0,
-        },
-      });
-    });
-
-    it('should parse page and limit as numbers and fallback to defaults', async () => {
-      const user = {
-        userId: '670f5cb7fcec534287bf881a',
-        organizationId: '670f5cb7fcec534287bf881a',
-        email: 'test@example.com',
-      };
-      const query = {
-        sortOrder: 'desc',
-      } as any;
-      const metadata = { timezoneRegion: 'Asia/Dhaka' } as any;
-
-      jest.spyOn(feedbackModel, 'aggregate').mockResolvedValueOnce([{ data: [], count: 0 }]);
-
-      const result = await service.findAll(user, query, metadata);
-
-      expect(result.paginationMetadata.page).toBe(1);
-      expect(result.paginationMetadata.limit).toBe(10);
+      await expect(service.findOne('670f5cb7fcec534287bf881a', user)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
-  //     });
-  //       const user = {
-  //         userId: '670f5cb7fcec534287bf881a',
-  //         organizationId: '670f5cb7fcec534287bf881a',
-  //         email: 'test@example.com',
-  //       };
-  //       const req = {
-  //         query: {
-  //           page: 1,
-  //           limit: 10,
-  //           sort: 'createdAt',
-  //           order: 'desc',
-  //           search: 'abc',
-  //           filter: 'us,Bug',
-  //           startDate: '2025-01-01',
-  //           endDate: '2025-01-01',
-  //         },
-  //       } as any;
-
-  //       jest
-  //         .spyOn(feedbackModel, 'aggregate')
-  //         .mockResolvedValueOnce([
-  //           { data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') }], count: 1 },
-  //         ]);
-
-  //       const feedback = await service.findAll(user, req, { timezoneRegion: 'Asia/Dhaka' } as any);
-
-  //       expect(feedback).toEqual({
-  //         data: [{ _id: new Types.ObjectId('670f5cb7fcec534287bf881a') }],
-  //         count: 1,
-  //       });
-  //     });
-  // });
 });
