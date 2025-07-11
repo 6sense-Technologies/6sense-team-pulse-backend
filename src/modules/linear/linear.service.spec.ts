@@ -105,6 +105,20 @@ describe('LinearService', () => {
   });
 
   describe('handleCallback', () => {
+    it('should throw UnauthorizedException if access_token is missing', async () => {
+      mockToolService.getToolById.mockResolvedValue({ toolName: 'Linear', accessToken: null });
+      mockConfigService.getOrThrow.mockReturnValue('client_id');
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      await expect(service.handleCallback('code', 'toolId', 'http://localhost')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
     it('should throw UnauthorizedException if token exchange fails', async () => {
       mockToolService.getToolById.mockResolvedValue({ toolName: 'Linear', accessToken: null });
       mockConfigService.getOrThrow.mockReturnValue('client_id');
@@ -148,41 +162,6 @@ describe('LinearService', () => {
   });
 
   describe('fetchAndSaveIssuesFromLinear', () => {
-    // it('should fetch and save issues for multiple tools', async () => {
-    //   const mockTool = { accessToken: 'validToken', users: [{ emailAddress: 'user@example.com', _id: 'userId' }] };
-    //   mockToolService.getLinearToolsWithUsers.mockResolvedValue([mockTool]);
-
-    //   const mockResponse = {
-    //     data: {
-    //       issues: {
-    //         nodes: [
-    //           { 
-    //             id: 'issueId', 
-    //             title: 'Issue 1', 
-    //             assignee: { name: 'John Doe' }, 
-    //             dueDate: '2023-07-07', 
-    //             state: { type: 'notStarted' }, 
-    //             labels: { nodes: [] } 
-    //           },
-    //         ],
-    //       },
-    //       organization: { urlKey: 'orgUrl' },
-    //     },
-    //   };
-
-    //   // Mocking the fetch method to return the mock response
-    //   (global.fetch as jest.Mock).mockResolvedValueOnce({
-    //     ok: true,
-    //     json: async () => mockResponse,
-    //   });
-
-    //   // Call the function to be tested
-    //   await service.fetchAndSaveIssuesFromLinear('2023-07-07');
-      
-    //   // Ensure that bulkWrite was called
-    //   expect(mockIssueEntryModel.bulkWrite).toHaveBeenCalledTimes(1);
-    //   expect(mockIssueEntryModel.bulkWrite).toHaveBeenCalledWith(expect.anything());
-    // });
 
     it('should handle failed fetches gracefully', async () => {
       const mockTool = {

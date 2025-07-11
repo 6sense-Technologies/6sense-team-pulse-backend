@@ -25,27 +25,6 @@ export class OrganizationController {
     return this.organizationService.findByUser(user);
   }
 
-  // Endpoint to change organization
-  @Auth()
-  @ApiBearerAuth()
-  @ApiBody({
-    description: 'Change organization by providing organizationId',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-      },
-      required: ['id'],
-    },
-  })
-  @Post('change')
-  async changeOrganization(
-    @GetUser() user: IUserWithOrganization,
-    @Body() organization: { id: string },
-  ) {
-    return this.organizationService.changeOrganization(user, organization.id);
-  }
-
   @Get('roles')
   async getRoles() {
     return this.organizationService.findRoles();
