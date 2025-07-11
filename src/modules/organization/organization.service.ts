@@ -143,25 +143,6 @@ export class OrganizationService {
     return userOrganizations;
   }
 
-  async changeOrganization(user: IUserWithOrganization, organizationId: string) {
-    try {
-      await this.validateOrgAccess(user.userId, organizationId);
-
-      // const { accessToken, refreshToken } = this.authService.generateTokens(
-      //   user.userId,
-      //   userEmail.emailAddress,
-      //   organizationId ? organizationId.toString() : '',
-      // );
-      // console.log('Access Token:', accessToken);
-      // console.log('Refresh Token:', refreshToken);
-
-      // return { accessToken, refreshToken };
-    } catch (error) {
-      // Optionally log error here
-      throw error;
-    }
-  }
-
   async validateOrgAccess(userId: string, orgId: string, roles?: string[]) {
     if (!isValidObjectId(userId) || !isValidObjectId(orgId)) {
       throw new BadRequestException('Invalid userId or organizationId');

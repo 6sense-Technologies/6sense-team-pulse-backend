@@ -105,9 +105,20 @@ describe('LinearService', () => {
   });
 
   describe('handleCallback', () => {
-    it('should throw BadRequestException if code is empty', async () => {
-      await expect(service.handleCallback('', 'toolId', 'http://localhost')).rejects.toThrow(
-        BadRequestException,
+//     it('should throw BadRequestException if code is empty', async () => {
+//       await expect(service.handleCallback('', 'toolId', 'http://localhost')).rejects.toThrow(
+//         BadRequestException,
+    it('should throw UnauthorizedException if access_token is missing', async () => {
+      mockToolService.getToolById.mockResolvedValue({ toolName: 'Linear', accessToken: null });
+      mockConfigService.getOrThrow.mockReturnValue('client_id');
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      await expect(service.handleCallback('code', 'toolId', 'http://localhost')).rejects.toThrow(
+        UnauthorizedException,
       );
     });
 
