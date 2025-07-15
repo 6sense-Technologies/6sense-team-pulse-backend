@@ -9,6 +9,7 @@ import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { FeedbackService } from './feedback.service';
 import { IFeedback } from './interface/feedback.interface';
 import { IFeedbackQuery } from './interface/feedbackList.interface';
+import { FeedbackListQuery } from './dto/feedback-list.query';
 
 @Controller('feedback')
 export class FeedbackController {
@@ -27,7 +28,7 @@ export class FeedbackController {
   @Get()
   findAll(
     @GetUser() user: IUserWithOrganization,
-    @Query() query: IFeedbackQuery,
+    @Query() query: FeedbackListQuery,
     @RequestMetadata() metadata: RequestMetadataDto,
   ): Promise<{ data: IFeedback[]; paginationMetadata: IPaginationMetadata }> {
     return this.feedbackService.findAll(user, query, metadata);

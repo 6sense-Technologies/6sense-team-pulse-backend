@@ -12,6 +12,7 @@ import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { FeedbackType } from './enums/feedbackType.enum';
 import { IFeedback } from './interface/feedback.interface';
 import { IFeedbackQuery } from './interface/feedbackList.interface';
+import { FeedbackListQuery } from './dto/feedback-list.query';
 
 @Injectable()
 export class FeedbackService {
@@ -70,7 +71,7 @@ export class FeedbackService {
 
   async findAll(
     user: IUserWithOrganization,
-    query: IFeedbackQuery,
+    query: FeedbackListQuery,
     metadata: RequestMetadataDto,
   ): Promise<{ data: IFeedback[]; paginationMetadata: IPaginationMetadata }> {
     let { startDate, endDate } = query;
@@ -81,13 +82,20 @@ export class FeedbackService {
       filterParts = query.filter.split(',').map((f: string) => f.trim());
     }
 
-    const baseMatch: Record<string, any> = {
+    let baseMatch: Record<string, any> = {
       organization: new Types.ObjectId(`${user.organizationId}`),
-      $or: [
+    };
+
+    if (query.direction === 'received') {
+      baseMatch.assignedTo = new Types.ObjectId(`${user.userId}`);
+    } else if (query.direction === 'sent') {
+      baseMatch.assignedBy = new Types.ObjectId(`${user.userId}`);
+    } else {
+      baseMatch.$or = [
         { assignedTo: new Types.ObjectId(`${user.userId}`) },
         { assignedBy: new Types.ObjectId(`${user.userId}`) },
-      ],
-    };
+      ];
+    }
 
     const types: string[] = [];
     for (const filter of filterParts) {

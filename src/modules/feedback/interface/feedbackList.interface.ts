@@ -6,4 +6,5 @@ export interface IFeedbackQuery {
   sort?: string;
   startDate?: string | Date;
   endDate?: string | Date;
+  direction?: 'sent' | 'received' | 'both';
 }
