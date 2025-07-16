@@ -256,6 +256,29 @@ export class FeedbackService {
         },
       },
       { $unwind: '$assignedTo' },
+      {
+        $lookup: {
+          from: 'issueentries',
+          let: { linkedIssuesIds: '$linkedIssues' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$_id', '$$linkedIssuesIds'] },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                issueCode: 1,
+                issueSummary: 1,
+                planned: 1,
+                issueIdUrl: 1,
+              },
+            },
+          ],
+          as: 'linkedIssues',
+        },
+      },
     ];
 
     const feedbacks = await this.feedbackModel.aggregate(aggregate);
