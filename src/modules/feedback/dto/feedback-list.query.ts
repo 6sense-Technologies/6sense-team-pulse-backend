@@ -25,10 +25,10 @@ export class FeedbackListQuery {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ type: String })
+  @ApiPropertyOptional({ enum: ['latest', 'oldest'], example: 'latest', default: 'latest' })
   @IsOptional()
-  @IsString()
-  sort?: string;
+  @IsIn(['latest', 'oldest'])
+  sort?: 'latest' | 'oldest' = 'latest';
 
   @ApiPropertyOptional({ type: String || Date, format: 'YYYY-MM-DDTHH:mm:ssZ', example: '' })
   @IsOptional()
