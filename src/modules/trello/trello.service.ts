@@ -1,28 +1,28 @@
+import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import * as dotenv from 'dotenv';
-import { IIssue, User } from '../users/schemas/user.schema';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
+import * as dotenv from 'dotenv';
 import { Model } from 'mongoose';
+import { firstValueFrom } from 'rxjs';
+import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
+import { handleError } from '../../common/helpers/error.helper';
+import { validateAccountId, validateDate } from '../../common/helpers/validation.helper';
+import { IIssue, User } from '../../schemas/user.schema';
+import { Designation, Project } from '../users/enums/user.enum';
+import { UserService } from '../users/users.service';
 import {
   ITrelloBoard,
   ITrelloCard,
   ITrelloCredentials,
   ITrelloUsers,
 } from './interfaces/trello.interfaces';
-import { firstValueFrom } from 'rxjs';
-import { handleError } from '../../common/helpers/error.helper';
-import {
-  validateAccountId,
-  validateDate,
-} from '../../common/helpers/validation.helper';
-import { UserService } from '../users/users.service';
-import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
-import { Designation, Project } from '../users/enums/user.enum';
 
 dotenv.config();
 
@@ -37,8 +37,11 @@ export class TrelloService {
 
   constructor(
     private readonly httpService: HttpService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+
+    private readonly configService: ConfigService,
   ) {
     // Constructor for injecting userModel
   }
@@ -57,10 +60,7 @@ export class TrelloService {
     };
   }
 
-  private async fetchBoards(credentials: {
-    key: string;
-    token: string;
-  }): Promise<ITrelloBoard[]> {
+  private async fetchBoards(credentials: { key: string; token: string }): Promise<ITrelloBoard[]> {
     const endpoint = `/members/me/boards`;
 
     const response = await firstValueFrom(
@@ -107,22 +107,18 @@ export class TrelloService {
 
       const requests = this.boardIds.map((boardId) => {
         const isWorkspace1Board =
-          boardId === process.env.TRELLO_BOARD_ID_1 ||
-          boardId === process.env.TRELLO_BOARD_ID_2;
+          boardId === process.env.TRELLO_BOARD_ID_1 || boardId === process.env.TRELLO_BOARD_ID_2;
         const credentials = isWorkspace1Board
           ? this.getWorkspace1Credentials()
           : this.getWorkspace2Credentials();
 
         return firstValueFrom(
-          this.httpService.get(
-            `${this.trelloBaseUrl}${endpoint.replace('{boardId}', boardId)}`,
-            {
-              params: {
-                key: credentials.key,
-                token: credentials.token,
-              },
+          this.httpService.get(`${this.trelloBaseUrl}${endpoint.replace('{boardId}', boardId)}`, {
+            params: {
+              key: credentials.key,
+              token: credentials.token,
             },
-          ),
+          }),
         ).then((response) => {
           return {
             boardId,
@@ -190,37 +186,63 @@ export class TrelloService {
     }
   }
 
+  async getUserDetailsFromTrello(boardId: string, accountId: string): Promise<any> {
+    try {
+      const endpoint = `/members/${accountId}`;
+
+      const results = await Promise.allSettled([
+        firstValueFrom(
+          this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
+            params: {
+              key: this.configService.get('TRELLO_API_KEY'),
+              token: this.configService.get('TRELLO_SECRET_KEY'),
+            },
+          }),
+        ),
+        // firstValueFrom(
+        //   this.httpService.get(`${this.trelloBaseUrl}${endpoint}`, {
+        //     params: {
+        //       key: credentials2.key,
+        //       token: credentials2.token,
+        //     },
+        //   }),
+        // ),
+      ]);
+
+      const fulfilledResult = results.find((result) => {
+        return result.status === 'fulfilled';
+      });
+
+      if (fulfilledResult) {
+        return (fulfilledResult as PromiseFulfilledResult<any>).value.data;
+      }
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
   async getUserIssues(accountId: string, date: string): Promise<any[]> {
     try {
       const boardsResponse1 = await firstValueFrom(
-        this.httpService.get(
-          `${this.trelloBaseUrl}/members/${accountId}/boards`,
-          {
-            params: {
-              key: process.env.TRELLO_API_KEY,
-              token: process.env.TRELLO_SECRET_KEY,
-            },
+        this.httpService.get(`${this.trelloBaseUrl}/members/${accountId}/boards`, {
+          params: {
+            key: process.env.TRELLO_API_KEY,
+            token: process.env.TRELLO_SECRET_KEY,
           },
-        ),
+        }),
       );
 
       const boardsResponse2 = await firstValueFrom(
-        this.httpService.get(
-          `${this.trelloBaseUrl}/members/${accountId}/boards`,
-          {
-            params: {
-              key: process.env.TRELLO_API_KEY2,
-              token: process.env.TRELLO_SECRET_KEY2,
-            },
+        this.httpService.get(`${this.trelloBaseUrl}/members/${accountId}/boards`, {
+          params: {
+            key: process.env.TRELLO_API_KEY2,
+            token: process.env.TRELLO_SECRET_KEY2,
           },
-        ),
+        }),
       );
 
       const boards1 = boardsResponse1.data.filter((board) => {
-        return [
-          process.env.TRELLO_BOARD_ID_1,
-          process.env.TRELLO_BOARD_ID_2,
-        ].includes(board.id);
+        return [process.env.TRELLO_BOARD_ID_1, process.env.TRELLO_BOARD_ID_2].includes(board.id);
       });
 
       const boards2 = boardsResponse2.data.filter((board) => {
@@ -236,15 +258,12 @@ export class TrelloService {
         token: string,
       ): Promise<ITrelloCard[]> => {
         const listsResponse = await firstValueFrom(
-          this.httpService.get(
-            `${this.trelloBaseUrl}/boards/${boardId}/lists`,
-            {
-              params: {
-                key: key,
-                token: token,
-              },
+          this.httpService.get(`${this.trelloBaseUrl}/boards/${boardId}/lists`, {
+            params: {
+              key: key,
+              token: token,
             },
-          ),
+          }),
         );
 
         const lists = listsResponse.data;
@@ -252,23 +271,17 @@ export class TrelloService {
         const cards = await Promise.all(
           lists.map(async (list) => {
             const cardsResponse = await firstValueFrom(
-              this.httpService.get(
-                `${this.trelloBaseUrl}/lists/${list.id}/cards`,
-                {
-                  params: {
-                    key: key,
-                    token: token,
-                  },
+              this.httpService.get(`${this.trelloBaseUrl}/lists/${list.id}/cards`, {
+                params: {
+                  key: key,
+                  token: token,
                 },
-              ),
+              }),
             );
 
             return cardsResponse.data
               .filter((card) => {
-                return (
-                  card.idMembers.includes(accountId) &&
-                  card.due?.split('T')[0] === date
-                );
+                return card.idMembers.includes(accountId) && card.due?.split('T')[0] === date;
               })
               .map((card) => {
                 return {
@@ -448,8 +461,7 @@ export class TrelloService {
       const user = await this.userModel.findOne({ accountId }).exec();
 
       const notDoneIssues =
-        user?.issueHistory.find((entry) => entry.date === date)
-          ?.notDoneIssues || [];
+        user?.issueHistory.find((entry) => entry.date === date)?.notDoneIssues || [];
 
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };

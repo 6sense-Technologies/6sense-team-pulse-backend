@@ -6,6 +6,7 @@ import {
   Param,
   BadRequestException,
   Put,
+  Inject,
 } from '@nestjs/common';
 import { JiraService } from './jira.service';
 import {
@@ -15,17 +16,38 @@ import {
   ISuccessResponse,
 } from 'src/common/interfaces/jira.interfaces';
 import { Designation, Project } from '../users/enums/user.enum';
+// import { ClientMqtt, MessagePattern, Payload } from '@nestjs/microservices';
 
 @Controller('jira')
 export class JiraController {
-  constructor(private readonly jiraService: JiraService) {
+  constructor(
+    private readonly jiraService: JiraService,
+    // @Inject('DATA_FETCHER_SERVICE') private client: ClientMqtt,
+  ) {
     // Constructor for injecting JiraService
   }
 
+  /*Experimental Modification*/
+
+  // async onApplicationBootstrap() {
+  //   await this.client.connect();
+  // }
+
+  // @MessagePattern('job.result')
+  // async getResult(@Payload() data: any) {
+  //   this.jiraService.fetchAndSaveFromJira(data);
+  //   // return 'disabled';
+  // }
+
+  @Post('job-result')
+  async saveResult(@Body() data: any) {
+    console.log(data);
+    this.jiraService.fetchAndSaveFromJira(data);
+    return 'Done';
+  }
+  //---------------------------/
   @Get(':accountId')
-  async getUserDetails(
-    @Param('accountId') accountId: string,
-  ): Promise<IJiraUserData> {
+  async getUserDetails(@Param('accountId') accountId: string): Promise<IJiraUserData> {
     return await this.jiraService.getUserDetails(accountId);
   }
 
@@ -62,18 +84,11 @@ export class JiraController {
       throw new BadRequestException('userFrom is required');
     }
 
-    return await this.jiraService.fetchAndSaveUser(
-      accountId,
-      userFrom,
-      designation,
-      project,
-    );
+    return await this.jiraService.fetchAndSaveUser(accountId, userFrom, designation, project);
   }
 
   @Put('user/:accountId')
-  async fetchAndUpdateUser(
-    @Param('accountId') accountId: string,
-  ): Promise<ISuccessResponse> {
+  async fetchAndUpdateUser(@Param('accountId') accountId: string): Promise<ISuccessResponse> {
     return await this.jiraService.fetchAndUpdateUser(accountId);
   }
 
@@ -104,15 +119,11 @@ export class JiraController {
   }
 
   @Put('update-morning-issue-history/:date')
-  async updateMorningIssueHistoryForSpecificDate(
-    @Param('date') date: string,
-  ): Promise<void> {
+  async updateMorningIssueHistoryForSpecificDate(@Param('date') date: string): Promise<void> {
     await this.jiraService.updateMorningIssueHistoryForSpecificDate(date);
   }
   @Put('update-evening-issue-history/:date')
-  async updateEveningIssueHistoryForSpecificDate(
-    @Param('date') date: string,
-  ): Promise<void> {
+  async updateEveningIssueHistoryForSpecificDate(@Param('date') date: string): Promise<void> {
     await this.jiraService.updateEveningIssueHistoryForSpecificDate(date);
   }
 
@@ -121,10 +132,7 @@ export class JiraController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<void> {
-    await this.jiraService.updateMorningIssueHistoryForSpecificUser(
-      accountId,
-      date,
-    );
+    await this.jiraService.updateMorningIssueHistoryForSpecificUser(accountId, date);
   }
 
   @Put('update-evening-issue-history/:accountId/:date')
@@ -132,10 +140,7 @@ export class JiraController {
     @Param('accountId') accountId: string,
     @Param('date') date: string,
   ): Promise<void> {
-    await this.jiraService.updateEveningIssueHistoryForSpecificUser(
-      accountId,
-      date,
-    );
+    await this.jiraService.updateEveningIssueHistoryForSpecificUser(accountId, date);
   }
 
   @Put('daily-metrics/:accountId/:date')

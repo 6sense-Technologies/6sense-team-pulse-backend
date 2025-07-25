@@ -3,17 +3,11 @@ import { GithubService } from './github.service';
 import { GithubController } from './github.controller';
 import { HttpModule } from '@nestjs/axios';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from '../users/schemas/user.schema';
-import {
-  IssueHistory,
-  IssueHistorySchema,
-} from '../users/schemas/IssueHistory.schems';
-import {
-  IssueEntry,
-  IssueEntrySchema,
-} from '../users/schemas/IssueEntry.schema';
-import { GitRepo, GitRepoSchema } from '../users/schemas/GitRepo.schema';
-import { GitContribution, GitContributionSchema } from '../users/schemas/GitContribution.schema';
+import { User, UserSchema } from '../../schemas/user.schema';
+import { IssueHistory, IssueHistorySchema } from '../../schemas/IssueHistory.schems';
+import { IssueEntry, IssueEntrySchema } from '../../schemas/IssueEntry.schema';
+import { GitRepo, GitRepoSchema } from '../../schemas/GitRepo.schema';
+import { GitContribution, GitContributionSchema } from '../../schemas/GitContribution.schema';
 
 @Module({
   imports: [

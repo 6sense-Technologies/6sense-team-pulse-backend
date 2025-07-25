@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Post,
-  Body,
-  Put,
-  BadRequestException,
-} from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Put, BadRequestException } from '@nestjs/common';
 import { TrelloService } from './trello.service';
 import { ITrelloBoard, ITrelloUsers } from './interfaces/trello.interfaces';
 import { ISuccessResponse } from 'src/common/interfaces/jira.interfaces';
@@ -67,12 +59,7 @@ export class TrelloController {
       throw new BadRequestException('userFrom is required');
     }
 
-    return await this.trelloService.fetchAndSaveUser(
-      accountId,
-      userFrom,
-      designation,
-      project,
-    );
+    return await this.trelloService.fetchAndSaveUser(accountId, userFrom, designation, project);
   }
 
   @Put('not-done/count/:accountId/:date')

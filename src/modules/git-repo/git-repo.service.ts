@@ -1,17 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import mongoose, { Model } from 'mongoose';
+import { GitRepo } from '../../schemas/GitRepo.schema';
 import { CreateGitRepoDto } from './dto/create-git-repo.dto';
 import { UpdateGitRepoDto } from './dto/update-git-repo.dto';
-import { GitRepo } from '../users/schemas/GitRepo.schema';
-import mongoose, { Model } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class GitRepoService {
-  constructor(
-    @InjectModel(GitRepo.name) private readonly gitRepoModel: Model<GitRepo>,
-  ) {
-    // Constructor for injecting userModel
-  }
+  constructor(@InjectModel(GitRepo.name) private readonly gitRepoModel: Model<GitRepo>) {}
 
   create(createGitRepoDto: CreateGitRepoDto) {
     return this.gitRepoModel.create({
@@ -36,17 +32,10 @@ export class GitRepoService {
 
   update(id: string, updateGitRepoDto: UpdateGitRepoDto) {
     let data = {};
-    if (updateGitRepoDto['provider'])
-      data['provider'] = updateGitRepoDto['provider'];
-    if (updateGitRepoDto['organization'])
-      data['organization'] = updateGitRepoDto['organization'];
+    if (updateGitRepoDto['provider']) data['provider'] = updateGitRepoDto['provider'];
+    if (updateGitRepoDto['organization']) data['organization'] = updateGitRepoDto['organization'];
     if (updateGitRepoDto['repo']) data['repo'] = updateGitRepoDto['repo'];
-    if (updateGitRepoDto['gitUsername'])
-      data['gitUsername'] = updateGitRepoDto['gitUsername'];
+    if (updateGitRepoDto['gitUsername']) data['gitUsername'] = updateGitRepoDto['gitUsername'];
     return this.gitRepoModel.findOneAndUpdate({ _id: id }, data);
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} gitRepo`;
   }
 }

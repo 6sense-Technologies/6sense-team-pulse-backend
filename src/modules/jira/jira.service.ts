@@ -1,14 +1,18 @@
+import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { IIssue, User } from '../users/schemas/user.schema';
+import * as dotenv from 'dotenv';
+import mongoose, { Model } from 'mongoose';
+import { firstValueFrom, lastValueFrom } from 'rxjs';
+import { handleError } from '../../common/helpers/error.helper';
+import { validateAccountId, validateDate } from '../../common/helpers/validation.helper';
 import {
   IDailyMetrics,
   IJiraIssue,
@@ -16,16 +20,11 @@ import {
   IJirsUserIssues,
   ISuccessResponse,
 } from '../../common/interfaces/jira.interfaces';
+import { IssueEntry } from '../../schemas/IssueEntry.schema';
+import { IIssue, User } from '../../schemas/user.schema';
 import { TrelloService } from '../trello/trello.service';
-import { UserService } from '../users/users.service';
-import { firstValueFrom, lastValueFrom } from 'rxjs';
-import { handleError } from 'src/common/helpers/error.helper';
 import { Designation, Project } from '../users/enums/user.enum';
-import {
-  validateAccountId,
-  validateDate,
-} from 'src/common/helpers/validation.helper';
-
+import { UserService } from '../users/users.service';
 dotenv.config();
 
 @Injectable()
@@ -34,21 +33,99 @@ export class JiraService {
   private readonly jiraBaseUrl2 = process.env.JIRA_BASE_URL2;
   private readonly jiraBaseUrl3 = process.env.JIRA_BASE_URL3;
   private readonly headers = {
-    Authorization: `Basic ${Buffer.from(
-      `${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`,
-    ).toString('base64')}`,
+    Authorization: `Basic ${Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64')}`,
     Accept: 'application/json',
   };
 
   constructor(
     private readonly httpService: HttpService,
+    @Inject(forwardRef(() => TrelloService))
     private readonly trelloService: TrelloService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(IssueEntry.name)
+    private readonly issueEntryModel: Model<IssueEntry>,
   ) {
     // Constructor for injecting userModel
   }
+  /*EXPERIMENTAL MODIFICATION*/
+  public async fetchAndSaveFromJira(rawData: any) {
+    console.log('INVOKED');
 
+    const data = JSON.parse(rawData);
+    // console.log(data);
+
+    for (let i = 0; i < data.length; i += 1) {
+      if (!data[i]) continue;
+
+      const {
+        accountId,
+        issueId,
+        projectUrl,
+        issueIdUrl,
+        issueLinkUrl,
+        issueType,
+        issueStatus,
+        issueSummary,
+        planned,
+        issueLinks,
+        date,
+      } = data[i];
+
+      if (accountId) {
+        // Fetch all users matching accountId or jiraId
+        const users = await this.userModel.find({
+          $or: [{ accountId }, { jiraId: accountId }],
+        });
+        // console.log(users);
+        if (!users.length) {
+          console.warn(`No users found for accountId: ${accountId}`);
+          continue;
+        }
+
+        const issueDate = new Date(date);
+
+        for (const user of users) {
+          console.log(`Found user inserting issue for ${user.displayName} - Date: ${issueDate}...`);
+
+          await this.issueEntryModel.findOneAndUpdate(
+            {
+              issueId, // Match by issueId
+              projectUrl, // Match by projectUrl
+              user: new mongoose.Types.ObjectId(user.id), // Ensure uniqueness per user
+            },
+            {
+              serialNumber: i,
+              issueId,
+              issueType: issueType || '',
+              issueStatus,
+              issueSummary,
+              username: user.displayName,
+              planned,
+              link: issueLinks || '',
+              accountId,
+              projectUrl,
+              issueIdUrl,
+              issueLinkUrl,
+              user: new mongoose.Types.ObjectId(user.id),
+              date: issueDate,
+              insight: '',
+            },
+            {
+              upsert: true, // Create if not found
+              new: true, // Return the updated document
+            },
+          );
+        }
+      }
+    }
+
+    console.log('DONE..');
+    return 'DONE';
+  }
+
+  ///----------------------------///
   private async fetchFromAllUrls(endpoint: string): Promise<any> {
     try {
       const url1 = `${this.jiraBaseUrl1}${endpoint}`;
@@ -112,10 +189,24 @@ export class JiraService {
     }
   }
 
-  async getUserIssues(
+  async getUserDetailsFromJira(
+    jiraWorkspaceUrl: string,
     accountId: string,
-    date: string,
-  ): Promise<IJirsUserIssues[]> {
+  ): Promise<IJiraUserData> {
+    const endpoint = `/rest/api/3/user?accountId=${accountId}`;
+    try {
+      const response1 = await firstValueFrom(
+        this.httpService.get(`${jiraWorkspaceUrl}${endpoint}`, {
+          headers: this.headers,
+        }),
+      );
+      return response1.data;
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  async getUserIssues(accountId: string, date: string): Promise<IJirsUserIssues[]> {
     try {
       validateAccountId(accountId);
       validateDate(date);
@@ -316,6 +407,15 @@ export class JiraService {
             dueDate,
             issueLinks: linkedIssues,
           });
+          // this.issueEntryModel.create({
+          //   issueId: issueId,
+          //   issueSummary: summary,
+          //   issueStatus: status,
+          //   issueType: issueType,
+          //   date: dueDate,
+          //   issueLinks: linkedIssues,
+          // });
+          console.log(`Issue created with id: ${issueId}`);
         }
       });
 
@@ -430,6 +530,17 @@ export class JiraService {
             dueDate,
             issueLinks: linkedIssues,
           });
+
+          /// EXPERIMENTAL MODIFICATION
+          // this.issueEntryModel.create({
+          //   issueId: issueId,
+          //   issueSummary: summary,
+          //   issueStatus: status,
+          //   issueType: issueType,
+          //   date: dueDate,
+          //   issueLinks: linkedIssues,
+          // });
+          // console.log(`Issue entry added with Issue ID: ${issueId}`);
         }
       }
 
@@ -463,9 +574,7 @@ export class JiraService {
     try {
       const users = await this.userModel.find().exec();
 
-      const today = new Date(
-        new Date().setDate(new Date().getDate()),
-      ).toLocaleDateString('en-CA', {
+      const today = new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
 
@@ -488,9 +597,7 @@ export class JiraService {
     try {
       const users = await this.userModel.find().exec();
 
-      const today = new Date(
-        new Date().setDate(new Date().getDate()),
-      ).toLocaleDateString('en-CA', {
+      const today = new Date(new Date().setDate(new Date().getDate())).toLocaleDateString('en-CA', {
         timeZone: 'Asia/Dhaka',
       });
 
@@ -549,10 +656,7 @@ export class JiraService {
     }
   }
 
-  async updateMorningIssueHistoryForSpecificUser(
-    accountId: string,
-    date: string,
-  ): Promise<void> {
+  async updateMorningIssueHistoryForSpecificUser(accountId: string, date: string): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId }).exec();
 
@@ -572,10 +676,7 @@ export class JiraService {
     }
   }
 
-  async updateEveningIssueHistoryForSpecificUser(
-    accountId: string,
-    date: string,
-  ): Promise<void> {
+  async updateEveningIssueHistoryForSpecificUser(accountId: string, date: string): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId }).exec();
 
@@ -596,10 +697,7 @@ export class JiraService {
     }
   }
 
-  async calculateDailyMetrics(
-    accountId: string,
-    date: string,
-  ): Promise<IDailyMetrics> {
+  async calculateDailyMetrics(accountId: string, date: string): Promise<IDailyMetrics> {
     try {
       const user = await this.userModel.findOne({ accountId });
       const issueHistory = user.issueHistory;
@@ -681,8 +779,7 @@ export class JiraService {
       // Calculate total done issues
       const totalDoneTasks = doneIssues.filter((issue) => {
         return (
-          issue.issueType === 'Task' &&
-          (issue.status === 'Done' || issue.status === 'In Review')
+          issue.issueType === 'Task' && (issue.status === 'Done' || issue.status === 'In Review')
         );
       }).length;
 
@@ -700,25 +797,21 @@ export class JiraService {
 
       // Calculate completion rates
       const totalNotDoneTasksAndBugs = counts.notDone.Task + counts.notDone.Bug;
-      const totalMatchedDoneTasksAndBugs =
-        matchedDoneTaskIds.length + matchedDoneBugIds.length;
+      const totalMatchedDoneTasksAndBugs = matchedDoneTaskIds.length + matchedDoneBugIds.length;
 
       if (totalNotDoneTasksAndBugs > 0) {
-        taskCompletionRate =
-          (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
+        taskCompletionRate = (totalMatchedDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
       }
 
       const totalNotDoneStories = counts.notDone.Story;
       const totalMatchedDoneStories = matchedDoneStoryIds.length;
 
       if (totalNotDoneStories > 0) {
-        userStoryCompletionRate =
-          (totalMatchedDoneStories / totalNotDoneStories) * 100;
+        userStoryCompletionRate = (totalMatchedDoneStories / totalNotDoneStories) * 100;
       }
 
       // Calculate overall score and comments
-      const totalAllDoneIssues =
-        totalDoneTasks + totalDoneStories + totalDoneBugs;
+      const totalAllDoneIssues = totalDoneTasks + totalDoneStories + totalDoneBugs;
       const totalNotDoneIssues = totalNotDoneTasksAndBugs + totalNotDoneStories;
 
       if (totalNotDoneIssues === 0 && totalAllDoneIssues === 0) {
@@ -729,8 +822,7 @@ export class JiraService {
 
       // Calculate unmatched done issues
       const unmatchedDoneTasks = totalDoneTasks - matchedDoneTaskIds.length;
-      const unmatchedDoneStories =
-        totalDoneStories - matchedDoneStoryIds.length;
+      const unmatchedDoneStories = totalDoneStories - matchedDoneStoryIds.length;
       const unmatchedDoneBugs = totalDoneBugs - matchedDoneBugIds.length;
       const totalUnmatchedDoneIssues =
         unmatchedDoneTasks + unmatchedDoneStories + unmatchedDoneBugs;
@@ -741,10 +833,8 @@ export class JiraService {
 
       // Calculate overall score
       const nonZeroCompletionRates = [];
-      if (totalNotDoneTasksAndBugs > 0)
-        nonZeroCompletionRates.push(taskCompletionRate);
-      if (totalNotDoneStories > 0)
-        nonZeroCompletionRates.push(userStoryCompletionRate);
+      if (totalNotDoneTasksAndBugs > 0) nonZeroCompletionRates.push(taskCompletionRate);
+      if (totalNotDoneStories > 0) nonZeroCompletionRates.push(userStoryCompletionRate);
 
       if (nonZeroCompletionRates.length > 0) {
         overallScore =
@@ -814,10 +904,7 @@ export class JiraService {
     }
   }
 
-  async calculateCurrentPerformance(
-    accountId: string,
-    date: string,
-  ): Promise<void> {
+  async calculateCurrentPerformance(accountId: string, date: string): Promise<void> {
     try {
       const endDate = new Date(date);
       const startDate = new Date(endDate);
@@ -845,8 +932,7 @@ export class JiraService {
         }
       });
 
-      const currentPerformance =
-        validDaysCount > 0 ? totalScore / validDaysCount : 0;
+      const currentPerformance = validDaysCount > 0 ? totalScore / validDaysCount : 0;
 
       user.currentPerformance = currentPerformance;
       await user.save();

@@ -1,5 +1,5 @@
 import { IComment } from '../../../common/interfaces/jira.interfaces';
-import { IUser, User } from '../schemas/user.schema';
+import { IUser, User } from '../../../schemas/user.schema';
 
 export interface IAllUsers {
   message: string;
@@ -29,4 +29,10 @@ export interface IUserWithPagination extends IUser {
   totalIssueHistory: number;
   currentPage: number;
   totalPages: number;
+}
+
+export interface IUserWithOrganization {
+  organizationId: string;
+  userId: string;
+  email: string;
 }

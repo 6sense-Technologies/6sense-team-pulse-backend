@@ -1,18 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { CreateGithubDto } from './dto/create-github.dto';
-import { UpdateGithubDto } from './dto/update-github.dto';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { GitRepo } from '../users/schemas/GitRepo.schema';
-import mongoose, { Model } from 'mongoose';
-import { User } from '../users/schemas/user.schema';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
-import { GitContribution } from '../users/schemas/GitContribution.schema';
+import { Queue } from 'bullmq';
 import { DateTime } from 'luxon';
+import mongoose, { Model, Types } from 'mongoose';
+import { firstValueFrom } from 'rxjs';
+import { GitContribution } from '../../schemas/GitContribution.schema';
+import { GitRepo } from '../../schemas/GitRepo.schema';
+import { User } from '../../schemas/user.schema';
 
 @Injectable()
 export class GithubService {
@@ -25,19 +23,98 @@ export class GithubService {
     private readonly gitContributionModel: Model<GitContribution>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectQueue('git') private gitQueue: Queue,
+  ) {}
+
+  // async getChart(userId: string, date: string) {
+  //   console.log(`UserId: ${userId} Date: ${date}`);
+  //   return 'To be implemented';
+  // }
+  // create(createGithubDto: CreateGithubDto) {
+  //   return 'This action adds a new github';
+  // }
+
+  // findAll() {
+  //   return `This action returns all github`;
+  // }
+
+  async summary(
+    userId: string,
+    date: string,
+    timezoneRegion: string = 'UTC', // Default to UTC if not provided
   ) {
-    // Constructor for injecting userModel
+    const inputDate = new Date(date); // Replace `date` with your input date
+    const dateStart = DateTime.fromJSDate(inputDate, {
+      zone: timezoneRegion,
+    }).startOf('day');
+
+    const dateEnd = DateTime.fromJSDate(inputDate, {
+      zone: timezoneRegion,
+    }).endOf('day');
+
+    const results = await this.gitContributionModel.aggregate([
+      {
+        $match: {
+          user: new Types.ObjectId(userId),
+          date: { $gte: dateStart.toJSDate(), $lte: dateEnd.toJSDate() },
+        },
+      },
+      {
+        $facet: {
+          // Sub-pipeline for summarized results (totals)
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalAdditionsSum: {
+                  $sum: '$totalAdditions',
+                },
+                totalDeletionsSum: {
+                  $sum: '$totalDeletions',
+                },
+                totalContributions: {
+                  $sum: '$totalChanges',
+                },
+                totalWrittenSum: {
+                  $sum: '$totalWritten',
+                },
+              },
+            },
+            {
+              $project: {
+                totalAdditionsSum: 1,
+                totalDeletionsSum: 1,
+                totalContributions: 1,
+                totalWrittenSum: 1,
+                codeChurn: {
+                  $cond: [
+                    { $eq: ['$totalWrittenSum', 0] }, // Check if totalWrittenSum is 0
+                    0, // If true, return 0 to avoid division by zero
+                    {
+                      $divide: ['$totalDeletionsSum', '$totalWrittenSum'],
+                    }, // Otherwise, perform the division
+                  ],
+                },
+              },
+            },
+          ],
+          // Sub-pipeline for total count of documents
+          totalCount: [
+            { $count: 'total' }, // Count total number of documents
+          ],
+        },
+      },
+      {
+        $project: {
+          // Extract the first element from the summary array
+          summary: { $arrayElemAt: ['$summary', 0] },
+        },
+      },
+    ]);
+
+    return results[0];
   }
 
-  create(createGithubDto: CreateGithubDto) {
-    return 'This action adds a new github';
-  }
-
-  findAll() {
-    return `This action returns all github`;
-  }
-
-  async getContributions(userId: string, date: string) {
+  async getContributions(userId: string, date: string, page: number = 1, limit: number = 10) {
     const inputDate = new Date(date); // Replace `date` with your input date
     const dateStart = DateTime.fromJSDate(inputDate, {
       zone: 'Asia/Dhaka',
@@ -47,30 +124,114 @@ export class GithubService {
       zone: 'Asia/Dhaka',
     }).endOf('day');
 
-    // const today = new Date(date);
-    // today.setUTCHours(0, 0, 0, 0); // Start of the day in UTC
+    const results = await this.gitContributionModel.aggregate([
+      {
+        $match: {
+          user: new Types.ObjectId(userId),
+          date: { $gte: dateStart.toJSDate(), $lte: dateEnd.toJSDate() },
+        },
+      },
+      {
+        $facet: {
+          // Sub-pipeline for summarized results (totals)
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalAdditionsSum: {
+                  $sum: '$totalAdditions',
+                },
+                totalDeletionsSum: {
+                  $sum: '$totalDeletions',
+                },
+                totalContributions: {
+                  $sum: '$totalChanges',
+                },
+                totalWrittenSum: {
+                  $sum: '$totalWritten',
+                },
+              },
+            },
+            {
+              $project: {
+                totalAdditionsSum: 1,
+                totalDeletionsSum: 1,
+                totalContributions: 1,
+                totalWrittenSum: 1,
+                codeChurn: {
+                  $cond: [
+                    { $eq: ['$totalWrittenSum', 0] }, // Check if totalWrittenSum is 0
+                    0, // If true, return 0 to avoid division by zero
+                    {
+                      $divide: ['$totalDeletionsSum', '$totalWrittenSum'],
+                    }, // Otherwise, perform the division
+                  ],
+                },
+              },
+            },
+          ],
+          // Sub-pipeline for paginated individual entries
+          data: [
+            { $skip: (page - 1) * limit }, // Skip documents for pagination
+            { $limit: limit }, // Limit the number of documents per page
+            {
+              $lookup: {
+                from: 'gitrepos', // The collection to join with
+                localField: 'gitRepo', // Field from the gitContributions collection
+                foreignField: '_id', // Field from the GitRepo collection
+                as: 'gitRepoDetails', // Output array field
+              },
+            },
+            {
+              $unwind: '$gitRepoDetails', // Unwind the joined array (since $lookup returns an array)
+            },
+            {
+              $project: {
+                totalAdditions: 1,
+                totalDeletions: 1,
+                totalChanges: 1,
+                totalWritten: 1,
+                commitHomeUrl: 1,
+                branch: 1,
+                repo: '$gitRepoDetails.repo', // Include the repo field from the joined collection
+                project: '$gitRepoDetails.project', // Include the project field from the joined collection
+                gitUsername: '$gitRepoDetails.gitUsername', // Include the gitUsername field from the joined collection
+                // Add any other fields you need here
+              },
+            },
+          ],
+          // Sub-pipeline for total count of documents
+          totalCount: [
+            { $count: 'total' }, // Count total number of documents
+          ],
+        },
+      },
+      {
+        $project: {
+          // Extract the first element from the summary array
+          summary: { $arrayElemAt: ['$summary', 0] },
+          // Extract the first element from the totalCount array
+          totalCount: { $arrayElemAt: ['$totalCount.total', 0] },
+          // Keep the data array as is
+          data: 1,
+        },
+      },
+    ]);
 
-    const user = await this.userModel.findOne({ accountId: userId });
-
-    return this.gitContributionModel
-      .find({
-        user: user._id,
-        date: { $gte: dateStart, $lte: dateEnd },
-      })
-      .populate('gitRepo');
+    return results[0];
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} github`;
-  }
+  // findOne(id: number) {
+  //   return `This action returns a #${id} github`;
+  // }
 
-  update(id: number, updateGithubDto: UpdateGithubDto) {
-    return `This action updates a #${id} github`;
-  }
+  // update(id: number, updateGithubDto: UpdateGithubDto) {
+  //   return `This action updates a #${id} github`;
+  // }
 
-  remove(id: number) {
-    return `This action removes a #${id} github`;
-  }
+  // remove(id: number) {
+  //   return `This action removes a #${id} github`;
+  // }
 
   async getLinesChanged(commit, url: string) {
     let totalAdditions = 0;
@@ -127,7 +288,8 @@ export class GithubService {
     };
   }
 
-  async getBranches(gitRepo: any) {
+  async getBranches(gitRepo: GitRepo) {
+    // this.logger.log('Fetching branches for repo:', gitRepo);
     const branchesUrl = `${this.configService.get('GITHUB_API_URL')}${gitRepo.organization}/${gitRepo.repo}/branches`;
     const token = this.configService.get('GITHUB_TOKEN');
 
@@ -176,17 +338,13 @@ export class GithubService {
       }),
     );
 
-    if (response.data) {
-      this.logger.log(`branch response data: ${response.data}`);
+    if (response.data && response.data.length > 0) {
+      // this.logger.log('branch response data:', response.data);
 
       response.data.forEach(async (commit) => {
         const data = await this.getLinesChanged(commit, url);
 
-        if (
-          data.totalAdditions != 0 ||
-          data.totalDeletions != 0 ||
-          data.totalChanges != 0
-        ) {
+        if (data.totalAdditions != 0 || data.totalDeletions != 0 || data.totalChanges != 0) {
           this.logger.log(`data:`);
           this.logger.log(data);
           const res = await this.gitContributionModel.findOneAndUpdate(
@@ -229,10 +387,7 @@ export class GithubService {
 
     const jobs = [];
     const today = DateTime.now().setZone('Asia/Dhaka').startOf('day');
-    const yesterday = DateTime.now()
-      .setZone('Asia/Dhaka')
-      .startOf('day')
-      .minus({ days: 1 });
+    const yesterday = DateTime.now().setZone('Asia/Dhaka').startOf('day').minus({ days: 1 });
     branches.forEach(async (branch) => {
       // this.logger.log(gitRepo.gitUsername);
       // await this.getCommitReport(gitRepo._id.toString());
