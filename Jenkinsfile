@@ -20,7 +20,7 @@ pipeline {
         anyOf {
           branch 'main'
           branch 'master'
-          branch 'test'
+          // branch 'test'
         }
       }
       steps {
@@ -38,7 +38,7 @@ pipeline {
         anyOf {
           branch 'main'
           branch 'master'
-          branch 'test'
+          // branch 'test'
         }
       }
       steps {
@@ -51,7 +51,7 @@ pipeline {
         anyOf {
           branch 'main'
           branch 'master'
-          branch 'test'
+          // branch 'test'
         }
       }
       steps {
@@ -75,7 +75,7 @@ pipeline {
         anyOf {
           branch 'main'
           branch 'master'
-          branch 'test'
+          // branch 'test'
         }
       }
       steps {
@@ -198,12 +198,14 @@ NODE_ENV=production
       script {
         def repo = getRepoFromGitUrl()
         updateGitHubDeploymentStatus(repo, env.BUILD_URL, env.DEPLOYMENT_ID, 'success', (env.BRANCH_NAME == 'test') ? 'Preview' : 'Production', env.DEPLOY_URL)
+        slackSend channel: "#ops4", message: "Build deployed successfully - ${env.JOB_NAME}/${env.GIT_BRANCH} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
       }
     }
     failure {
       script {
         def repo = getRepoFromGitUrl()
         updateGitHubDeploymentStatus(repo, env.BUILD_URL, env.DEPLOYMENT_ID ?: '0', 'failure', (env.BRANCH_NAME == 'test') ? 'Preview' : 'Production', env.DEPLOY_URL)
+        slackSend channel: "#ops4", message: "Build failed - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
       }
     }
   }
