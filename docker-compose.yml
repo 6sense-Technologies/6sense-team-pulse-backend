@@ -40,3 +40,10 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
       - INVITE_EXPIRE=${INVITE_EXPIRE}
       - IMGBB_API_KEY=${IMGBB_API_KEY}
+    networks:
+      - 6sensehq_net
+
+networks:
+  6sensehq_net:
+    external: true
+    name: 6sensehq-network
