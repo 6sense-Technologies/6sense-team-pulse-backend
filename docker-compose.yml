@@ -1,12 +1,47 @@
-version: "3.8"
 services:
-  nestjs-app:
-    build: .
+  6sense-team-pulse-backend:
+    image: ghcr.io/6sense-technologies/6sense-team-pulse-backend:${IMAGE_TAG}
+    container_name: ${CONTAINER_NAME}
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${HOST_PORT}:3000"
     environment:
-      - NODE_OPTIONS=--max-old-space-size=512
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+      - NODE_ENV=production
+      - IMAGE_TAG=${IMAGE_TAG}
+      - CONTAINER_NAME=${CONTAINER_NAME}
+      - HOST_PORT=${HOST_PORT}
+      - MONGODB_URL=${MONGODB_URL}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN}
+      - JIRA_BASE_URL1=${JIRA_BASE_URL1}
+      - JIRA_BASE_URL2=${JIRA_BASE_URL2}
+      - JIRA_EMAIL=${JIRA_EMAIL}
+      - TRELLO_API_KEY=${TRELLO_API_KEY}
+      - TRELLO_SECRET_KEY=${TRELLO_SECRET_KEY}
+      - TRELLO_BOARD_ID_1=${TRELLO_BOARD_ID_1}
+      - TRELLO_BOARD_ID_2=${TRELLO_BOARD_ID_2}
+      - REPORT_BUG_TOKEN=${REPORT_BUG_TOKEN}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - GITHUB_API_URL=${GITHUB_API_URL}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - OTP_PRIVATE_KEY=${OTP_PRIVATE_KEY}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_SERVICE_PORT=${EMAIL_SERVICE_PORT}
+      - EMAIL_SENDER=${EMAIL_SENDER}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRE=${JWT_EXPIRE}
+      - JWT_EXPIRE_REFRESH_TOKEN=${JWT_EXPIRE_REFRESH_TOKEN}
+      - SALT_ROUND=${SALT_ROUND}
+      - INVITE_SECRET=${INVITE_SECRET}
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - INVITE_EXPIRE=${INVITE_EXPIRE}
+      - IMGBB_API_KEY=${IMGBB_API_KEY}

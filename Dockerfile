@@ -1,24 +1,15 @@
-# Base image
-FROM node:20-alpine
+FROM node:24-alpine
 
-# Create app directory
-WORKDIR /usr/src/app
+LABEL org.opencontainers.image.source="https://github.com/6sense-Technologies/6sense-team-pulse-backend"
 
-# A wildcard is used to ensure both package.json AND yarn.lock are copied
-COPY package.json yarn.lock ./
+WORKDIR /6sense-team-pulse-backend
 
-# Install app dependencies
-RUN yarn install --frozen-lockfile
+COPY package*.json ./
+RUN npm install
 
-# Bundle app source
 COPY . .
 
+RUN npm run build
 
-# Creates a "dist" folder with the production build
-RUN yarn build
-
-# Expose the port on which the app will run
-EXPOSE 8000
-
-# Start the server using the production build
-CMD ["yarn", "start:prod"]
+EXPOSE 3000
+CMD ["node", "dist/main"]
