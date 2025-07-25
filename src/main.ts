@@ -56,7 +56,7 @@ async function bootstrap() {
   // console.log('Microservice started');
 
   // Start the web application on port 8000
-  const port = parseInt(process.env.PORT || configService.get('PORT') || '10000', 10);
+  const port = parseInt(process.env.HOST_PORT || configService.get('HOST_PORT') || '10000', 10);
   await webApp.listen(port, '0.0.0.0');
   const server = webApp.getHttpServer();
   const address = server.address();
