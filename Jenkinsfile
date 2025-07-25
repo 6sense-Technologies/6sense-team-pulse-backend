@@ -99,20 +99,21 @@ pipeline {
               includeImports: true,
               path: '/6sense-team-pulse-backend',
               secretValues: [
+                [infisicalKey: 'CONTAINER_NAME'],
+                [infisicalKey: 'HOST_PORT'],
                 [infisicalKey: 'MONGODB_URL'],
-                [infisicalKey: 'JIRA_API_TOKEN'],
-                [infisicalKey: 'JIRA_EMAIL'],
                 [infisicalKey: 'TRELLO_API_KEY'],
                 [infisicalKey: 'TRELLO_SECRET_KEY'],
-                [infisicalKey: 'REPORT_BUG_TOKEN'],
+                [infisicalKey: 'LINEAR_CLIENT_ID'],
+                [infisicalKey: 'LINEAR_CLIENT_SECRET'],
+                [infisicalKey: 'LINEAR_REDIRECT_URI'],
                 [infisicalKey: 'REDIS_URL'],
                 [infisicalKey: 'REDIS_HOST'],
                 [infisicalKey: 'REDIS_PORT'],
+                [infisicalKey: 'REDIS_USERNAME'],
+                [infisicalKey: 'REDIS_PASSWORD'],
                 [infisicalKey: 'GITHUB_API_URL'],
                 [infisicalKey: 'GITHUB_TOKEN'],
-                [infisicalKey: 'MQTT_BROKER_URL'],
-                [infisicalKey: 'MQTT_PASSWORD'],
-                [infisicalKey: 'MQTT_USERNAME'],
                 [infisicalKey: 'OTP_PRIVATE_KEY'],
                 [infisicalKey: 'EMAIL_HOST'],
                 [infisicalKey: 'EMAIL_USERNAME'],
@@ -130,7 +131,6 @@ pipeline {
                 [infisicalKey: 'FRONTEND_URL'],
                 [infisicalKey: 'INVITE_EXPIRE'],
                 [infisicalKey: 'IMGBB_API_KEY'],
-                [infisicalKey: 'HOST_PORT'],
               ]
             )
           ]) {
@@ -141,23 +141,18 @@ IMAGE_TAG=${IMAGE_TAG}
 CONTAINER_NAME=${CONTAINER_NAME}
 HOST_PORT=${HOST_PORT}
 MONGODB_URL=${MONGODB_URL}
-JIRA_API_TOKEN=${JIRA_API_TOKEN}
-JIRA_BASE_URL1=${JIRA_BASE_URL1}
-JIRA_BASE_URL2=${JIRA_BASE_URL2}
-JIRA_EMAIL=${JIRA_EMAIL}
 TRELLO_API_KEY=${TRELLO_API_KEY}
 TRELLO_SECRET_KEY=${TRELLO_SECRET_KEY}
-TRELLO_BOARD_ID_1=${TRELLO_BOARD_ID_1}
-TRELLO_BOARD_ID_2=${TRELLO_BOARD_ID_2}
-REPORT_BUG_TOKEN=${REPORT_BUG_TOKEN}
+LINEAR_CLIENT_ID=${LINEAR_CLIENT_ID}
+LINEAR_CLIENT_SECRET=${LINEAR_CLIENT_SECRET}
+LINEAR_REDIRECT_URI=${LINEAR_REDIRECT_URI}
 REDIS_URL=${REDIS_URL}
 REDIS_HOST=${REDIS_HOST}
 REDIS_PORT=${REDIS_PORT}
+REDIS_USERNAME=${REDIS_USERNAME}
+REDIS_PASSWORD=${REDIS_PASSWORD}
 GITHUB_API_URL=${GITHUB_API_URL}
 GITHUB_TOKEN=${GITHUB_TOKEN}
-MQTT_BROKER_URL=${MQTT_BROKER_URL}
-MQTT_PASSWORD=${MQTT_PASSWORD}
-MQTT_USERNAME=${MQTT_USERNAME}
 OTP_PRIVATE_KEY=${OTP_PRIVATE_KEY}
 EMAIL_HOST=${EMAIL_HOST}
 EMAIL_USERNAME=${EMAIL_USERNAME}
