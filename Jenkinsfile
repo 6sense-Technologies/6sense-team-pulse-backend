@@ -99,7 +99,6 @@ pipeline {
               includeImports: true,
               path: '/6sense-team-pulse-backend',
               secretValues: [
-                [infisicalKey: 'CONTAINER_NAME'],
                 [infisicalKey: 'HOST_PORT'],
                 [infisicalKey: 'MONGODB_URL'],
                 [infisicalKey: 'TRELLO_API_KEY'],
@@ -138,7 +137,7 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'github-pat-6sensehq', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PAT')]) {
               writeFile file: '.env', text: """\
 IMAGE_TAG=${IMAGE_TAG}
-CONTAINER_NAME=${CONTAINER_NAME}
+CONTAINER_NAME=${deployDir}
 HOST_PORT=${HOST_PORT}
 MONGODB_URL=${MONGODB_URL}
 TRELLO_API_KEY=${TRELLO_API_KEY}
