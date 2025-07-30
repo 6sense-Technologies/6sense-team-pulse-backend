@@ -103,16 +103,16 @@ export class UserService {
   }> {
     const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
 
-    const result = await this.organizationModel.aggregate([
+    const result = await this.organizationUserRoleModel.aggregate([
       {
         $match: {
-          _id: new Types.ObjectId(organizationId),
+          organization: new Types.ObjectId(organizationId),
         },
       },
       {
         $lookup: {
           from: 'users',
-          localField: 'users',
+          localField: 'user',
           foreignField: '_id',
           as: 'userDetails',
         },
