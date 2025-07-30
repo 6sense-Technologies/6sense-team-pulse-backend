@@ -5,11 +5,11 @@ LABEL org.opencontainers.image.source="https://github.com/6sense-Technologies/6s
 WORKDIR /6sense-team-pulse-backend
 
 COPY package*.json ./
-RUN npm install
+RUN yarn install
 
 COPY . .
 
-RUN npm run build
+RUN yarn build
 
 EXPOSE 3000
-CMD ["node", "dist/main"]
+CMD ["yarn", "start:prod"]
