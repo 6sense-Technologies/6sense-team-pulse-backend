@@ -175,7 +175,7 @@ export class FeedbackService {
       },
       { $unwind: '$assignedBy' },
 
-      // Add sentOrReceived field, including 'self' if sent to oneself
+      // Add sentOrReceived field, including 'self' if sent to oneself 
       {
         $addFields: {
           sentOrReceived: {
