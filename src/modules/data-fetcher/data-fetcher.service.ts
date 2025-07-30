@@ -11,6 +11,7 @@ import { JiraService } from '../jira/jira.service';
 import { IssueEntry } from '../../schemas/IssueEntry.schema';
 import { Users } from '../../schemas/users.schema';
 import { LinearService } from '../linear/linear.service';
+import { Cron } from '@nestjs/schedule';
 // import * as moment from 'moment';
 @Injectable()
 export class DataFetcherService {
@@ -479,6 +480,7 @@ export class DataFetcherService {
     return 'DONE';
   }
 
+  @Cron('0 */12 * * *', { timeZone: 'UTC' }) // Runs daily at 12:00 AM and 12:00 PM UTC
   async fetchDataFromAllToolUrls(verdict: boolean = false) {
     const tools = await this.toolModel
       .aggregate([
