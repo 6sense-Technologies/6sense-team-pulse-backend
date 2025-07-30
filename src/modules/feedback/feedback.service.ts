@@ -175,6 +175,36 @@ export class FeedbackService {
       },
       { $unwind: '$assignedBy' },
 
+      // Add sentOrReceived field, including 'self' if sent to oneself 
+      {
+        $addFields: {
+          sentOrReceived: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $and: [
+                      { $eq: ['$assignedBy._id', new Types.ObjectId(user.userId)] },
+                      { $eq: ['$assignedTo._id', new Types.ObjectId(user.userId)] },
+                    ],
+                  },
+                  then: 'self',
+                },
+                {
+                  case: { $eq: ['$assignedBy._id', new Types.ObjectId(user.userId)] },
+                  then: 'sent',
+                },
+                {
+                  case: { $eq: ['$assignedTo._id', new Types.ObjectId(user.userId)] },
+                  then: 'received',
+                },
+              ],
+              default: null,
+            },
+          },
+        },
+      },
+
       ...(query.search ? [{ $match: searchMatch }] : []),
 
       {
