@@ -67,7 +67,7 @@ export class ActivityLogsProcessor implements OnModuleInit {
 
       const allSessions = [...crossBatchSessions, ...currentSessions];
 
-      await this.updateLastLogInRedis(organization_id, user_id, sortedLogs.at(-1));
+      await this.updateLastLogInRedis(organization_id, user_id, sortedLogs[sortedLogs.length - 1]);
       await this.persistSessions(allSessions, organization_id, user_id);
     } catch (error) {
       this.logger.error(`❌ Error processing job ${job.id}`, error.stack);
