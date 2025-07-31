@@ -1779,10 +1779,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@linear/sdk@^44.1.0":
-  version "44.1.0"
-  resolved "https://registry.npmjs.org/@linear/sdk/-/sdk-44.1.0.tgz"
-  integrity sha512-zMjmaiKYPCMnDDPxYKKtLdA8eaKO3pwpfDTWZzUqiFez+MSfZAzuFrSOqP4Wv02c3gYYamfGNE2vZdsAUzVUEg==
+"@linear/sdk@^53.0.0":
+  version "53.0.0"
+  resolved "https://registry.yarnpkg.com/@linear/sdk/-/sdk-53.0.0.tgz#37651f4b3a2fdc43d2fc17937350b40ab667f8a1"
+  integrity sha512-KWsNUDc8JkIGn4lqvy6EKXoMDY1QedBOVQWO8MhrbUFR8QuYtthVL0YknK9eCcW5j1sDQCvRuyesvDVgpwxEFw==
   dependencies:
     "@graphql-typed-document-node/core" "^3.1.0"
     graphql "^15.4.0"
