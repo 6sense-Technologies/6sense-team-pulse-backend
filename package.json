@@ -55,7 +55,6 @@
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.48",
     "mongoose": "^8.16.4",
-    "mqtt": "^5.13.0",
     "multer": "^2.0.0",
     "node-schedule": "^2.1.1",
     "nodemailer": "^7.0.3",
