@@ -480,7 +480,7 @@ export class DataFetcherService {
     return 'DONE';
   }
 
-  @Cron('0 */12 * * *', { timeZone: 'UTC' }) // Runs daily at 12:00 AM and 12:00 PM UTC
+  @Cron('0 * * * *', { timeZone: 'UTC' }) // Runs every hour at minute 0 (e.g., 1:00, 2:00, etc.) UTC
   async fetchDataFromAllToolUrls(verdict: boolean = false) {
     const tools = await this.toolModel
       .aggregate([
