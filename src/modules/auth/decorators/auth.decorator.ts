@@ -3,7 +3,13 @@ import { AccessTokenGuard } from '../guards/accessToken.guard';
 import { AuthGuard } from '../guards/auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
-export const Auth = (roles: string[] = []) => {
+export const Auth = (roles: string[] = [], hasOrg: boolean = true) => {
+  if ( !hasOrg ) { 
+    return applyDecorators(
+      UseGuards( AccessTokenGuard ),
+      ApiBearerAuth(),
+    );
+  }
   const ROLES_KEY = 'roles';
   return applyDecorators(
     SetMetadata(ROLES_KEY, roles),
