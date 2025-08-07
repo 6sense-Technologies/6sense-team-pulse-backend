@@ -90,7 +90,7 @@ export class AuthController {
     return this.authService.listOrganizations(req['user'].userId);
   }
 
-  @Auth()
+  @Auth([], false)
   @Post('change-organization')
   changeOrganization(
     @Body() changeOrg: ChangeOrganization,
