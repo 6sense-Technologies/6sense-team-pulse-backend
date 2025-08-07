@@ -193,7 +193,8 @@ export class OrganizationService {
       .sort({ lastAccessed: -1 })
       .limit(1);
     if (!organizationUserRole || organizationUserRole.length === 0) {
-      throw new NotFoundException(`No organization found for user with ID ${userId}`);
+      console.log(`No organization found for user with ID ${userId}`);
+      return null;
     }
     await this.updateLastAccessed(userId, organizationUserRole[0].organization);
     return organizationUserRole[0].organization;

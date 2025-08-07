@@ -120,13 +120,13 @@ export class AuthService {
       '', // Fix: organizationId should be passed here if available
     );
     //TODO: CURRENTLY IT IS ASSUMED THAT WHOEVER CREATED THE ORG IS ADMIN. NEED TO FIX THIS BY ADDING INFO IN USERORGANIZATIONROLE MODEL
-    const organizations = await this.organizationModel.find({
-      createdBy: userObject._id,
+    const organizationUserRoles = await this.organizationUserRoleModel.find({
+      user: userObject._id,
     });
 
-    console.log(organizations);
+    console.log(organizationUserRoles);
     console.log(userObject);
-    if (organizations.length > 0) {
+    if (organizationUserRoles.length > 0) {
       userObject['hasOrganization'] = true;
     } else {
       userObject['hasOrganization'] = false;
@@ -181,10 +181,10 @@ export class AuthService {
     const userInfo = user.toObject();
 
     delete userInfo.password;
-    const organizations = await this.organizationModel.find({
-      createdBy: userInfo._id,
+    const organizationUserRoles = await this.organizationUserRoleModel.find({
+      user: userInfo._id,
     });
-    if (organizations.length > 0) {
+    if (organizationUserRoles.length > 0) {
       // Todo need to fix this
       userInfo['hasOrganization'] = true;
       userInfo['role'] = 'admin';
@@ -198,6 +198,8 @@ export class AuthService {
         userInfo['hasOrganization'] = true;
       }
     }
+
+    console.log(userInfo);
     return {
       userInfo,
       accessToken: accessToken,
