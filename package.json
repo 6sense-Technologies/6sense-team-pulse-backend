@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@compodoc/compodoc": "^1.1.26",
-    "@linear/sdk": "^53.0.0",
+    "@linear/sdk": "^55.0.0",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/bullmq": "^11.0.2",
